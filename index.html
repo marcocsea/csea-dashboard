@@ -7,20 +7,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
-:root{--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--gold:#f59e0b;--cyan:#06b6d4;--purple:#a855f7;--bg1:#0a0e1a;--bg2:#111827;--bg3:#1f2937;--bg4:#374151;--border:#2d3748;--text:#e2e8f0;--sub:#9ca3af}
-.header{background:linear-gradient(135deg,#0f172a,#1e1b4b);border-bottom:1px solid #312e81;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+body{background:#f1f5f9;color:#1e293b;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+:root{--blue:#3b82f6;--green:#16a34a;--red:#dc2626;--gold:#d97706;--cyan:#0891b2;--purple:#7c3aed;--bg1:#f1f5f9;--bg2:#ffffff;--bg3:#f8fafc;--bg4:#e2e8f0;--border:#e2e8f0;--text:#1e293b;--sub:#64748b}
+.header{background:linear-gradient(135deg,#1e3a5f,#1e1b4b);border-bottom:1px solid #1e3a5f;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
 .logo{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.5px;white-space:nowrap}
 .logo span{color:var(--gold)}
-.badge{background:#312e81;color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge{background:rgba(255,255,255,.15);color:#bfdbfe;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
-.status-dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
-.status-txt{font-size:12px;color:var(--sub);white-space:nowrap}
-.last-sync{font-size:11px;color:var(--sub);white-space:nowrap}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px #22c55e;flex-shrink:0}
+.status-dot.off{background:#ef4444;box-shadow:0 0 6px #ef4444}
+.status-txt{font-size:12px;color:#bfdbfe;white-space:nowrap}
+.last-sync{font-size:11px;color:#93c5fd;white-space:nowrap}
 .acct-select-wrap{display:flex;align-items:center;gap:8px}
-.acct-label{font-size:11px;color:var(--sub);white-space:nowrap}
-.acct-select{background:#1e1b4b;border:1px solid #4338ca;color:#a5b4fc;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;outline:none;cursor:pointer;max-width:200px}
+.acct-label{font-size:11px;color:#93c5fd;white-space:nowrap}
+.acct-select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;outline:none;cursor:pointer;max-width:200px}
+.acct-select option{background:#1e3a5f;color:#fff}
 .tabs{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px}
 .tab{padding:12px 16px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
 .tab:hover{color:var(--text)}
@@ -759,7 +760,7 @@ function renderCompare() {
   }
 
   const notLoaded=statsList.filter(x=>!x.stats&&x.account.id!==selectedAccountId);
-  const hint=notLoaded.length?`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--sub)">
+  const hint=notLoaded.length?`<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--sub)">
     💡 To compare all accounts, select each one from the dropdown first so its data loads into the cache.
   </div>`:'';
 
@@ -833,8 +834,8 @@ function closeInspector() {
 function afterRender() {
   const cd={responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false}},
-    scales:{x:{ticks:{color:'#6b7280',maxTicksLimit:8},grid:{color:'#1f2937'}},
-            y:{ticks:{color:'#6b7280'},grid:{color:'#1f2937'}}}};
+    scales:{x:{ticks:{color:'#94a3b8',maxTicksLimit:8},grid:{color:'#f1f5f9'}},
+            y:{ticks:{color:'#94a3b8'},grid:{color:'#f1f5f9'}}}};
 
   const eq=document.getElementById('eqChart');
   if(eq&&db.daily.length) charts.eq=new Chart(eq,{type:'line',data:{
