@@ -9,8 +9,6 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
 :root{--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--gold:#f59e0b;--cyan:#06b6d4;--purple:#a855f7;--bg1:#0a0e1a;--bg2:#111827;--bg3:#1f2937;--bg4:#374151;--border:#2d3748;--text:#e2e8f0;--sub:#9ca3af}
-
-/* HEADER */
 .header{background:linear-gradient(135deg,#0f172a,#1e1b4b);border-bottom:1px solid #312e81;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
 .logo{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.5px;white-space:nowrap}
 .logo span{color:var(--gold)}
@@ -20,42 +18,25 @@ body{background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-seri
 .status-dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
 .status-txt{font-size:12px;color:var(--sub);white-space:nowrap}
 .last-sync{font-size:11px;color:var(--sub);white-space:nowrap}
-
-/* ACCOUNT SELECTOR */
 .acct-select-wrap{display:flex;align-items:center;gap:8px}
 .acct-label{font-size:11px;color:var(--sub);white-space:nowrap}
 .acct-select{background:#1e1b4b;border:1px solid #4338ca;color:#a5b4fc;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;outline:none;cursor:pointer;max-width:200px}
-.acct-select:focus{border-color:var(--blue)}
-.acct-info{font-size:11px;color:var(--sub);white-space:nowrap;display:none}
-
-/* TABS */
 .tabs{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px}
 .tab{padding:12px 16px;font-size:13px;font-weight:500;color:var(--sub);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
 .tab:hover{color:var(--text)}
 .tab.active{color:#fff;border-bottom-color:var(--blue)}
-
-/* MAIN */
 .main{padding:24px;max-width:1400px;margin:0 auto}
-
-/* KPI CARDS */
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px}
 .kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;transition:border-color .2s}
 .kpi:hover{border-color:var(--blue)}
 .kpi-label{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
 .kpi-value{font-size:22px;font-weight:700;color:#fff}
-.kpi-value.green{color:var(--green)}
-.kpi-value.red{color:var(--red)}
-.kpi-value.gold{color:var(--gold)}
-.kpi-value.cyan{color:var(--cyan)}
+.kpi-value.green{color:var(--green)}.kpi-value.red{color:var(--red)}.kpi-value.gold{color:var(--gold)}.kpi-value.cyan{color:var(--cyan)}
 .kpi-sub{font-size:11px;color:var(--sub);margin-top:4px}
-
-/* CHARTS ROW */
 .charts-row{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
 .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px}
 .chart-title{font-size:13px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
 .chart-wrap{position:relative;height:200px}
-
-/* TABLE */
 .table-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:24px}
 .table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .table-title{font-size:14px;font-weight:600;color:#fff}
@@ -69,30 +50,23 @@ td{padding:10px 12px;border-bottom:1px solid var(--border)}
 tr:hover td{background:var(--bg3);cursor:pointer}
 .badge-open{background:#1a3a2a;color:var(--green);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .badge-closed{background:#1a2035;color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
-.badge-partial{background:#2a2a1a;color:var(--gold);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
-.badge-blocked{background:#2a1a1a;color:var(--red);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.badge-buy{background:#1a3a2a;color:var(--green);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.badge-sell{background:#2a1a1a;color:var(--red);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .badge-opened{background:#1a3a2a;color:var(--green);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
-
-/* ACCOUNT CARD (overview header) */
+.badge-blocked{background:#2a1a1a;color:var(--red);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .acct-card{background:linear-gradient(135deg,#1e1b4b,#0f172a);border:1px solid #312e81;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .acct-card-name{font-size:16px;font-weight:700;color:#fff}
 .acct-card-sub{font-size:12px;color:#a5b4fc;margin-top:2px}
 .acct-card-pills{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
 .pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
-.pill-demo{background:#1e3a5f;color:#60a5fa}
-.pill-live{background:#1a3a2a;color:#22c55e}
-.pill-mt5{background:#2a1a4a;color:#a855f7}
-.pill-mt4{background:#3a2a1a;color:#f59e0b}
-
-/* HEATMAP */
+.pill-demo{background:#1e3a5f;color:#60a5fa}.pill-live{background:#1a3a2a;color:#22c55e}
+.pill-mt5{background:#2a1a4a;color:#a855f7}.pill-mt4{background:#3a2a1a;color:#f59e0b}
 .heatmap{display:flex;flex-wrap:wrap;gap:10px;padding:20px}
 .tile{border-radius:8px;padding:14px 18px;min-width:120px;text-align:center;border:1px solid transparent}
 .tile-sym{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
 .tile-wr{font-size:22px;font-weight:700}
 .tile-wl{font-size:10px;color:var(--sub);margin-top:2px}
 .tile-pnl{font-size:10px;margin-top:2px}
-
-/* SLIDE-OUT INSPECTOR */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none}
 .overlay.open{display:block}
 .inspector{position:fixed;right:0;top:0;bottom:0;width:400px;background:#0f172a;border-left:1px solid #312e81;z-index:201;transform:translateX(100%);transition:transform .3s ease;overflow-y:auto;padding:24px}
@@ -103,22 +77,13 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 .insp-section{margin-bottom:16px}
 .insp-section-title{font-size:11px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
 .insp-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px}
-.insp-row .lbl{color:var(--sub)}
-.insp-row .val{color:#fff;font-weight:500}
+.insp-row .lbl{color:var(--sub)}.insp-row .val{color:#fff;font-weight:500}
 .news-flag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;margin-top:8px}
-.news-clean{background:#1a3a2a;color:var(--green)}
-.news-adjacent{background:#2a2a1a;color:var(--gold)}
-.news-high{background:#2a1a1a;color:var(--red)}
-
-/* CALENDAR */
+.news-clean{background:#1a3a2a;color:var(--green)}.news-adjacent{background:#2a2a1a;color:var(--gold)}.news-high{background:#2a1a1a;color:var(--red)}
 .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:20px}
-.cal-day{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;cursor:pointer;position:relative}
-.cal-day.hit{background:#1a3a2a;color:var(--green)}
-.cal-day.loss{background:#2a1a1a;color:var(--red)}
-.cal-day.nodata{background:var(--bg3);color:var(--sub)}
-.cal-day.empty{background:transparent}
-
-/* LOADING / EMPTY */
+.cal-day{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;cursor:pointer}
+.cal-day.hit{background:#1a3a2a;color:var(--green)}.cal-day.loss{background:#2a1a1a;color:var(--red)}
+.cal-day.nodata{background:var(--bg3);color:var(--sub)}.cal-day.empty{background:transparent}
 .loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;color:var(--sub);gap:12px}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -126,18 +91,53 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 .empty-icon{font-size:40px;margin-bottom:12px}
 .empty-msg{font-size:14px;margin-bottom:6px;color:var(--text)}
 .empty-sub{font-size:12px}
-
-/* NO ACCOUNT SELECTED */
 .no-acct{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;text-align:center;gap:12px}
-.no-acct-icon{font-size:48px}
-.no-acct-title{font-size:18px;font-weight:700;color:#fff}
+.no-acct-icon{font-size:48px}.no-acct-title{font-size:18px;font-weight:700;color:#fff}
 .no-acct-sub{font-size:13px;color:var(--sub);max-width:400px}
+
+/* ── POSITIONS TAB ── */
+.pos-live-badge{display:inline-flex;align-items:center;gap:6px;background:#1a3a2a;color:var(--green);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.pos-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.pos-summary{display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:16px 20px;background:var(--bg3);border-bottom:1px solid var(--border)}
+.pos-summary-item{font-size:12px;color:var(--sub)}
+.pos-summary-item span{color:#fff;font-weight:600;margin-left:4px}
+.pos-summary-item span.green{color:var(--green)}
+.pos-summary-item span.red{color:var(--red)}
+.pos-row-buy td:first-child{border-left:3px solid var(--green)}
+.pos-row-sell td:first-child{border-left:3px solid var(--red)}
+.pnl-bar-wrap{width:60px;height:6px;background:var(--bg4);border-radius:3px;display:inline-block;vertical-align:middle;margin-left:6px}
+.pnl-bar{height:6px;border-radius:3px}
+
+/* ── COMPARE TAB ── */
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;margin-bottom:24px}
+.compare-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s}
+.compare-card:hover{border-color:var(--blue)}
+.compare-card-header{background:linear-gradient(135deg,#1e1b4b,#0f172a);padding:16px 20px;border-bottom:1px solid #312e81;display:flex;align-items:center;justify-content:space-between}
+.compare-card-name{font-size:15px;font-weight:700;color:#fff}
+.compare-card-pills{display:flex;gap:6px}
+.compare-kpis{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)}
+.compare-kpi{background:var(--bg2);padding:14px 16px}
+.compare-kpi-label{font-size:10px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.compare-kpi-value{font-size:18px;font-weight:700;color:#fff}
+.compare-kpi-value.green{color:var(--green)}.compare-kpi-value.red{color:var(--red)}
+.compare-kpi-value.gold{color:var(--gold)}.compare-kpi-value.cyan{color:var(--cyan)}
+.compare-equity{padding:16px 20px;border-top:1px solid var(--border)}
+.compare-eq-title{font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.compare-eq-wrap{height:80px;position:relative}
+.compare-section-title{font-size:13px;font-weight:600;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.compare-bar-section{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px}
+.compare-bar-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:12px}
+.compare-bar-label{width:100px;color:var(--sub);flex-shrink:0;text-align:right}
+.compare-bar-track{flex:1;height:8px;background:var(--bg3);border-radius:4px;position:relative}
+.compare-bar-fill{height:8px;border-radius:4px;transition:width .6s ease}
+.compare-bar-value{width:60px;text-align:right;color:#fff;font-weight:600;flex-shrink:0}
 
 @media(max-width:768px){
   .charts-row{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .inspector{width:100%}
-  .acct-info{display:none!important}
+  .compare-grid{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -145,15 +145,13 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 
 <div class="header">
   <div class="logo">⚡ <span>CSEA</span> Intelligence</div>
-  <div class="badge">v2.0</div>
-  <!-- Account selector -->
+  <div class="badge">v3.0</div>
   <div class="acct-select-wrap">
     <span class="acct-label">Account:</span>
     <select class="acct-select" id="acctSelect" onchange="onAccountChange(this.value)">
       <option value="">— Select account —</option>
     </select>
   </div>
-  <span class="acct-info" id="acctInfo"></span>
   <div class="header-right">
     <div class="status-dot" id="statusDot"></div>
     <span class="status-txt" id="statusTxt">Connecting...</span>
@@ -163,10 +161,12 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 
 <div class="tabs">
   <button class="tab active" onclick="setTab('overview',this)">Overview</button>
+  <button class="tab" onclick="setTab('positions',this)">Positions</button>
   <button class="tab" onclick="setTab('trades',this)">Trades</button>
   <button class="tab" onclick="setTab('signals',this)">Signals</button>
   <button class="tab" onclick="setTab('daily',this)">Daily</button>
   <button class="tab" onclick="setTab('heatmap',this)">Pair Heatmap</button>
+  <button class="tab" onclick="setTab('compare',this)">Compare</button>
 </div>
 
 <div class="main" id="main">
@@ -180,63 +180,49 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 </div>
 
 <script>
-// ── CONFIG ──────────────────────────────────────────────────────
 const SUPA_URL = 'https://nmyveijljquxvhjelqbc.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5teXZlaWpsanF1eHZoamVscWJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjc2MjgsImV4cCI6MjA4Nzk0MzYyOH0.YT-sAh2Spn1805dnylTsZ2gBx-T7yC6fyOKIs0YPlP4';
 
-// ── STATE ───────────────────────────────────────────────────────
 let db = { trades:[], signals:[], daily:[], accounts:[] };
 let currentTab = 'overview';
 let charts = {};
-let filterSym = 'ALL', filterDir = 'ALL', filterResult = 'ALL';
-let selectedAccountId = '';
-let selectedAccount = null;
+let filterSym='ALL', filterDir='ALL', filterResult='ALL';
+let selectedAccountId='', selectedAccount=null;
+let allAccountsData = {}; // cache for compare tab: { account_id: {trades,daily} }
 
-// ── SUPABASE FETCH ───────────────────────────────────────────────
 async function query(table, params='') {
   const r = await fetch(`${SUPA_URL}/rest/v1/${table}?${params}&limit=5000`, {
-    headers: { apikey: SUPA_KEY, Authorization: `Bearer ${SUPA_KEY}` }
+    headers:{ apikey:SUPA_KEY, Authorization:`Bearer ${SUPA_KEY}` }
   });
   if(!r.ok) throw new Error(`${table}: ${r.status}`);
   return r.json();
 }
 
-// ── INIT — load accounts first, then data for selected ──────────
 async function init() {
   try {
-    const accounts = await query('accounts', 'order=user_id.asc');
+    const accounts = await query('accounts','order=user_id.asc');
     db.accounts = accounts;
-
-    // Populate account dropdown
     const sel = document.getElementById('acctSelect');
     sel.innerHTML = '<option value="">— Select account —</option>';
     accounts.forEach(a => {
       const label = a.user_id || a.account_number || a.id.slice(0,8);
       const type  = a.account_type ? ` [${a.account_type.toUpperCase()}]` : '';
       const opt = document.createElement('option');
-      opt.value = a.id;
-      opt.textContent = label + type;
+      opt.value = a.id; opt.textContent = label+type;
       sel.appendChild(opt);
     });
-
-    // Auto-select if only one account, or restore last selection
     const saved = localStorage.getItem('csea_account_id');
     if(saved && accounts.find(a=>a.id===saved)) {
-      sel.value = saved;
-      await onAccountChange(saved);
-    } else if(accounts.length === 1) {
-      sel.value = accounts[0].id;
-      await onAccountChange(accounts[0].id);
-    } else {
-      showNoAccountSelected();
-    }
-
-    document.getElementById('statusDot').className = 'status-dot';
-    document.getElementById('statusTxt').textContent = 'Live';
+      sel.value = saved; await onAccountChange(saved);
+    } else if(accounts.length===1) {
+      sel.value = accounts[0].id; await onAccountChange(accounts[0].id);
+    } else showNoAccountSelected();
+    document.getElementById('statusDot').className='status-dot';
+    document.getElementById('statusTxt').textContent='Live';
   } catch(e) {
-    document.getElementById('statusDot').className = 'status-dot off';
-    document.getElementById('statusTxt').textContent = 'Error';
-    document.getElementById('main').innerHTML =
+    document.getElementById('statusDot').className='status-dot off';
+    document.getElementById('statusTxt').textContent='Error';
+    document.getElementById('main').innerHTML=
       `<div class="empty-state"><div class="empty-icon">⚠️</div>
        <div class="empty-msg">Could not connect to Supabase</div>
        <div class="empty-sub">${e.message}</div></div>`;
@@ -244,66 +230,50 @@ async function init() {
 }
 
 async function onAccountChange(id) {
-  if(!id) { selectedAccountId=''; selectedAccount=null; showNoAccountSelected(); return; }
-  selectedAccountId = id;
-  selectedAccount = db.accounts.find(a=>a.id===id) || null;
-  localStorage.setItem('csea_account_id', id);
-
-  // Update header info pill
-  const info = document.getElementById('acctInfo');
-  if(selectedAccount) {
-    const broker = selectedAccount.broker || selectedAccount.account_number || '';
-    const type   = selectedAccount.account_type || '';
-    info.textContent = broker ? `${broker}${type?' · '+type.toUpperCase():''}` : '';
-    info.style.display = broker ? 'block' : 'none';
-  }
-
+  if(!id){ selectedAccountId=''; selectedAccount=null; showNoAccountSelected(); return; }
+  selectedAccountId=id;
+  selectedAccount=db.accounts.find(a=>a.id===id)||null;
+  localStorage.setItem('csea_account_id',id);
   await loadAccountData(id);
 }
 
 async function loadAccountData(id) {
-  document.getElementById('main').innerHTML =
+  document.getElementById('main').innerHTML=
     '<div class="loading"><div class="spinner"></div><span>Loading data...</span></div>';
   try {
-    const filter = `account_id=eq.${id}`;
-    const [trades, signals, daily] = await Promise.all([
-      query('trades',   filter+'&order=ts.asc'),
-      query('signals',  filter+'&order=ts.asc'),
-      query('daily',    filter+'&order=date.asc'),
+    const f=`account_id=eq.${id}`;
+    const [trades,signals,daily] = await Promise.all([
+      query('trades',  f+'&order=ts.asc'),
+      query('signals', f+'&order=ts.asc'),
+      query('daily',   f+'&order=date.asc'),
     ]);
-    db.trades   = trades;
-    db.signals  = signals;
-    db.daily    = daily;
-    document.getElementById('lastSync').textContent = 'Synced '+new Date().toLocaleTimeString();
-    // Reset filters on account switch
+    db.trades=trades; db.signals=signals; db.daily=daily;
+    // cache for compare
+    allAccountsData[id]={trades,daily};
+    document.getElementById('lastSync').textContent='Synced '+new Date().toLocaleTimeString();
     filterSym='ALL'; filterDir='ALL'; filterResult='ALL';
     render();
   } catch(e) {
-    document.getElementById('main').innerHTML =
+    document.getElementById('main').innerHTML=
       `<div class="empty-state"><div class="empty-icon">⚠️</div>
-       <div class="empty-msg">Error loading account data</div>
-       <div class="empty-sub">${e.message}</div></div>`;
+       <div class="empty-msg">Error loading data</div><div class="empty-sub">${e.message}</div></div>`;
   }
 }
 
-function showNoAccountSelected() {
-  document.getElementById('main').innerHTML = `
-    <div class="no-acct">
-      <div class="no-acct-icon">👆</div>
-      <div class="no-acct-title">Select an account</div>
-      <div class="no-acct-sub">Choose an account from the dropdown above to view its trading data.</div>
-    </div>`;
-}
-
-// ── AUTO REFRESH ─────────────────────────────────────────────────
 async function refresh() {
-  if(!selectedAccountId || document.visibilityState!=='visible') return;
+  if(!selectedAccountId||document.visibilityState!=='visible') return;
   await loadAccountData(selectedAccountId);
 }
 
-// ── TAB ROUTING ──────────────────────────────────────────────────
-function setTab(tab, el) {
-  currentTab = tab;
+function showNoAccountSelected() {
+  document.getElementById('main').innerHTML=`
+    <div class="no-acct"><div class="no-acct-icon">👆</div>
+    <div class="no-acct-title">Select an account</div>
+    <div class="no-acct-sub">Choose an account from the dropdown above to view its trading data.</div></div>`;
+}
+
+function setTab(tab,el) {
+  currentTab=tab;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   render();
@@ -311,13 +281,15 @@ function setTab(tab, el) {
 
 function render() {
   destroyCharts();
-  const m = document.getElementById('main');
+  const m=document.getElementById('main');
+  if(currentTab==='compare'){ m.innerHTML=renderCompare(); afterRender(); return; }
   if(!selectedAccountId){ showNoAccountSelected(); return; }
-  if(currentTab==='overview') m.innerHTML = renderOverview();
-  else if(currentTab==='trades')  m.innerHTML = renderTrades();
-  else if(currentTab==='signals') m.innerHTML = renderSignals();
-  else if(currentTab==='daily')   m.innerHTML = renderDaily();
-  else if(currentTab==='heatmap') m.innerHTML = renderHeatmap();
+  if(currentTab==='overview')  m.innerHTML=renderOverview();
+  else if(currentTab==='positions') m.innerHTML=renderPositions();
+  else if(currentTab==='trades')   m.innerHTML=renderTrades();
+  else if(currentTab==='signals')  m.innerHTML=renderSignals();
+  else if(currentTab==='daily')    m.innerHTML=renderDaily();
+  else if(currentTab==='heatmap')  m.innerHTML=renderHeatmap();
   afterRender();
 }
 
@@ -326,100 +298,100 @@ function destroyCharts() {
   charts={};
 }
 
-// ── KPI HELPER ───────────────────────────────────────────────────
-function kpi(label, val, sub, clr) {
+function kpi(label,val,sub,clr) {
   return `<div class="kpi"><div class="kpi-label">${label}</div>
     <div class="kpi-value ${clr||''}">${val}</div>
     ${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
 }
 
-// ── ACCOUNT CARD ─────────────────────────────────────────────────
 function renderAccountCard() {
   if(!selectedAccount) return '';
-  const a = selectedAccount;
-  const name   = a.user_id || 'Account';
-  const broker = a.broker  || '';
-  const acctNo = a.account_number ? `#${a.account_number}` : '';
-  const type   = a.account_type || '';
-  const typePill = type==='live'
-    ? '<span class="pill pill-live">● LIVE</span>'
-    : '<span class="pill pill-demo">● DEMO</span>';
-  const platPill = (a.platform||'mt5').toLowerCase()==='mt4'
-    ? '<span class="pill pill-mt4">MT4</span>'
-    : '<span class="pill pill-mt5">MT5</span>';
-
+  const a=selectedAccount;
+  const name=a.user_id||'Account', broker=a.broker||'', acctNo=a.account_number?`#${a.account_number}`:'';
+  const type=a.account_type||'';
+  const typePill=type==='live'?'<span class="pill pill-live">● LIVE</span>':'<span class="pill pill-demo">● DEMO</span>';
+  const platPill=(a.platform||'mt5').toLowerCase()==='mt4'?'<span class="pill pill-mt4">MT4</span>':'<span class="pill pill-mt5">MT5</span>';
   return `<div class="acct-card">
-    <div>
-      <div class="acct-card-name">${name}</div>
-      <div class="acct-card-sub">${[broker,acctNo].filter(Boolean).join(' · ')}</div>
-    </div>
-    <div class="acct-card-pills">${typePill}${platPill}</div>
-  </div>`;
+    <div><div class="acct-card-name">${name}</div>
+    <div class="acct-card-sub">${[broker,acctNo].filter(Boolean).join(' · ')}</div></div>
+    <div class="acct-card-pills">${typePill}${platPill}</div></div>`;
+}
+
+// ── OPEN POSITIONS helpers ───────────────────────────────────────
+function getOpenPositions() {
+  // Tickets that have a CLOSE event
+  const closedTickets = new Set(
+    db.trades.filter(r=>r.event==='CLOSE'||r.event==='CompoundClose').map(r=>r.ticket)
+  );
+  // Latest OPEN record per ticket (in case of upsert duplicates, take last)
+  const openMap={};
+  db.trades.filter(r=>r.event==='OPEN'&&!closedTickets.has(r.ticket))
+    .forEach(r=>{ openMap[r.ticket]=r; });
+  return Object.values(openMap);
 }
 
 // ── STATS ────────────────────────────────────────────────────────
 function getClosedTrades() {
-  const map = {};
-  db.trades.forEach(r => {
+  const map={};
+  db.trades.forEach(r=>{
     if(!map[r.ticket]) map[r.ticket]={};
     map[r.ticket][r.event]=r;
-    if(!map[r.ticket]._open && r.event==='OPEN') map[r.ticket]._open=r;
+    if(!map[r.ticket]._open&&r.event==='OPEN') map[r.ticket]._open=r;
   });
-  return Object.values(map).filter(t=>t.CLOSE||t.CompoundClose).map(t => {
-    const open  = t.OPEN||t._open||{};
-    const close = t.CLOSE||t.CompoundClose||{};
+  return Object.values(map).filter(t=>t.CLOSE||t.CompoundClose).map(t=>{
+    const open=t.OPEN||t._open||{}, close=t.CLOSE||t.CompoundClose||{};
     return {...open, closePnL:close.pnl||0, closeTime:close.ts, event:close.event};
   });
 }
 
-function calcStats() {
-  const closed = getClosedTrades();
+function calcStats(trades, daily) {
+  trades = trades || db.trades;
+  daily  = daily  || db.daily;
+  const map={};
+  trades.forEach(r=>{
+    if(!map[r.ticket]) map[r.ticket]={};
+    map[r.ticket][r.event]=r;
+    if(!map[r.ticket]._open&&r.event==='OPEN') map[r.ticket]._open=r;
+  });
+  const closed=Object.values(map).filter(t=>t.CLOSE||t.CompoundClose).map(t=>{
+    const open=t.OPEN||t._open||{}, close=t.CLOSE||t.CompoundClose||{};
+    return {...open, closePnL:close.pnl||0};
+  });
   if(!closed.length) return null;
-  const wins = closed.filter(t=>t.closePnL>0);
-  const losses = closed.filter(t=>t.closePnL<0);
-  const winRate = closed.length?(wins.length/closed.length*100):0;
-  const totalPnL = closed.reduce((s,t)=>s+t.closePnL,0);
-  const avgWin  = wins.length?wins.reduce((s,t)=>s+t.closePnL,0)/wins.length:0;
-  const avgLoss = losses.length?losses.reduce((s,t)=>s+t.closePnL,0)/losses.length:0;
-  const sumWins = wins.reduce((s,t)=>s+t.closePnL,0);
-  const sumLoss = Math.abs(losses.reduce((s,t)=>s+t.closePnL,0));
-  const profitFactor = sumLoss>0?sumWins/sumLoss:sumWins>0?999:0;
-  const rr = avgLoss!==0?Math.abs(avgWin/avgLoss):0;
+  const wins=closed.filter(t=>t.closePnL>0), losses=closed.filter(t=>t.closePnL<0);
+  const winRate=closed.length?(wins.length/closed.length*100):0;
+  const totalPnL=closed.reduce((s,t)=>s+t.closePnL,0);
+  const avgWin=wins.length?wins.reduce((s,t)=>s+t.closePnL,0)/wins.length:0;
+  const avgLoss=losses.length?losses.reduce((s,t)=>s+t.closePnL,0)/losses.length:0;
+  const sumWins=wins.reduce((s,t)=>s+t.closePnL,0);
+  const sumLoss=Math.abs(losses.reduce((s,t)=>s+t.closePnL,0));
+  const profitFactor=sumLoss>0?sumWins/sumLoss:sumWins>0?999:0;
+  const rr=avgLoss!==0?Math.abs(avgWin/avgLoss):0;
   let peak=0,maxDD=0;
-  db.daily.forEach(d=>{
+  daily.forEach(d=>{
     const b=parseFloat(d.end_balance||0);
     if(b>peak) peak=b;
     const dd=peak>0?(peak-b)/peak*100:0;
     if(dd>maxDD) maxDD=dd;
   });
-  let maxWinStreak=0,maxLoseStreak=0,curWin=0,curLose=0;
-  closed.forEach(t=>{
-    if(t.closePnL>0){curWin++;curLose=0;maxWinStreak=Math.max(maxWinStreak,curWin);}
-    else{curLose++;curWin=0;maxLoseStreak=Math.max(maxLoseStreak,curLose);}
-  });
-  const lastBal = db.daily.length?parseFloat(db.daily[db.daily.length-1].end_balance||0):0;
-  const lastDay = db.daily.length?db.daily[db.daily.length-1]:null;
-  return {closed,wins,losses,winRate,totalPnL,avgWin,avgLoss,
-          profitFactor,rr,maxDD,maxWinStreak,maxLoseStreak,lastBal,lastDay};
+  let maxWin=0,maxLose=0,cW=0,cL=0;
+  closed.forEach(t=>{ if(t.closePnL>0){cW++;cL=0;maxWin=Math.max(maxWin,cW);}else{cL++;cW=0;maxLose=Math.max(maxLose,cL);} });
+  const lastBal=daily.length?parseFloat(daily[daily.length-1].end_balance||0):0;
+  const lastDay=daily.length?daily[daily.length-1]:null;
+  const targetDays=daily.filter(d=>d.target_hit).length;
+  return {closed,wins,losses,winRate,totalPnL,avgWin,avgLoss,profitFactor,rr,maxDD,
+          maxWinStreak:maxWin,maxLoseStreak:maxLose,lastBal,lastDay,targetDays};
 }
 
 // ── OVERVIEW ─────────────────────────────────────────────────────
 function renderOverview() {
-  const s = calcStats();
-  const acctCard = renderAccountCard();
-  if(!s) return acctCard+`<div class="empty-state">
-    <div class="empty-icon">📊</div>
+  const s=calcStats(); const ac=renderAccountCard();
+  if(!s) return ac+`<div class="empty-state"><div class="empty-icon">📊</div>
     <div class="empty-msg">No trade data yet for this account</div>
-    <div class="empty-sub">Data will appear here once the EA starts pushing trades</div></div>`;
-
-  const pnlClr = s.totalPnL>=0?'green':'red';
-  const lastDay = s.lastDay;
-  const compDay = lastDay?lastDay.compound_day:'—';
-  const compLot = lastDay?lastDay.compound_lot:'—';
-  const compTgt = lastDay?'$'+parseFloat(lastDay.compound_target||0).toFixed(2):'—';
-  const targetDays = db.daily.filter(d=>d.target_hit).length;
-
-  return acctCard+`
+    <div class="empty-sub">Data will appear once the EA starts pushing trades</div></div>`;
+  const pnlClr=s.totalPnL>=0?'green':'red';
+  const ld=s.lastDay;
+  return ac+`
   <div class="kpi-grid">
     ${kpi('Closed Trades',s.closed.length,'','cyan')}
     ${kpi('Win Rate',s.winRate.toFixed(1)+'%','',s.winRate>=50?'green':'red')}
@@ -432,33 +404,97 @@ function renderOverview() {
     ${kpi('Avg Loss',s.avgLoss.toFixed(2),'','red')}
     ${kpi('Win Streak',s.maxWinStreak,'best','green')}
     ${kpi('Lose Streak',s.maxLoseStreak,'worst','red')}
-    ${kpi('Target Days',targetDays+'/'+db.daily.length,'','gold')}
-    ${kpi('Compound Day',compDay,'','cyan')}
-    ${kpi('Current Lot',compLot,'','cyan')}
-    ${kpi('Daily Target',compTgt,'','gold')}
+    ${kpi('Target Days',s.targetDays+'/'+db.daily.length,'','gold')}
+    ${kpi('Compound Day',ld?ld.compound_day:'—','','cyan')}
+    ${kpi('Current Lot',ld?ld.compound_lot:'—','','cyan')}
+    ${kpi('Daily Target',ld?'$'+parseFloat(ld.compound_target||0).toFixed(2):'—','','gold')}
   </div>
   <div class="charts-row">
-    <div class="chart-card">
-      <div class="chart-title">Equity Curve</div>
-      <div class="chart-wrap"><canvas id="eqChart"></canvas></div>
+    <div class="chart-card"><div class="chart-title">Equity Curve</div>
+      <div class="chart-wrap"><canvas id="eqChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Daily P&L (last 30 days)</div>
+      <div class="chart-wrap"><canvas id="pnlChart"></canvas></div></div>
+  </div>`;
+}
+
+// ── POSITIONS TAB ────────────────────────────────────────────────
+function renderPositions() {
+  const ac=renderAccountCard();
+  const positions=getOpenPositions();
+
+  if(!positions.length) return ac+`
+    <div class="empty-state"><div class="empty-icon">💤</div>
+    <div class="empty-msg">No open positions</div>
+    <div class="empty-sub">All positions are closed. Data refreshes every 60 seconds.</div></div>`;
+
+  const totalFloat=positions.reduce((s,p)=>s+parseFloat(p.pnl||0),0);
+  const totalLots=positions.reduce((s,p)=>s+parseFloat(p.lot||0),0);
+  const buys=positions.filter(p=>p.direction==='BUY').length;
+  const sells=positions.filter(p=>p.direction==='SELL').length;
+
+  // For pnl bar scaling
+  const maxAbsPnl=Math.max(...positions.map(p=>Math.abs(parseFloat(p.pnl||0))),0.01);
+
+  const rows=positions.sort((a,b)=>new Date(b.ts)-new Date(a.ts)).map(p=>{
+    const pnl=parseFloat(p.pnl||0);
+    const pnlClr=pnl>0?'#22c55e':pnl<0?'#ef4444':'#9ca3af';
+    const barPct=Math.min(100,(Math.abs(pnl)/maxAbsPnl)*100);
+    const barClr=pnl>0?'#22c55e':'#ef4444';
+    const dir=p.direction||'—';
+    // Time open
+    const openMs=p.ts?Date.now()-new Date(p.ts).getTime():0;
+    const openH=Math.floor(openMs/3600000), openM=Math.floor((openMs%3600000)/60000);
+    const openStr=openH>0?`${openH}h ${openM}m`:`${openM}m`;
+    return `<tr class="pos-row-${dir.toLowerCase()}">
+      <td style="color:#60a5fa;font-weight:700">${p.symbol||'—'}</td>
+      <td><span class="badge-${dir.toLowerCase()}">${dir}</span></td>
+      <td>${parseFloat(p.lot||0).toFixed(2)}</td>
+      <td>${parseFloat(p.entry||0).toFixed(5)}</td>
+      <td style="color:#ef4444">${parseFloat(p.sl||0).toFixed(5)||'—'}</td>
+      <td style="color:#22c55e">${parseFloat(p.tp||0).toFixed(5)||'—'}</td>
+      <td style="color:${pnlClr};font-weight:700">
+        ${pnl>=0?'+':''}${pnl.toFixed(2)}
+        <span class="pnl-bar-wrap"><span class="pnl-bar" style="width:${barPct}%;background:${barClr}"></span></span>
+      </td>
+      <td style="color:#9ca3af">${openStr}</td>
+      <td style="color:#9ca3af;font-size:11px">${(p.ts||'').substring(0,16)}</td>
+    </tr>`;
+  }).join('');
+
+  return ac+`
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-title">Open Positions</span>
+      <span class="count-badge">${positions.length} position${positions.length!==1?'s':''}</span>
+      <span class="pos-live-badge"><span class="pos-live-dot"></span>Live · refreshes every 60s</span>
     </div>
-    <div class="chart-card">
-      <div class="chart-title">Daily P&L (last 30 days)</div>
-      <div class="chart-wrap"><canvas id="pnlChart"></canvas></div>
+    <div class="pos-summary">
+      <div class="pos-summary-item">Float P&L: <span class="${totalFloat>=0?'green':'red'}">${totalFloat>=0?'+':''}${totalFloat.toFixed(2)}</span></div>
+      <div class="pos-summary-item">Total Lots: <span>${totalLots.toFixed(2)}</span></div>
+      <div class="pos-summary-item">Buys: <span class="green">${buys}</span></div>
+      <div class="pos-summary-item">Sells: <span class="red">${sells}</span></div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Symbol</th><th>Dir</th><th>Lot</th><th>Entry</th>
+          <th>SL</th><th>TP</th><th>Float P&L</th><th>Time Open</th><th>Opened</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
   </div>`;
 }
 
 // ── TRADES ───────────────────────────────────────────────────────
 function renderTrades() {
-  const closed = getClosedTrades();
-  if(!closed.length) return `<div class="empty-state">
-    <div class="empty-icon">📋</div><div class="empty-msg">No trades yet for this account</div></div>`;
-  const syms = ['ALL',...new Set(closed.map(t=>t.symbol).filter(Boolean))];
-  const filtered = closed.filter(t=>
-    (filterSym==='ALL'||t.symbol===filterSym)&&
-    (filterDir==='ALL'||t.direction===filterDir)
-  );
+  const closed=getClosedTrades();
+  if(!closed.length) return `<div class="empty-state"><div class="empty-icon">📋</div>
+    <div class="empty-msg">No trades yet for this account</div></div>`;
+  const syms=['ALL',...new Set(closed.map(t=>t.symbol).filter(Boolean))];
+  const filtered=closed.filter(t=>
+    (filterSym==='ALL'||t.symbol===filterSym)&&(filterDir==='ALL'||t.direction===filterDir));
+  window._filteredTrades=filtered;
   return `
   <div class="table-card">
     <div class="table-header">
@@ -473,54 +509,44 @@ function renderTrades() {
         </select>
       </div>
     </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>Time</th><th>Symbol</th><th>Dir</th><th>Lot</th>
-          <th>Entry</th><th>SL</th><th>TP</th>
-          <th>Strong</th><th>Weak</th><th>Gap</th><th>P&L</th><th>News</th>
-        </tr></thead>
-        <tbody>
-          ${filtered.map((t,i)=>{
-            const pnl=parseFloat(t.closePnL||0);
-            const pnlClr=pnl>0?'#22c55e':pnl<0?'#ef4444':'#9ca3af';
-            const news=getNewsFlag(t);
-            return `<tr onclick="openInspector(${i},filtered_trades)">
-              <td style="color:#9ca3af">${(t.ts||'').substring(0,16)}</td>
-              <td style="color:#60a5fa;font-weight:700">${t.symbol||'—'}</td>
-              <td style="color:${t.direction==='BUY'?'#22c55e':'#ef4444'}">${t.direction||'—'}</td>
-              <td>${t.lot||'—'}</td>
-              <td>${parseFloat(t.entry||0).toFixed(5)}</td>
-              <td style="color:#ef4444">${parseFloat(t.sl||0).toFixed(5)}</td>
-              <td style="color:#22c55e">${parseFloat(t.tp||0).toFixed(5)}</td>
-              <td style="color:#22c55e">${t.strong_cur||'—'}</td>
-              <td style="color:#ef4444">${t.weak_cur||'—'}</td>
-              <td>${parseFloat(t.gap||0).toFixed(3)}</td>
-              <td style="color:${pnlClr};font-weight:700">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
-              <td>${news.icon}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Lot</th>
+        <th>Entry</th><th>SL</th><th>TP</th>
+        <th>Strong</th><th>Weak</th><th>Gap</th><th>P&L</th><th>News</th></tr></thead>
+      <tbody>${filtered.map((t,i)=>{
+        const pnl=parseFloat(t.closePnL||0);
+        const pc=pnl>0?'#22c55e':pnl<0?'#ef4444':'#9ca3af';
+        const news=getNewsFlag(t);
+        return `<tr onclick="openInspector(${i})">
+          <td style="color:#9ca3af">${(t.ts||'').substring(0,16)}</td>
+          <td style="color:#60a5fa;font-weight:700">${t.symbol||'—'}</td>
+          <td style="color:${t.direction==='BUY'?'#22c55e':'#ef4444'}">${t.direction||'—'}</td>
+          <td>${t.lot||'—'}</td>
+          <td>${parseFloat(t.entry||0).toFixed(5)}</td>
+          <td style="color:#ef4444">${parseFloat(t.sl||0).toFixed(5)}</td>
+          <td style="color:#22c55e">${parseFloat(t.tp||0).toFixed(5)}</td>
+          <td style="color:#22c55e">${t.strong_cur||'—'}</td>
+          <td style="color:#ef4444">${t.weak_cur||'—'}</td>
+          <td>${parseFloat(t.gap||0).toFixed(3)}</td>
+          <td style="color:${pc};font-weight:700">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
+          <td>${news.icon}</td></tr>`;
+      }).join('')}</tbody>
+    </table></div>
   </div>`;
-  // store for inspector access
-  window.filtered_trades = filtered;
 }
 
 // ── SIGNALS ──────────────────────────────────────────────────────
 function renderSignals() {
-  if(!db.signals.length) return `<div class="empty-state">
-    <div class="empty-icon">📡</div><div class="empty-msg">No signal data yet for this account</div></div>`;
-  const filtered = db.signals.filter(s=>filterResult==='ALL'||s.result===filterResult);
-  const opened = db.signals.filter(s=>s.result==='OPENED').length;
-  const blocked = db.signals.filter(s=>s.result==='BLOCKED').length;
-  const conv = db.signals.length?(opened/db.signals.length*100).toFixed(1):0;
+  if(!db.signals.length) return `<div class="empty-state"><div class="empty-icon">📡</div>
+    <div class="empty-msg">No signal data yet</div></div>`;
+  const filtered=db.signals.filter(s=>filterResult==='ALL'||s.result===filterResult);
+  const opened=db.signals.filter(s=>s.result==='OPENED').length;
+  const blocked=db.signals.filter(s=>s.result==='BLOCKED').length;
+  const conv=db.signals.length?(opened/db.signals.length*100).toFixed(1):0;
   return `
   <div class="kpi-grid" style="margin-bottom:24px">
     ${kpi('Total Signals',db.signals.length,'','cyan')}
-    ${kpi('Opened',opened,'','green')}
-    ${kpi('Blocked',blocked,'','red')}
+    ${kpi('Opened',opened,'','green')}${kpi('Blocked',blocked,'','red')}
     ${kpi('Conversion',conv+'%','','gold')}
   </div>
   <div class="charts-row" style="margin-bottom:24px">
@@ -530,8 +556,7 @@ function renderSignals() {
       <div class="chart-wrap"><canvas id="sigPieChart"></canvas></div></div>
   </div>
   <div class="table-card">
-    <div class="table-header">
-      <span class="table-title">Signal Log</span>
+    <div class="table-header"><span class="table-title">Signal Log</span>
       <span class="count-badge">${filtered.length} signals</span>
       <div class="filters">
         <select onchange="filterResult=this.value;render()">
@@ -539,66 +564,56 @@ function renderSignals() {
         </select>
       </div>
     </div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>
-        <tbody>
-          ${filtered.slice(-200).reverse().map(s=>`<tr>
-            <td style="color:#9ca3af">${(s.ts||'').substring(0,16)}</td>
-            <td style="color:#60a5fa;font-weight:700">${s.symbol||'—'}</td>
-            <td style="color:${s.direction==='BUY'?'#22c55e':'#ef4444'}">${s.direction||'—'}</td>
-            <td style="color:#22c55e">${s.strong_cur||'—'}</td>
-            <td style="color:#ef4444">${s.weak_cur||'—'}</td>
-            <td>${parseFloat(s.gap||0).toFixed(3)}</td>
-            <td><span class="${s.result==='OPENED'?'badge-opened':'badge-blocked'}">${s.result}</span></td>
-            <td style="color:#9ca3af">${s.block_reason||'—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>
+      <tbody>${filtered.slice(-200).reverse().map(s=>`<tr>
+        <td style="color:#9ca3af">${(s.ts||'').substring(0,16)}</td>
+        <td style="color:#60a5fa;font-weight:700">${s.symbol||'—'}</td>
+        <td style="color:${s.direction==='BUY'?'#22c55e':'#ef4444'}">${s.direction||'—'}</td>
+        <td style="color:#22c55e">${s.strong_cur||'—'}</td>
+        <td style="color:#ef4444">${s.weak_cur||'—'}</td>
+        <td>${parseFloat(s.gap||0).toFixed(3)}</td>
+        <td><span class="${s.result==='OPENED'?'badge-opened':'badge-blocked'}">${s.result}</span></td>
+        <td style="color:#9ca3af">${s.block_reason||'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
   </div>`;
 }
 
 // ── DAILY ────────────────────────────────────────────────────────
 function renderDaily() {
-  if(!db.daily.length) return `<div class="empty-state">
-    <div class="empty-icon">📅</div><div class="empty-msg">No daily data yet for this account</div></div>`;
+  if(!db.daily.length) return `<div class="empty-state"><div class="empty-icon">📅</div>
+    <div class="empty-msg">No daily data yet</div></div>`;
   return `
   <div class="table-card" style="margin-bottom:24px">
     <div class="table-header"><span class="table-title">Daily Summary</span>
       <span class="count-badge">${db.daily.length} days</span></div>
     <div class="tbl-wrap"><table>
       <thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>End Bal</th><th>P&L</th><th>Target</th><th>Opened</th><th>Closed</th><th>Lot</th></tr></thead>
-      <tbody>
-        ${[...db.daily].reverse().map(d=>{
-          const pnl=parseFloat(d.daily_pnl||0);
-          return `<tr>
-            <td style="color:#9ca3af">${d.date}</td>
-            <td style="color:var(--gold)">Day ${d.compound_day}</td>
-            <td>$${parseFloat(d.start_balance||0).toFixed(2)}</td>
-            <td style="color:${parseFloat(d.end_balance)>=parseFloat(d.start_balance)?'#22c55e':'#ef4444'}">
-              $${parseFloat(d.end_balance||0).toFixed(2)}</td>
-            <td style="color:${pnl>=0?'#22c55e':'#ef4444'};font-weight:700">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
-            <td style="color:${d.target_hit?'#22c55e':'#9ca3af'}">${d.target_hit?'✓ YES':'NO'}</td>
-            <td>${d.trades_opened||0}</td><td>${d.trades_closed||0}</td>
-            <td style="color:var(--gold)">${d.compound_lot}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
+      <tbody>${[...db.daily].reverse().map(d=>{
+        const pnl=parseFloat(d.daily_pnl||0);
+        return `<tr>
+          <td style="color:#9ca3af">${d.date}</td>
+          <td style="color:var(--gold)">Day ${d.compound_day}</td>
+          <td>$${parseFloat(d.start_balance||0).toFixed(2)}</td>
+          <td style="color:${parseFloat(d.end_balance)>=parseFloat(d.start_balance)?'#22c55e':'#ef4444'}">
+            $${parseFloat(d.end_balance||0).toFixed(2)}</td>
+          <td style="color:${pnl>=0?'#22c55e':'#ef4444'};font-weight:700">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
+          <td style="color:${d.target_hit?'#22c55e':'#9ca3af'}">${d.target_hit?'✓ YES':'NO'}</td>
+          <td>${d.trades_opened||0}</td><td>${d.trades_closed||0}</td>
+          <td style="color:var(--gold)">${d.compound_lot}</td>
+        </tr>`;
+      }).join('')}</tbody>
     </table></div>
   </div>
-  <div class="chart-card">
-    <div class="chart-title">Calendar — Target Days</div>
-    ${renderCalendar()}
-  </div>`;
+  <div class="chart-card"><div class="chart-title">Calendar — Target Days</div>${renderCalendar()}</div>`;
 }
 
 function renderCalendar() {
   const map={};
   db.daily.forEach(d=>{map[d.date]=d;});
   if(!db.daily.length) return '<div class="empty-sub" style="padding:20px">No data</div>';
-  const first=new Date(db.daily[0].date);
-  const last =new Date(db.daily[db.daily.length-1].date);
+  const first=new Date(db.daily[0].date), last=new Date(db.daily[db.daily.length-1].date);
   let html='<div class="calendar">';
   ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{
     html+=`<div style="text-align:center;font-size:10px;color:var(--sub);padding:4px">${d}</div>`;
@@ -607,15 +622,12 @@ function renderCalendar() {
   for(let i=0;i<dow;i++) html+='<div class="cal-day empty"></div>';
   const cur=new Date(first);
   while(cur<=last){
-    const key=cur.toISOString().slice(0,10);
-    const d=map[key];
+    const key=cur.toISOString().slice(0,10), d=map[key];
     if(d){
       const pnl=parseFloat(d.daily_pnl||0);
       const cls=d.target_hit?'hit':pnl<0?'loss':'nodata';
       html+=`<div class="cal-day ${cls}" title="${key}: ${pnl>=0?'+':''}${pnl.toFixed(2)}">${cur.getDate()}</div>`;
-    } else {
-      html+=`<div class="cal-day nodata">${cur.getDate()}</div>`;
-    }
+    } else html+=`<div class="cal-day nodata">${cur.getDate()}</div>`;
     cur.setDate(cur.getDate()+1);
   }
   return html+'</div>';
@@ -624,35 +636,134 @@ function renderCalendar() {
 // ── HEATMAP ──────────────────────────────────────────────────────
 function renderHeatmap() {
   const closed=getClosedTrades();
-  if(!closed.length) return `<div class="empty-state">
-    <div class="empty-icon">🔥</div><div class="empty-msg">No trade data yet</div></div>`;
+  if(!closed.length) return `<div class="empty-state"><div class="empty-icon">🔥</div>
+    <div class="empty-msg">No trade data yet</div></div>`;
   const map={};
   closed.forEach(t=>{
     if(!t.symbol) return;
     if(!map[t.symbol]) map[t.symbol]={sym:t.symbol,count:0,wins:0,pnl:0};
-    map[t.symbol].count++;
-    if(t.closePnL>0) map[t.symbol].wins++;
+    map[t.symbol].count++; if(t.closePnL>0) map[t.symbol].wins++;
     map[t.symbol].pnl+=t.closePnL||0;
   });
   const pairs=Object.values(map).sort((a,b)=>b.pnl-a.pnl);
-  return `
-  <div class="table-card">
+  return `<div class="table-card">
     <div class="table-header"><span class="table-title">Pair Performance</span>
       <span class="count-badge">${pairs.length} pairs</span></div>
-    <div class="heatmap">
-      ${pairs.map(p=>{
-        const wr=p.count?p.wins/p.count*100:0;
-        const bg=wr>=60?'#1a3a2a':wr>=50?'#1a2a1a':wr>=40?'#2a2a1a':'#2a1a1a';
-        const tc=wr>=60?'#22c55e':wr>=50?'#86efac':wr>=40?'#f59e0b':'#ef4444';
-        return `<div class="tile" style="background:${bg};border-color:${tc}33">
-          <div class="tile-sym">${p.sym}</div>
-          <div class="tile-wr" style="color:${tc}">${wr.toFixed(0)}%</div>
-          <div class="tile-wl">${p.wins}W / ${p.count-p.wins}L</div>
-          <div class="tile-pnl" style="color:${p.pnl>=0?'#22c55e':'#ef4444'}">${p.pnl>=0?'+':''}${p.pnl.toFixed(2)}</div>
-        </div>`;
-      }).join('')}
-    </div>
-  </div>`;
+    <div class="heatmap">${pairs.map(p=>{
+      const wr=p.count?p.wins/p.count*100:0;
+      const bg=wr>=60?'#1a3a2a':wr>=50?'#1a2a1a':wr>=40?'#2a2a1a':'#2a1a1a';
+      const tc=wr>=60?'#22c55e':wr>=50?'#86efac':wr>=40?'#f59e0b':'#ef4444';
+      return `<div class="tile" style="background:${bg};border-color:${tc}33">
+        <div class="tile-sym">${p.sym}</div>
+        <div class="tile-wr" style="color:${tc}">${wr.toFixed(0)}%</div>
+        <div class="tile-wl">${p.wins}W / ${p.count-p.wins}L</div>
+        <div class="tile-pnl" style="color:${p.pnl>=0?'#22c55e':'#ef4444'}">${p.pnl>=0?'+':''}${p.pnl.toFixed(2)}</div>
+      </div>`;
+    }).join('')}</div></div>`;
+}
+
+// ── COMPARE TAB ──────────────────────────────────────────────────
+function renderCompare() {
+  const accounts=db.accounts;
+  if(!accounts.length) return `<div class="empty-state"><div class="empty-icon">📊</div>
+    <div class="empty-msg">No accounts found</div></div>`;
+
+  // Build stat objects for all cached accounts
+  const statsList=accounts.map(a=>{
+    const cached=allAccountsData[a.id];
+    const s=cached?calcStats(cached.trades,cached.daily):null;
+    return {account:a, stats:s};
+  });
+
+  const hasData=statsList.some(x=>x.stats);
+
+  // Cards
+  const cards=statsList.map(({account:a, stats:s})=>{
+    const name=a.user_id||'Account';
+    const broker=a.broker||'';
+    const acctNo=a.account_number?`#${a.account_number}`:'';
+    const type=a.account_type||'';
+    const typePill=type==='live'?'<span class="pill pill-live">● LIVE</span>':'<span class="pill pill-demo">● DEMO</span>';
+    const platPill=(a.platform||'mt5').toLowerCase()==='mt4'?'<span class="pill pill-mt4">MT4</span>':'<span class="pill pill-mt5">MT5</span>';
+
+    if(!s) return `<div class="compare-card">
+      <div class="compare-card-header">
+        <div><div class="compare-card-name">${name}</div>
+        <div style="font-size:11px;color:#a5b4fc;margin-top:2px">${[broker,acctNo].filter(Boolean).join(' · ')}</div></div>
+        <div class="compare-card-pills">${typePill}${platPill}</div>
+      </div>
+      <div style="padding:32px;text-align:center;color:var(--sub);font-size:13px">
+        No data yet — select this account and load it first
+      </div></div>`;
+
+    const eqData=(allAccountsData[a.id]?.daily||[]).map(d=>parseFloat(d.end_balance||0));
+    const eqLabels=(allAccountsData[a.id]?.daily||[]).map(d=>d.date.slice(5));
+    const eqId='eq_'+a.id.slice(0,8);
+    const pnlClr=s.totalPnL>=0?'green':'red';
+
+    return `<div class="compare-card">
+      <div class="compare-card-header">
+        <div><div class="compare-card-name">${name}</div>
+        <div style="font-size:11px;color:#a5b4fc;margin-top:2px">${[broker,acctNo].filter(Boolean).join(' · ')}</div></div>
+        <div class="compare-card-pills">${typePill}${platPill}</div>
+      </div>
+      <div class="compare-kpis">
+        <div class="compare-kpi"><div class="compare-kpi-label">Balance</div>
+          <div class="compare-kpi-value gold">$${s.lastBal.toFixed(2)}</div></div>
+        <div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div>
+          <div class="compare-kpi-value ${pnlClr}">${s.totalPnL>=0?'+':''}${s.totalPnL.toFixed(2)}</div></div>
+        <div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div>
+          <div class="compare-kpi-value ${s.winRate>=50?'green':'red'}">${s.winRate.toFixed(1)}%</div></div>
+        <div class="compare-kpi"><div class="compare-kpi-label">Profit Factor</div>
+          <div class="compare-kpi-value ${s.profitFactor>=1?'green':'red'}">${s.profitFactor.toFixed(2)}</div></div>
+        <div class="compare-kpi"><div class="compare-kpi-label">Max Drawdown</div>
+          <div class="compare-kpi-value ${s.maxDD>20?'red':s.maxDD>10?'gold':'green'}">${s.maxDD.toFixed(1)}%</div></div>
+        <div class="compare-kpi"><div class="compare-kpi-label">Trades</div>
+          <div class="compare-kpi-value cyan">${s.closed.length}</div></div>
+      </div>
+      <div class="compare-equity">
+        <div class="compare-eq-title">Equity Curve</div>
+        <div class="compare-eq-wrap"><canvas id="${eqId}" data-labels='${JSON.stringify(eqLabels)}' data-values='${JSON.stringify(eqData)}'></canvas></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Side-by-side bar comparison (only if 2+ accounts have data)
+  let barSection='';
+  const withData=statsList.filter(x=>x.stats);
+  if(withData.length>=2) {
+    const colors=['#3b82f6','#22c55e','#f59e0b','#a855f7','#ef4444'];
+    const metrics=[
+      {key:'winRate',label:'Win Rate',fmt:v=>v.toFixed(1)+'%',max:100},
+      {key:'profitFactor',label:'Profit Factor',fmt:v=>v.toFixed(2),max:Math.max(...withData.map(x=>x.stats.profitFactor),2)},
+      {key:'rr',label:'R:R Ratio',fmt:v=>v.toFixed(2),max:Math.max(...withData.map(x=>x.stats.rr),2)},
+    ];
+    barSection=`<div class="compare-bar-section">
+      <div class="compare-section-title">Side-by-Side Comparison</div>
+      ${metrics.map(m=>`
+        <div style="margin-bottom:20px">
+          <div style="font-size:11px;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">${m.label}</div>
+          ${withData.map(({account:a,stats:s},i)=>{
+            const val=s[m.key]||0;
+            const pct=Math.min(100,(val/m.max)*100);
+            return `<div class="compare-bar-row">
+              <div class="compare-bar-label">${a.user_id||'Account'}</div>
+              <div class="compare-bar-track">
+                <div class="compare-bar-fill" style="width:${pct}%;background:${colors[i%colors.length]}"></div>
+              </div>
+              <div class="compare-bar-value">${m.fmt(val)}</div>
+            </div>`;
+          }).join('')}
+        </div>`).join('')}
+    </div>`;
+  }
+
+  const notLoaded=statsList.filter(x=>!x.stats&&x.account.id!==selectedAccountId);
+  const hint=notLoaded.length?`<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--sub)">
+    💡 To compare all accounts, select each one from the dropdown first so its data loads into the cache.
+  </div>`:'';
+
+  return `${hint}${barSection}<div class="compare-grid">${cards}</div>`;
 }
 
 // ── NEWS FLAG ────────────────────────────────────────────────────
@@ -672,12 +783,12 @@ function getNewsFlag(trade) {
 }
 
 // ── TRADE INSPECTOR ──────────────────────────────────────────────
-function openInspector(idx, trades) {
-  const t = trades[idx];
-  const news = getNewsFlag(t);
-  const pnl = parseFloat(t.closePnL||0);
-  const events = db.trades.filter(r=>r.ticket===t.ticket).sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  document.getElementById('inspContent').innerHTML = `
+function openInspector(idx) {
+  const t=window._filteredTrades[idx];
+  if(!t) return;
+  const news=getNewsFlag(t), pnl=parseFloat(t.closePnL||0);
+  const events=db.trades.filter(r=>r.ticket===t.ticket).sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+  document.getElementById('inspContent').innerHTML=`
   <div class="insp-title">${t.symbol||'—'} ${t.direction||''}</div>
   <div class="insp-sub">Ticket #${t.ticket||'—'} · Compound Day ${t.compound_day||'—'}</div>
   <div class="insp-section">
@@ -706,10 +817,8 @@ function openInspector(idx, trades) {
   </div>
   <div class="insp-section">
     <div class="insp-section-title">Trade Lifecycle</div>
-    ${events.map(e=>`<div class="insp-row">
-      <span class="lbl">${e.event}</span>
-      <span class="val">${(e.ts||'').substring(0,16)}</span>
-    </div>`).join('')}
+    ${events.map(e=>`<div class="insp-row"><span class="lbl">${e.event}</span>
+      <span class="val">${(e.ts||'').substring(0,16)}</span></div>`).join('')}
   </div>`;
   document.getElementById('inspector').classList.add('open');
   document.getElementById('overlay').classList.add('open');
@@ -722,12 +831,11 @@ function closeInspector() {
 
 // ── CHARTS ───────────────────────────────────────────────────────
 function afterRender() {
-  const cd = {
-    responsive:true, maintainAspectRatio:false,
+  const cd={responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false}},
     scales:{x:{ticks:{color:'#6b7280',maxTicksLimit:8},grid:{color:'#1f2937'}},
-            y:{ticks:{color:'#6b7280'},grid:{color:'#1f2937'}}}
-  };
+            y:{ticks:{color:'#6b7280'},grid:{color:'#1f2937'}}}};
+
   const eq=document.getElementById('eqChart');
   if(eq&&db.daily.length) charts.eq=new Chart(eq,{type:'line',data:{
     labels:db.daily.map(d=>d.date.slice(5)),
@@ -767,11 +875,26 @@ function afterRender() {
     },options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:true,position:'bottom',labels:{color:'#9ca3af',font:{size:11}}}}}});
   }
+
+  // Compare tab — mini equity curves per card
+  document.querySelectorAll('[id^="eq_"]').forEach(canvas=>{
+    try {
+      const labels=JSON.parse(canvas.dataset.labels||'[]');
+      const values=JSON.parse(canvas.dataset.values||'[]');
+      if(!values.length) return;
+      const id=canvas.id;
+      charts[id]=new Chart(canvas,{type:'line',data:{
+        labels,datasets:[{data:values,borderColor:'#3b82f6',
+          backgroundColor:'rgba(59,130,246,.08)',fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]
+      },options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{x:{display:false},y:{display:false}}}});
+    } catch(e){}
+  });
 }
 
-// ── INIT ─────────────────────────────────────────────────────────
 init();
-setInterval(refresh, 60000);
+setInterval(refresh,60000);
 </script>
 </body>
 </html>
