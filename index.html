@@ -12,14 +12,21 @@ body{background:#0a0e1a;color:#e2e8f0;font-family:'Segoe UI',system-ui,sans-seri
 
 /* HEADER */
 .header{background:linear-gradient(135deg,#0f172a,#1e1b4b);border-bottom:1px solid #312e81;padding:0 24px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
-.logo{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.5px}
+.logo{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.5px;white-space:nowrap}
 .logo span{color:var(--gold)}
-.badge{background:#312e81;color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.badge{background:#312e81;color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green);flex-shrink:0}
 .status-dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
-.status-txt{font-size:12px;color:var(--sub)}
-.last-sync{font-size:11px;color:var(--sub)}
+.status-txt{font-size:12px;color:var(--sub);white-space:nowrap}
+.last-sync{font-size:11px;color:var(--sub);white-space:nowrap}
+
+/* ACCOUNT SELECTOR */
+.acct-select-wrap{display:flex;align-items:center;gap:8px}
+.acct-label{font-size:11px;color:var(--sub);white-space:nowrap}
+.acct-select{background:#1e1b4b;border:1px solid #4338ca;color:#a5b4fc;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;outline:none;cursor:pointer;max-width:200px}
+.acct-select:focus{border-color:var(--blue)}
+.acct-info{font-size:11px;color:var(--sub);white-space:nowrap;display:none}
 
 /* TABS */
 .tabs{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:4px}
@@ -66,6 +73,17 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 .badge-blocked{background:#2a1a1a;color:var(--red);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
 .badge-opened{background:#1a3a2a;color:var(--green);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
 
+/* ACCOUNT CARD (overview header) */
+.acct-card{background:linear-gradient(135deg,#1e1b4b,#0f172a);border:1px solid #312e81;border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.acct-card-name{font-size:16px;font-weight:700;color:#fff}
+.acct-card-sub{font-size:12px;color:#a5b4fc;margin-top:2px}
+.acct-card-pills{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.pill{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.pill-demo{background:#1e3a5f;color:#60a5fa}
+.pill-live{background:#1a3a2a;color:#22c55e}
+.pill-mt5{background:#2a1a4a;color:#a855f7}
+.pill-mt4{background:#3a2a1a;color:#f59e0b}
+
 /* HEATMAP */
 .heatmap{display:flex;flex-wrap:wrap;gap:10px;padding:20px}
 .tile{border-radius:8px;padding:14px 18px;min-width:120px;text-align:center;border:1px solid transparent}
@@ -92,7 +110,7 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 .news-adjacent{background:#2a2a1a;color:var(--gold)}
 .news-high{background:#2a1a1a;color:var(--red)}
 
-/* DAILY CALENDAR */
+/* CALENDAR */
 .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:20px}
 .cal-day{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;cursor:pointer;position:relative}
 .cal-day.hit{background:#1a3a2a;color:var(--green)}
@@ -109,11 +127,17 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 .empty-msg{font-size:14px;margin-bottom:6px;color:var(--text)}
 .empty-sub{font-size:12px}
 
-/* RESPONSIVE */
+/* NO ACCOUNT SELECTED */
+.no-acct{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px;text-align:center;gap:12px}
+.no-acct-icon{font-size:48px}
+.no-acct-title{font-size:18px;font-weight:700;color:#fff}
+.no-acct-sub{font-size:13px;color:var(--sub);max-width:400px}
+
 @media(max-width:768px){
   .charts-row{grid-template-columns:1fr}
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .inspector{width:100%}
+  .acct-info{display:none!important}
 }
 </style>
 </head>
@@ -121,7 +145,15 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 
 <div class="header">
   <div class="logo">⚡ <span>CSEA</span> Intelligence</div>
-  <div class="badge">v1.0</div>
+  <div class="badge">v2.0</div>
+  <!-- Account selector -->
+  <div class="acct-select-wrap">
+    <span class="acct-label">Account:</span>
+    <select class="acct-select" id="acctSelect" onchange="onAccountChange(this.value)">
+      <option value="">— Select account —</option>
+    </select>
+  </div>
+  <span class="acct-info" id="acctInfo"></span>
   <div class="header-right">
     <div class="status-dot" id="statusDot"></div>
     <span class="status-txt" id="statusTxt">Connecting...</span>
@@ -138,10 +170,9 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 </div>
 
 <div class="main" id="main">
-  <div class="loading"><div class="spinner"></div><span>Loading data...</span></div>
+  <div class="loading"><div class="spinner"></div><span>Loading accounts...</span></div>
 </div>
 
-<!-- Trade Inspector -->
 <div class="overlay" id="overlay" onclick="closeInspector()"></div>
 <div class="inspector" id="inspector">
   <button class="insp-close" onclick="closeInspector()">✕</button>
@@ -150,14 +181,16 @@ tr:hover td{background:var(--bg3);cursor:pointer}
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────
-const SUPA_URL  = 'https://nmyveijljquxvhjelqbc.supabase.co';
-const SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5teXZlaWpsanF1eHZoamVscWJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjc2MjgsImV4cCI6MjA4Nzk0MzYyOH0.YT-sAh2Spn1805dnylTsZ2gBx-T7yC6fyOKIs0YPlP4';
+const SUPA_URL = 'https://nmyveijljquxvhjelqbc.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5teXZlaWpsanF1eHZoamVscWJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjc2MjgsImV4cCI6MjA4Nzk0MzYyOH0.YT-sAh2Spn1805dnylTsZ2gBx-T7yC6fyOKIs0YPlP4';
 
 // ── STATE ───────────────────────────────────────────────────────
 let db = { trades:[], signals:[], daily:[], accounts:[] };
 let currentTab = 'overview';
 let charts = {};
 let filterSym = 'ALL', filterDir = 'ALL', filterResult = 'ALL';
+let selectedAccountId = '';
+let selectedAccount = null;
 
 // ── SUPABASE FETCH ───────────────────────────────────────────────
 async function query(table, params='') {
@@ -168,30 +201,110 @@ async function query(table, params='') {
   return r.json();
 }
 
-async function loadAll() {
+// ── INIT — load accounts first, then data for selected ──────────
+async function init() {
   try {
-    const [trades, signals, daily, accounts] = await Promise.all([
-      query('trades','order=ts.asc'),
-      query('signals','order=ts.asc'),
-      query('daily','order=date.asc'),
-      query('accounts','select=id,label,account_number,account_type,strategy')
-    ]);
-    db = { trades, signals, daily, accounts };
+    const accounts = await query('accounts', 'order=user_id.asc');
+    db.accounts = accounts;
+
+    // Populate account dropdown
+    const sel = document.getElementById('acctSelect');
+    sel.innerHTML = '<option value="">— Select account —</option>';
+    accounts.forEach(a => {
+      const label = a.user_id || a.account_number || a.id.slice(0,8);
+      const type  = a.account_type ? ` [${a.account_type.toUpperCase()}]` : '';
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = label + type;
+      sel.appendChild(opt);
+    });
+
+    // Auto-select if only one account, or restore last selection
+    const saved = localStorage.getItem('csea_account_id');
+    if(saved && accounts.find(a=>a.id===saved)) {
+      sel.value = saved;
+      await onAccountChange(saved);
+    } else if(accounts.length === 1) {
+      sel.value = accounts[0].id;
+      await onAccountChange(accounts[0].id);
+    } else {
+      showNoAccountSelected();
+    }
+
     document.getElementById('statusDot').className = 'status-dot';
     document.getElementById('statusTxt').textContent = 'Live';
-    document.getElementById('lastSync').textContent = 'Synced ' + new Date().toLocaleTimeString();
-    render();
   } catch(e) {
     document.getElementById('statusDot').className = 'status-dot off';
     document.getElementById('statusTxt').textContent = 'Error';
-    document.getElementById('main').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-msg">Could not connect to Supabase</div><div class="empty-sub">${e.message}</div></div>`;
+    document.getElementById('main').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">⚠️</div>
+       <div class="empty-msg">Could not connect to Supabase</div>
+       <div class="empty-sub">${e.message}</div></div>`;
   }
+}
+
+async function onAccountChange(id) {
+  if(!id) { selectedAccountId=''; selectedAccount=null; showNoAccountSelected(); return; }
+  selectedAccountId = id;
+  selectedAccount = db.accounts.find(a=>a.id===id) || null;
+  localStorage.setItem('csea_account_id', id);
+
+  // Update header info pill
+  const info = document.getElementById('acctInfo');
+  if(selectedAccount) {
+    const broker = selectedAccount.broker || selectedAccount.account_number || '';
+    const type   = selectedAccount.account_type || '';
+    info.textContent = broker ? `${broker}${type?' · '+type.toUpperCase():''}` : '';
+    info.style.display = broker ? 'block' : 'none';
+  }
+
+  await loadAccountData(id);
+}
+
+async function loadAccountData(id) {
+  document.getElementById('main').innerHTML =
+    '<div class="loading"><div class="spinner"></div><span>Loading data...</span></div>';
+  try {
+    const filter = `account_id=eq.${id}`;
+    const [trades, signals, daily] = await Promise.all([
+      query('trades',   filter+'&order=ts.asc'),
+      query('signals',  filter+'&order=ts.asc'),
+      query('daily',    filter+'&order=date.asc'),
+    ]);
+    db.trades   = trades;
+    db.signals  = signals;
+    db.daily    = daily;
+    document.getElementById('lastSync').textContent = 'Synced '+new Date().toLocaleTimeString();
+    // Reset filters on account switch
+    filterSym='ALL'; filterDir='ALL'; filterResult='ALL';
+    render();
+  } catch(e) {
+    document.getElementById('main').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">⚠️</div>
+       <div class="empty-msg">Error loading account data</div>
+       <div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+function showNoAccountSelected() {
+  document.getElementById('main').innerHTML = `
+    <div class="no-acct">
+      <div class="no-acct-icon">👆</div>
+      <div class="no-acct-title">Select an account</div>
+      <div class="no-acct-sub">Choose an account from the dropdown above to view its trading data.</div>
+    </div>`;
+}
+
+// ── AUTO REFRESH ─────────────────────────────────────────────────
+async function refresh() {
+  if(!selectedAccountId || document.visibilityState!=='visible') return;
+  await loadAccountData(selectedAccountId);
 }
 
 // ── TAB ROUTING ──────────────────────────────────────────────────
 function setTab(tab, el) {
   currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   el.classList.add('active');
   render();
 }
@@ -199,111 +312,130 @@ function setTab(tab, el) {
 function render() {
   destroyCharts();
   const m = document.getElementById('main');
+  if(!selectedAccountId){ showNoAccountSelected(); return; }
   if(currentTab==='overview') m.innerHTML = renderOverview();
-  else if(currentTab==='trades') m.innerHTML = renderTrades();
+  else if(currentTab==='trades')  m.innerHTML = renderTrades();
   else if(currentTab==='signals') m.innerHTML = renderSignals();
-  else if(currentTab==='daily') m.innerHTML = renderDaily();
+  else if(currentTab==='daily')   m.innerHTML = renderDaily();
   else if(currentTab==='heatmap') m.innerHTML = renderHeatmap();
   afterRender();
 }
 
 function destroyCharts() {
-  Object.values(charts).forEach(c => { try{c.destroy()}catch(e){} });
-  charts = {};
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch(e){}});
+  charts={};
+}
+
+// ── KPI HELPER ───────────────────────────────────────────────────
+function kpi(label, val, sub, clr) {
+  return `<div class="kpi"><div class="kpi-label">${label}</div>
+    <div class="kpi-value ${clr||''}">${val}</div>
+    ${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
+}
+
+// ── ACCOUNT CARD ─────────────────────────────────────────────────
+function renderAccountCard() {
+  if(!selectedAccount) return '';
+  const a = selectedAccount;
+  const name   = a.user_id || 'Account';
+  const broker = a.broker  || '';
+  const acctNo = a.account_number ? `#${a.account_number}` : '';
+  const type   = a.account_type || '';
+  const typePill = type==='live'
+    ? '<span class="pill pill-live">● LIVE</span>'
+    : '<span class="pill pill-demo">● DEMO</span>';
+  const platPill = (a.platform||'mt5').toLowerCase()==='mt4'
+    ? '<span class="pill pill-mt4">MT4</span>'
+    : '<span class="pill pill-mt5">MT5</span>';
+
+  return `<div class="acct-card">
+    <div>
+      <div class="acct-card-name">${name}</div>
+      <div class="acct-card-sub">${[broker,acctNo].filter(Boolean).join(' · ')}</div>
+    </div>
+    <div class="acct-card-pills">${typePill}${platPill}</div>
+  </div>`;
 }
 
 // ── STATS ────────────────────────────────────────────────────────
 function getClosedTrades() {
-  // Group by ticket, find CLOSE/COMPOUND_CLOSE events
   const map = {};
   db.trades.forEach(r => {
-    if(!map[r.ticket]) map[r.ticket] = {};
-    map[r.ticket][r.event] = r;
-    if(!map[r.ticket]._open && r.event==='OPEN') map[r.ticket]._open = r;
+    if(!map[r.ticket]) map[r.ticket]={};
+    map[r.ticket][r.event]=r;
+    if(!map[r.ticket]._open && r.event==='OPEN') map[r.ticket]._open=r;
   });
-  return Object.values(map).filter(t => t.CLOSE||t.COMPOUND_CLOSE).map(t => {
-    const open = t.OPEN||t._open||{};
-    const close = t.CLOSE||t.COMPOUND_CLOSE||{};
-    return { ...open, closePnL: close.pnl||0, closeTime: close.ts, event: close.event };
+  return Object.values(map).filter(t=>t.CLOSE||t.CompoundClose).map(t => {
+    const open  = t.OPEN||t._open||{};
+    const close = t.CLOSE||t.CompoundClose||{};
+    return {...open, closePnL:close.pnl||0, closeTime:close.ts, event:close.event};
   });
 }
 
 function calcStats() {
   const closed = getClosedTrades();
   if(!closed.length) return null;
-  const wins = closed.filter(t => t.closePnL > 0);
-  const losses = closed.filter(t => t.closePnL < 0);
-  const winRate = closed.length ? (wins.length/closed.length*100) : 0;
-  const totalPnL = closed.reduce((s,t) => s+t.closePnL, 0);
-  const avgWin = wins.length ? wins.reduce((s,t)=>s+t.closePnL,0)/wins.length : 0;
-  const avgLoss = losses.length ? losses.reduce((s,t)=>s+t.closePnL,0)/losses.length : 0;
+  const wins = closed.filter(t=>t.closePnL>0);
+  const losses = closed.filter(t=>t.closePnL<0);
+  const winRate = closed.length?(wins.length/closed.length*100):0;
+  const totalPnL = closed.reduce((s,t)=>s+t.closePnL,0);
+  const avgWin  = wins.length?wins.reduce((s,t)=>s+t.closePnL,0)/wins.length:0;
+  const avgLoss = losses.length?losses.reduce((s,t)=>s+t.closePnL,0)/losses.length:0;
   const sumWins = wins.reduce((s,t)=>s+t.closePnL,0);
   const sumLoss = Math.abs(losses.reduce((s,t)=>s+t.closePnL,0));
-  const profitFactor = sumLoss > 0 ? sumWins/sumLoss : sumWins > 0 ? 999 : 0;
-  const rr = avgLoss !== 0 ? Math.abs(avgWin/avgLoss) : 0;
-
-  // Max drawdown from daily
-  let peak = 0, maxDD = 0;
-  db.daily.forEach(d => {
-    const b = parseFloat(d.end_balance||0);
-    if(b > peak) peak = b;
-    const dd = peak > 0 ? (peak-b)/peak*100 : 0;
-    if(dd > maxDD) maxDD = dd;
+  const profitFactor = sumLoss>0?sumWins/sumLoss:sumWins>0?999:0;
+  const rr = avgLoss!==0?Math.abs(avgWin/avgLoss):0;
+  let peak=0,maxDD=0;
+  db.daily.forEach(d=>{
+    const b=parseFloat(d.end_balance||0);
+    if(b>peak) peak=b;
+    const dd=peak>0?(peak-b)/peak*100:0;
+    if(dd>maxDD) maxDD=dd;
   });
-
-  // Streaks
-  let maxWinStreak=0, maxLoseStreak=0, curWin=0, curLose=0;
-  closed.forEach(t => {
-    if(t.closePnL>0){ curWin++; curLose=0; maxWinStreak=Math.max(maxWinStreak,curWin); }
-    else{ curLose++; curWin=0; maxLoseStreak=Math.max(maxLoseStreak,curLose); }
+  let maxWinStreak=0,maxLoseStreak=0,curWin=0,curLose=0;
+  closed.forEach(t=>{
+    if(t.closePnL>0){curWin++;curLose=0;maxWinStreak=Math.max(maxWinStreak,curWin);}
+    else{curLose++;curWin=0;maxLoseStreak=Math.max(maxLoseStreak,curLose);}
   });
-
-  const lastBal = db.daily.length ? parseFloat(db.daily[db.daily.length-1].end_balance||0) : 0;
-  const lastDay = db.daily.length ? db.daily[db.daily.length-1] : null;
-
-  return { closed, wins, losses, winRate, totalPnL, avgWin, avgLoss,
-           profitFactor, rr, maxDD, maxWinStreak, maxLoseStreak,
-           lastBal, lastDay };
+  const lastBal = db.daily.length?parseFloat(db.daily[db.daily.length-1].end_balance||0):0;
+  const lastDay = db.daily.length?db.daily[db.daily.length-1]:null;
+  return {closed,wins,losses,winRate,totalPnL,avgWin,avgLoss,
+          profitFactor,rr,maxDD,maxWinStreak,maxLoseStreak,lastBal,lastDay};
 }
 
 // ── OVERVIEW ─────────────────────────────────────────────────────
 function renderOverview() {
   const s = calcStats();
-  if(!s) return `<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-msg">No trade data yet</div><div class="empty-sub">Data will appear here once the EA starts pushing on Monday</div></div>`;
+  const acctCard = renderAccountCard();
+  if(!s) return acctCard+`<div class="empty-state">
+    <div class="empty-icon">📊</div>
+    <div class="empty-msg">No trade data yet for this account</div>
+    <div class="empty-sub">Data will appear here once the EA starts pushing trades</div></div>`;
 
   const pnlClr = s.totalPnL>=0?'green':'red';
   const lastDay = s.lastDay;
-  const compDay = lastDay ? lastDay.compound_day : '—';
-  const compLot = lastDay ? lastDay.compound_lot : '—';
-  const compTgt = lastDay ? '$'+parseFloat(lastDay.compound_target||0).toFixed(2) : '—';
+  const compDay = lastDay?lastDay.compound_day:'—';
+  const compLot = lastDay?lastDay.compound_lot:'—';
+  const compTgt = lastDay?'$'+parseFloat(lastDay.compound_target||0).toFixed(2):'—';
   const targetDays = db.daily.filter(d=>d.target_hit).length;
 
-  // Build equity data from daily
-  const eqLabels = db.daily.map(d=>d.date);
-  const eqData   = db.daily.map(d=>parseFloat(d.end_balance||0));
-
-  // Daily PnL bars
-  const pnlLabels = db.daily.slice(-30).map(d=>d.date.slice(5));
-  const pnlData   = db.daily.slice(-30).map(d=>parseFloat(d.daily_pnl||0));
-  const pnlColors = db.daily.slice(-30).map(d => d.target_hit ? '#22c55e' : parseFloat(d.daily_pnl||0)>=0 ? '#3b82f6' : '#ef4444');
-
-  return `
+  return acctCard+`
   <div class="kpi-grid">
-    ${kpi('Closed Trades', s.closed.length, '', 'cyan')}
-    ${kpi('Win Rate', s.winRate.toFixed(1)+'%', '', s.winRate>=50?'green':'red')}
-    ${kpi('Total P&L', (s.totalPnL>=0?'+':'')+s.totalPnL.toFixed(2), '', pnlClr)}
-    ${kpi('Balance', '$'+(s.lastBal||0).toFixed(2), '', 'gold')}
-    ${kpi('Profit Factor', s.profitFactor.toFixed(2), '', s.profitFactor>=1?'green':'red')}
-    ${kpi('R:R Ratio', s.rr.toFixed(2), '', s.rr>=1?'green':'red')}
-    ${kpi('Max Drawdown', s.maxDD.toFixed(1)+'%', '', s.maxDD>20?'red':s.maxDD>10?'gold':'green')}
-    ${kpi('Avg Win', '+'+s.avgWin.toFixed(2), '', 'green')}
-    ${kpi('Avg Loss', s.avgLoss.toFixed(2), '', 'red')}
-    ${kpi('Win Streak', s.maxWinStreak, 'best', 'green')}
-    ${kpi('Lose Streak', s.maxLoseStreak, 'worst', 'red')}
-    ${kpi('Target Days', targetDays+'/'+db.daily.length, '', 'gold')}
-    ${kpi('Compound Day', compDay, '', 'cyan')}
-    ${kpi('Current Lot', compLot, '', 'cyan')}
-    ${kpi('Daily Target', compTgt, '', 'gold')}
+    ${kpi('Closed Trades',s.closed.length,'','cyan')}
+    ${kpi('Win Rate',s.winRate.toFixed(1)+'%','',s.winRate>=50?'green':'red')}
+    ${kpi('Total P&L',(s.totalPnL>=0?'+':'')+s.totalPnL.toFixed(2),'',pnlClr)}
+    ${kpi('Balance','$'+(s.lastBal||0).toFixed(2),'','gold')}
+    ${kpi('Profit Factor',s.profitFactor.toFixed(2),'',s.profitFactor>=1?'green':'red')}
+    ${kpi('R:R Ratio',s.rr.toFixed(2),'',s.rr>=1?'green':'red')}
+    ${kpi('Max Drawdown',s.maxDD.toFixed(1)+'%','',s.maxDD>20?'red':s.maxDD>10?'gold':'green')}
+    ${kpi('Avg Win','+'+s.avgWin.toFixed(2),'','green')}
+    ${kpi('Avg Loss',s.avgLoss.toFixed(2),'','red')}
+    ${kpi('Win Streak',s.maxWinStreak,'best','green')}
+    ${kpi('Lose Streak',s.maxLoseStreak,'worst','red')}
+    ${kpi('Target Days',targetDays+'/'+db.daily.length,'','gold')}
+    ${kpi('Compound Day',compDay,'','cyan')}
+    ${kpi('Current Lot',compLot,'','cyan')}
+    ${kpi('Daily Target',compTgt,'','gold')}
   </div>
   <div class="charts-row">
     <div class="chart-card">
@@ -315,23 +447,18 @@ function renderOverview() {
       <div class="chart-wrap"><canvas id="pnlChart"></canvas></div>
     </div>
   </div>`;
-
-  function kpi(label, val, sub, clr) {
-    return `<div class="kpi"><div class="kpi-label">${label}</div><div class="kpi-value ${clr||''}">${val}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;
-  }
 }
 
 // ── TRADES ───────────────────────────────────────────────────────
 function renderTrades() {
   const closed = getClosedTrades();
+  if(!closed.length) return `<div class="empty-state">
+    <div class="empty-icon">📋</div><div class="empty-msg">No trades yet for this account</div></div>`;
   const syms = ['ALL',...new Set(closed.map(t=>t.symbol).filter(Boolean))];
-  const filtered = closed.filter(t =>
-    (filterSym==='ALL'||t.symbol===filterSym) &&
+  const filtered = closed.filter(t=>
+    (filterSym==='ALL'||t.symbol===filterSym)&&
     (filterDir==='ALL'||t.direction===filterDir)
   );
-
-  if(!closed.length) return `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-msg">No trades yet</div><div class="empty-sub">Trades will appear here once the market opens Monday</div></div>`;
-
   return `
   <div class="table-card">
     <div class="table-header">
@@ -354,11 +481,11 @@ function renderTrades() {
           <th>Strong</th><th>Weak</th><th>Gap</th><th>P&L</th><th>News</th>
         </tr></thead>
         <tbody>
-          ${filtered.map((t,i) => {
-            const pnl = parseFloat(t.closePnL||0);
-            const pnlClr = pnl>0?'#22c55e':pnl<0?'#ef4444':'#9ca3af';
-            const news = getNewsFlag(t);
-            return `<tr onclick="openInspector(${i},${JSON.stringify(filtered).replace(/"/g,'&quot;')})">
+          ${filtered.map((t,i)=>{
+            const pnl=parseFloat(t.closePnL||0);
+            const pnlClr=pnl>0?'#22c55e':pnl<0?'#ef4444':'#9ca3af';
+            const news=getNewsFlag(t);
+            return `<tr onclick="openInspector(${i},filtered_trades)">
               <td style="color:#9ca3af">${(t.ts||'').substring(0,16)}</td>
               <td style="color:#60a5fa;font-weight:700">${t.symbol||'—'}</td>
               <td style="color:${t.direction==='BUY'?'#22c55e':'#ef4444'}">${t.direction||'—'}</td>
@@ -377,41 +504,30 @@ function renderTrades() {
       </table>
     </div>
   </div>`;
+  // store for inspector access
+  window.filtered_trades = filtered;
 }
 
 // ── SIGNALS ──────────────────────────────────────────────────────
 function renderSignals() {
-  if(!db.signals.length) return `<div class="empty-state"><div class="empty-icon">📡</div><div class="empty-msg">No signal data yet</div></div>`;
-  const filtered = db.signals.filter(s =>
-    filterResult==='ALL'||s.result===filterResult
-  );
+  if(!db.signals.length) return `<div class="empty-state">
+    <div class="empty-icon">📡</div><div class="empty-msg">No signal data yet for this account</div></div>`;
+  const filtered = db.signals.filter(s=>filterResult==='ALL'||s.result===filterResult);
   const opened = db.signals.filter(s=>s.result==='OPENED').length;
   const blocked = db.signals.filter(s=>s.result==='BLOCKED').length;
-  const conv = db.signals.length ? (opened/db.signals.length*100).toFixed(1) : 0;
-
-  // Block reason counts
-  const reasons = {};
-  db.signals.filter(s=>s.result==='BLOCKED').forEach(s => {
-    const r = s.block_reason||'Unknown';
-    reasons[r] = (reasons[r]||0)+1;
-  });
-
+  const conv = db.signals.length?(opened/db.signals.length*100).toFixed(1):0;
   return `
   <div class="kpi-grid" style="margin-bottom:24px">
-    <div class="kpi"><div class="kpi-label">Total Signals</div><div class="kpi-value cyan">${db.signals.length}</div></div>
-    <div class="kpi"><div class="kpi-label">Opened</div><div class="kpi-value green">${opened}</div></div>
-    <div class="kpi"><div class="kpi-label">Blocked</div><div class="kpi-value red">${blocked}</div></div>
-    <div class="kpi"><div class="kpi-label">Conversion</div><div class="kpi-value gold">${conv}%</div></div>
+    ${kpi('Total Signals',db.signals.length,'','cyan')}
+    ${kpi('Opened',opened,'','green')}
+    ${kpi('Blocked',blocked,'','red')}
+    ${kpi('Conversion',conv+'%','','gold')}
   </div>
   <div class="charts-row" style="margin-bottom:24px">
-    <div class="chart-card">
-      <div class="chart-title">Block Reasons</div>
-      <div class="chart-wrap"><canvas id="blockChart"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Signal Outcome</div>
-      <div class="chart-wrap"><canvas id="sigPieChart"></canvas></div>
-    </div>
+    <div class="chart-card"><div class="chart-title">Block Reasons</div>
+      <div class="chart-wrap"><canvas id="blockChart"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Signal Outcome</div>
+      <div class="chart-wrap"><canvas id="sigPieChart"></canvas></div></div>
   </div>
   <div class="table-card">
     <div class="table-header">
@@ -427,7 +543,7 @@ function renderSignals() {
       <table>
         <thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>
         <tbody>
-          ${filtered.slice(-200).reverse().map(s => `<tr>
+          ${filtered.slice(-200).reverse().map(s=>`<tr>
             <td style="color:#9ca3af">${(s.ts||'').substring(0,16)}</td>
             <td style="color:#60a5fa;font-weight:700">${s.symbol||'—'}</td>
             <td style="color:${s.direction==='BUY'?'#22c55e':'#ef4444'}">${s.direction||'—'}</td>
@@ -445,31 +561,31 @@ function renderSignals() {
 
 // ── DAILY ────────────────────────────────────────────────────────
 function renderDaily() {
-  if(!db.daily.length) return `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-msg">No daily data yet</div></div>`;
+  if(!db.daily.length) return `<div class="empty-state">
+    <div class="empty-icon">📅</div><div class="empty-msg">No daily data yet for this account</div></div>`;
   return `
   <div class="table-card" style="margin-bottom:24px">
-    <div class="table-header"><span class="table-title">Daily Summary</span><span class="count-badge">${db.daily.length} days</span></div>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>End Bal</th><th>P&L</th><th>Target</th><th>Opened</th><th>Closed</th><th>Lot</th></tr></thead>
-        <tbody>
-          ${[...db.daily].reverse().map(d => {
-            const pnl = parseFloat(d.daily_pnl||0);
-            return `<tr>
-              <td style="color:#9ca3af">${d.date}</td>
-              <td style="color:var(--gold)">Day ${d.compound_day}</td>
-              <td>$${parseFloat(d.start_balance||0).toFixed(2)}</td>
-              <td style="color:${parseFloat(d.end_balance)>=parseFloat(d.start_balance)?'#22c55e':'#ef4444'}">$${parseFloat(d.end_balance||0).toFixed(2)}</td>
-              <td style="color:${pnl>=0?'#22c55e':'#ef4444'};font-weight:700">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
-              <td style="color:${d.target_hit?'#22c55e':'#9ca3af'}">${d.target_hit?'✓ YES':'NO'}</td>
-              <td>${d.trades_opened||0}</td>
-              <td>${d.trades_closed||0}</td>
-              <td style="color:var(--gold)">${d.compound_lot}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
-    </div>
+    <div class="table-header"><span class="table-title">Daily Summary</span>
+      <span class="count-badge">${db.daily.length} days</span></div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>End Bal</th><th>P&L</th><th>Target</th><th>Opened</th><th>Closed</th><th>Lot</th></tr></thead>
+      <tbody>
+        ${[...db.daily].reverse().map(d=>{
+          const pnl=parseFloat(d.daily_pnl||0);
+          return `<tr>
+            <td style="color:#9ca3af">${d.date}</td>
+            <td style="color:var(--gold)">Day ${d.compound_day}</td>
+            <td>$${parseFloat(d.start_balance||0).toFixed(2)}</td>
+            <td style="color:${parseFloat(d.end_balance)>=parseFloat(d.start_balance)?'#22c55e':'#ef4444'}">
+              $${parseFloat(d.end_balance||0).toFixed(2)}</td>
+            <td style="color:${pnl>=0?'#22c55e':'#ef4444'};font-weight:700">${pnl>=0?'+':''}${pnl.toFixed(2)}</td>
+            <td style="color:${d.target_hit?'#22c55e':'#9ca3af'}">${d.target_hit?'✓ YES':'NO'}</td>
+            <td>${d.trades_opened||0}</td><td>${d.trades_closed||0}</td>
+            <td style="color:var(--gold)">${d.compound_lot}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>
   </div>
   <div class="chart-card">
     <div class="chart-title">Calendar — Target Days</div>
@@ -478,58 +594,56 @@ function renderDaily() {
 }
 
 function renderCalendar() {
-  const map = {};
-  db.daily.forEach(d => { map[d.date] = d; });
+  const map={};
+  db.daily.forEach(d=>{map[d.date]=d;});
   if(!db.daily.length) return '<div class="empty-sub" style="padding:20px">No data</div>';
-  const first = new Date(db.daily[0].date);
-  const last  = new Date(db.daily[db.daily.length-1].date);
-  let html = '<div class="calendar">';
-  // Day headers
-  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d => {
-    html += `<div style="text-align:center;font-size:10px;color:var(--sub);padding:4px">${d}</div>`;
+  const first=new Date(db.daily[0].date);
+  const last =new Date(db.daily[db.daily.length-1].date);
+  let html='<div class="calendar">';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{
+    html+=`<div style="text-align:center;font-size:10px;color:var(--sub);padding:4px">${d}</div>`;
   });
-  // Fill empty days before first
-  let dow = (first.getDay()+6)%7; // Mon=0
-  for(let i=0;i<dow;i++) html += '<div class="cal-day empty"></div>';
-  // Fill days
-  const cur = new Date(first);
-  while(cur <= last) {
-    const key = cur.toISOString().slice(0,10);
-    const d = map[key];
-    if(d) {
-      const pnl = parseFloat(d.daily_pnl||0);
-      const cls = d.target_hit ? 'hit' : pnl < 0 ? 'loss' : 'nodata';
-      html += `<div class="cal-day ${cls}" title="${key}: ${pnl>=0?'+':''}${pnl.toFixed(2)}">${cur.getDate()}</div>`;
+  let dow=(first.getDay()+6)%7;
+  for(let i=0;i<dow;i++) html+='<div class="cal-day empty"></div>';
+  const cur=new Date(first);
+  while(cur<=last){
+    const key=cur.toISOString().slice(0,10);
+    const d=map[key];
+    if(d){
+      const pnl=parseFloat(d.daily_pnl||0);
+      const cls=d.target_hit?'hit':pnl<0?'loss':'nodata';
+      html+=`<div class="cal-day ${cls}" title="${key}: ${pnl>=0?'+':''}${pnl.toFixed(2)}">${cur.getDate()}</div>`;
     } else {
-      html += `<div class="cal-day nodata">${cur.getDate()}</div>`;
+      html+=`<div class="cal-day nodata">${cur.getDate()}</div>`;
     }
     cur.setDate(cur.getDate()+1);
   }
-  html += '</div>';
-  return html;
+  return html+'</div>';
 }
 
 // ── HEATMAP ──────────────────────────────────────────────────────
 function renderHeatmap() {
-  const closed = getClosedTrades();
-  if(!closed.length) return `<div class="empty-state"><div class="empty-icon">🔥</div><div class="empty-msg">No trade data yet</div></div>`;
-  const map = {};
-  closed.forEach(t => {
+  const closed=getClosedTrades();
+  if(!closed.length) return `<div class="empty-state">
+    <div class="empty-icon">🔥</div><div class="empty-msg">No trade data yet</div></div>`;
+  const map={};
+  closed.forEach(t=>{
     if(!t.symbol) return;
     if(!map[t.symbol]) map[t.symbol]={sym:t.symbol,count:0,wins:0,pnl:0};
     map[t.symbol].count++;
     if(t.closePnL>0) map[t.symbol].wins++;
-    map[t.symbol].pnl += t.closePnL||0;
+    map[t.symbol].pnl+=t.closePnL||0;
   });
-  const pairs = Object.values(map).sort((a,b)=>b.pnl-a.pnl);
+  const pairs=Object.values(map).sort((a,b)=>b.pnl-a.pnl);
   return `
   <div class="table-card">
-    <div class="table-header"><span class="table-title">Pair Performance</span><span class="count-badge">${pairs.length} pairs</span></div>
+    <div class="table-header"><span class="table-title">Pair Performance</span>
+      <span class="count-badge">${pairs.length} pairs</span></div>
     <div class="heatmap">
-      ${pairs.map(p => {
-        const wr = p.count ? p.wins/p.count*100 : 0;
-        const bg = wr>=60?'#1a3a2a':wr>=50?'#1a2a1a':wr>=40?'#2a2a1a':'#2a1a1a';
-        const tc = wr>=60?'#22c55e':wr>=50?'#86efac':wr>=40?'#f59e0b':'#ef4444';
+      ${pairs.map(p=>{
+        const wr=p.count?p.wins/p.count*100:0;
+        const bg=wr>=60?'#1a3a2a':wr>=50?'#1a2a1a':wr>=40?'#2a2a1a':'#2a1a1a';
+        const tc=wr>=60?'#22c55e':wr>=50?'#86efac':wr>=40?'#f59e0b':'#ef4444';
         return `<div class="tile" style="background:${bg};border-color:${tc}33">
           <div class="tile-sym">${p.sym}</div>
           <div class="tile-wr" style="color:${tc}">${wr.toFixed(0)}%</div>
@@ -543,19 +657,18 @@ function renderHeatmap() {
 
 // ── NEWS FLAG ────────────────────────────────────────────────────
 function getNewsFlag(trade) {
-  if(!trade.ts || !trade.strong_cur) return {icon:'🟢', label:'Clean', cls:'news-clean'};
-  const openTime = new Date(trade.ts).getTime();
-  const nearby = db.signals.filter(s => {
+  if(!trade.ts||!trade.strong_cur) return {icon:'🟢',label:'Clean',cls:'news-clean'};
+  const openTime=new Date(trade.ts).getTime();
+  const nearby=db.signals.filter(s=>{
     if(s.result!=='BLOCKED') return false;
     if(!(s.block_reason||'').includes('News')) return false;
-    if(s.strong_cur!==trade.strong_cur && s.weak_cur!==trade.weak_cur) return false;
-    const diff = Math.abs(new Date(s.ts).getTime() - openTime);
-    return diff <= 30*60*1000;
+    if(s.strong_cur!==trade.strong_cur&&s.weak_cur!==trade.weak_cur) return false;
+    return Math.abs(new Date(s.ts).getTime()-openTime)<=30*60*1000;
   });
-  if(!nearby.length) return {icon:'🟢', label:'Clean', cls:'news-clean'};
-  const closest = Math.min(...nearby.map(s=>Math.abs(new Date(s.ts).getTime()-openTime)));
-  if(closest <= 10*60*1000) return {icon:'🔴', label:'High Risk', cls:'news-high'};
-  return {icon:'🟡', label:'Adjacent', cls:'news-adjacent'};
+  if(!nearby.length) return {icon:'🟢',label:'Clean',cls:'news-clean'};
+  const closest=Math.min(...nearby.map(s=>Math.abs(new Date(s.ts).getTime()-openTime)));
+  if(closest<=10*60*1000) return {icon:'🔴',label:'High Risk',cls:'news-high'};
+  return {icon:'🟡',label:'Adjacent',cls:'news-adjacent'};
 }
 
 // ── TRADE INSPECTOR ──────────────────────────────────────────────
@@ -563,10 +676,8 @@ function openInspector(idx, trades) {
   const t = trades[idx];
   const news = getNewsFlag(t);
   const pnl = parseFloat(t.closePnL||0);
-  // Find all events for this ticket
   const events = db.trades.filter(r=>r.ticket===t.ticket).sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-
-  let html = `
+  document.getElementById('inspContent').innerHTML = `
   <div class="insp-title">${t.symbol||'—'} ${t.direction||''}</div>
   <div class="insp-sub">Ticket #${t.ticket||'—'} · Compound Day ${t.compound_day||'—'}</div>
   <div class="insp-section">
@@ -600,8 +711,6 @@ function openInspector(idx, trades) {
       <span class="val">${(e.ts||'').substring(0,16)}</span>
     </div>`).join('')}
   </div>`;
-
-  document.getElementById('inspContent').innerHTML = html;
   document.getElementById('inspector').classList.add('open');
   document.getElementById('overlay').classList.add('open');
 }
@@ -611,68 +720,58 @@ function closeInspector() {
   document.getElementById('overlay').classList.remove('open');
 }
 
-// ── CHARTS (after render) ────────────────────────────────────────
+// ── CHARTS ───────────────────────────────────────────────────────
 function afterRender() {
-  const chartDefaults = {
+  const cd = {
     responsive:true, maintainAspectRatio:false,
     plugins:{legend:{display:false}},
-    scales:{ x:{ticks:{color:'#6b7280',maxTicksLimit:8}, grid:{color:'#1f2937'}},
-             y:{ticks:{color:'#6b7280'}, grid:{color:'#1f2937'}} }
+    scales:{x:{ticks:{color:'#6b7280',maxTicksLimit:8},grid:{color:'#1f2937'}},
+            y:{ticks:{color:'#6b7280'},grid:{color:'#1f2937'}}}
   };
+  const eq=document.getElementById('eqChart');
+  if(eq&&db.daily.length) charts.eq=new Chart(eq,{type:'line',data:{
+    labels:db.daily.map(d=>d.date.slice(5)),
+    datasets:[{data:db.daily.map(d=>parseFloat(d.end_balance||0)),
+      borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:2}]
+  },options:{...cd}});
 
-  // Equity curve
-  const eq = document.getElementById('eqChart');
-  if(eq && db.daily.length) {
-    charts.eq = new Chart(eq, { type:'line', data:{
-      labels: db.daily.map(d=>d.date.slice(5)),
-      datasets:[{ data: db.daily.map(d=>parseFloat(d.end_balance||0)),
-        borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.1)',
-        fill:true, tension:.3, pointRadius:2 }]
-    }, options: {...chartDefaults} });
+  const pnl=document.getElementById('pnlChart');
+  if(pnl&&db.daily.length){
+    const sl=db.daily.slice(-30);
+    charts.pnl=new Chart(pnl,{type:'bar',data:{
+      labels:sl.map(d=>d.date.slice(5)),
+      datasets:[{data:sl.map(d=>parseFloat(d.daily_pnl||0)),
+        backgroundColor:sl.map(d=>d.target_hit?'#22c55e':parseFloat(d.daily_pnl||0)>=0?'#3b82f6':'#ef4444')}]
+    },options:{...cd}});
   }
 
-  // Daily PnL bars
-  const pnl = document.getElementById('pnlChart');
-  if(pnl && db.daily.length) {
-    const slice = db.daily.slice(-30);
-    charts.pnl = new Chart(pnl, { type:'bar', data:{
-      labels: slice.map(d=>d.date.slice(5)),
-      datasets:[{ data: slice.map(d=>parseFloat(d.daily_pnl||0)),
-        backgroundColor: slice.map(d => d.target_hit?'#22c55e':parseFloat(d.daily_pnl||0)>=0?'#3b82f6':'#ef4444') }]
-    }, options: {...chartDefaults} });
-  }
-
-  // Block reasons bar
-  const blk = document.getElementById('blockChart');
-  if(blk) {
-    const reasons = {};
+  const blk=document.getElementById('blockChart');
+  if(blk){
+    const reasons={};
     db.signals.filter(s=>s.result==='BLOCKED').forEach(s=>{
       const r=s.block_reason||'Unknown'; reasons[r]=(reasons[r]||0)+1;
     });
-    const keys = Object.keys(reasons);
-    const vals = keys.map(k=>reasons[k]);
-    charts.blk = new Chart(blk, { type:'bar', data:{
-      labels:keys, datasets:[{data:vals, backgroundColor:'#ef4444'}]
-    }, options:{...chartDefaults, indexAxis:'y'} });
+    const keys=Object.keys(reasons);
+    charts.blk=new Chart(blk,{type:'bar',data:{
+      labels:keys,datasets:[{data:keys.map(k=>reasons[k]),backgroundColor:'#ef4444'}]
+    },options:{...cd,indexAxis:'y'}});
   }
 
-  // Signal pie
-  const sp = document.getElementById('sigPieChart');
-  if(sp) {
-    const opened = db.signals.filter(s=>s.result==='OPENED').length;
-    const blocked = db.signals.filter(s=>s.result==='BLOCKED').length;
-    charts.sp = new Chart(sp, { type:'doughnut', data:{
+  const sp=document.getElementById('sigPieChart');
+  if(sp){
+    const opened=db.signals.filter(s=>s.result==='OPENED').length;
+    const blocked=db.signals.filter(s=>s.result==='BLOCKED').length;
+    charts.sp=new Chart(sp,{type:'doughnut',data:{
       labels:['Opened','Blocked'],
-      datasets:[{data:[opened,blocked], backgroundColor:['#22c55e','#ef4444'], borderWidth:0}]
-    }, options:{responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:true,position:'bottom',labels:{color:'#9ca3af',font:{size:11}}}}} });
+      datasets:[{data:[opened,blocked],backgroundColor:['#22c55e','#ef4444'],borderWidth:0}]
+    },options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:'bottom',labels:{color:'#9ca3af',font:{size:11}}}}}});
   }
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
-loadAll();
-// Auto-refresh every 60 seconds
-setInterval(() => { if(document.visibilityState==='visible') loadAll(); }, 60000);
+init();
+setInterval(refresh, 60000);
 </script>
 </body>
 </html>
