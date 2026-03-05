@@ -245,10 +245,22 @@ let activePreset='all';
 const STRATEGY_TABS=['overview','positions','trades','signals','daily','heatmap','compare'];
 const PORTFOLIO_TABS=['overview','trades','performance','compare'];
 
-// ── SUPABASE ──────────────────────────────────────────────────────
+// ── SUPABASE — paginated, fetches ALL rows no matter how many ─────
 async function sb(table,params=''){
-  const r=await fetch(`${SB_URL}/rest/v1/${table}?${params}&limit=5000`,{headers:{...HDR,'Range-Unit':'items','Range':'0-4999'}});
-  return r.ok?r.json():[];
+  const PAGE=1000;
+  let all=[],from=0;
+  while(true){
+    const r=await fetch(
+      `${SB_URL}/rest/v1/${table}?${params}&limit=${PAGE}&offset=${from}`,{
+      headers:{...HDR,'Range-Unit':'items',Range:`${from}-${from+PAGE-1}`}
+    });
+    if(!r.ok) break;
+    const page=await r.json();
+    all=all.concat(page);
+    if(page.length<PAGE) break;
+    from+=PAGE;
+  }
+  return all;
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
