@@ -362,7 +362,7 @@ function renderStrategyOverview(){
       <div style="display:none" id="eqData" data-labels='${JSON.stringify(labels)}' data-vals='${JSON.stringify(equity)}'></div>
     </div>
     <div class="chart-card"><div class="chart-title">P&L by Pair</div><div class="chart-wrap"><canvas id="pairChart"></canvas></div>
-      <div style="display:none" id="pairData" data-keys='${JSON.stringify(pairKeys)}' data-vals='${JSON.stringify(pairKeys.map(k=>byPair[k].toFixed(2)))'></div>
+      <div style="display:none" id="pairData" data-keys='${JSON.stringify(pairKeys)}' data-vals='${JSON.stringify(pairKeys.map(k=>byPair[k].toFixed(2)))}'></div>
     </div>
   </div>`;
 }
