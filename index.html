@@ -236,7 +236,8 @@ let mode='strategy'; // 'strategy' | 'portfolio'
 let activeTab='overview';
 let acctId='';
 let allAccounts=[];
-let db={trades:[],signals:[],daily:[],positions:[]};
+let rawDb={trades:[],signals:[],daily:[],positions:[]}; // full unfiltered data
+let db={trades:[],signals:[],daily:[],positions:[]};    // date-filtered view
 let allAccountsData={};
 let charts={};
 let dateFrom='',dateTo='';
@@ -288,33 +289,53 @@ async function loadData(){
   const txt=document.getElementById('statusTxt');
   dot.className='status-dot off'; txt.textContent='Loading…';
 
-  const filter=acctId?`&account_id=eq.${acctId}`:'';
-  const dfFilter=buildDateFilter();
+  const filter=acctId?`account_id=eq.${acctId}`:'select=*';
 
   const [trades,signals,daily]=await Promise.all([
-    sb('trades',`select=*&order=ts${filter}${dfFilter}`),
-    sb('signals',`select=*&order=ts${filter}${dfFilter}`),
-    sb('daily',`select=*&order=date${filter}`)
+    sb('trades',`select=*&order=ts${acctId?'&'+filter:''}`),
+    sb('signals',`select=*&order=ts${acctId?'&'+filter:''}`),
+    sb('daily',`select=*&order=date${acctId?'&'+filter:''}`)
   ]);
 
-  db.trades=trades||[];
-  db.signals=signals||[];
-  db.daily=daily||[];
-  db.positions=db.trades.filter(t=>t.event==='OPEN'&&!db.trades.find(x=>x.ticket===t.ticket&&x.event==='CLOSE'));
+  rawDb.trades=trades||[];
+  rawDb.signals=signals||[];
+  rawDb.daily=daily||[];
 
-  updateRangeCount();
+  applyDateFilter();
+
   dot.className='status-dot'; txt.textContent='Live';
   document.getElementById('lastSync').textContent='Synced '+new Date().toLocaleTimeString();
   renderTabs();
   renderContent();
 }
 
-function buildDateFilter(){
-  if(!dateFrom&&!dateTo) return '';
-  let f='';
-  if(dateFrom) f+=`&ts=gte.${dateFrom}T00:00:00`;
-  if(dateTo) f+=`&ts=lte.${dateTo}T23:59:59`;
-  return f;
+// Apply date filter in memory — no re-fetch needed
+function applyDateFilter(){
+  const from=dateFrom?new Date(dateFrom+'T00:00:00'):null;
+  const to=dateTo?new Date(dateTo+'T23:59:59'):null;
+
+  function inRange(ts){
+    if(!ts) return true;
+    const d=new Date(ts);
+    if(from&&d<from) return false;
+    if(to&&d>to) return false;
+    return true;
+  }
+  function inRangeDate(dateStr){
+    if(!dateStr) return true;
+    const d=new Date(dateStr+'T12:00:00');
+    if(from&&d<from) return false;
+    if(to&&d>to) return false;
+    return true;
+  }
+
+  db.trades=rawDb.trades.filter(t=>inRange(t.ts));
+  db.signals=rawDb.signals.filter(s=>inRange(s.ts));
+  db.daily=rawDb.daily.filter(d=>inRangeDate(d.date));
+  // positions = OPEN trades with no matching CLOSE in the FULL raw dataset (not filtered)
+  db.positions=rawDb.trades.filter(t=>t.event==='OPEN'&&!rawDb.trades.find(x=>x.ticket===t.ticket&&x.event==='CLOSE'));
+
+  updateRangeCount();
 }
 
 function updateRangeCount(){
@@ -385,14 +406,18 @@ function setPreset(p){
     const s=new Date(now);s.setDate(now.getDate()-180);
     df.value=fmt(s);dt.value=fmt(now);dateFrom=fmt(s);dateTo=fmt(now);
   }
-  loadData();
+  applyDateFilter();
+  destroyCharts();
+  renderContent();
 }
 
 function onDateChange(){
   dateFrom=document.getElementById('dateFrom').value;
   dateTo=document.getElementById('dateTo').value;
   document.querySelectorAll('.preset').forEach(b=>b.classList.remove('active'));
-  loadData();
+  applyDateFilter();
+  destroyCharts();
+  renderContent();
 }
 
 // ── TABS ──────────────────────────────────────────────────────────
