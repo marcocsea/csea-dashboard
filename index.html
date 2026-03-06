@@ -971,18 +971,29 @@ function renderCharts() {
     charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#0d9488':'#dc2626';})}]},options:Object.assign({},cd)});
   }
 
-  // Performance tab
+ // Performance tab
+  const m12=months.slice(-12),mv12=mVals.slice(-12);
   const pm=document.getElementById('perfMonthly');
-  if(pm) charts.pm=new Chart(pm,{type:'bar',data:{
-  labels:months.map(m=>m.slice(5)),
-  datasets:[{data:mVals,backgroundColor:mVals.map(v=>v>=0?'#16a34a':'#dc2626')}]
-  },options:{...cd}});
-
+  if(pm){
+    var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
+    charts.pm=new Chart(pm,{type:'bar',data:{labels:pml,datasets:[{data:pmv,backgroundColor:pmv.map(function(v){return v>=0?'#0d9488':'#dc2626';})}]},options:Object.assign({},cd)});
+  }
+  const w4=weeks.slice(-4),wv4=wVals.slice(-4);
   const pw=document.getElementById('perfWeekly');
-  if(pw) charts.pw=new Chart(pw,{type:'bar',data:{
-  labels:weeks.map(w=>w.slice(5)),
-  datasets:[{data:wVals,backgroundColor:wVals.map(v=>v>=0?'#16a34a':'#dc2626')}]
-  },options:{...cd}})
+  if(pw){
+    var pwl=JSON.parse(decodeURIComponent(pw.dataset.labels||'[]')),pwv=JSON.parse(decodeURIComponent(pw.dataset.vals||'[]'));
+    charts.pw=new Chart(pw,{type:'bar',data:{labels:pwl.map(function(w){return w.slice(5);}),datasets:[{data:pwv,backgroundColor:pwv.map(function(v){return v>=0?'#0d9488':'#dc2626';})}]},options:Object.assign({},cd)});
+  }
+  var ptod = document.getElementById('perfTod');
+  if(ptod){
+    var ptv=JSON.parse(decodeURIComponent(ptod.dataset.vals||'[]'));
+    charts.ptod=new Chart(ptod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:ptv,backgroundColor:ptv.map(function(v){return v>=0?'#0d9488':'#dc2626';})}]},options:Object.assign({},cd)});
+  }
+  var pdur = document.getElementById('perfDuration');
+  if(pdur){
+    var pdk=JSON.parse(decodeURIComponent(pdur.dataset.keys||'[]')),pdv=JSON.parse(decodeURIComponent(pdur.dataset.vals||'[]'));
+    charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#3b82f6':'#dc2626';})}]},options:Object.assign({},cd)});
+  }
   }
   var ptod = document.getElementById('perfTod');
   if(ptod){
