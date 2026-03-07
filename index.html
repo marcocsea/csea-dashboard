@@ -135,40 +135,40 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 <body>
 
 <div class="header">
-  <div class="logo">ÃÂ¢ÃÂÃÂ¡ <span>CSEA</span> Intelligence</div>
+  <div class="logo">&#9889; <span>CSEA</span> Intelligence</div>
   <div class="badge">v5.5.2</div>
   <div class="mode-toggle">
-    <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">ÃÂ°ÃÂÃÂÃÂ Strategy</button>
-    <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">ÃÂ°ÃÂÃÂÃÂ¼ Portfolio</button>
+    <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">&#128202; Strategy</button>
+    <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">&#128188; Portfolio</button>
   </div>
   <div class="hdr-right">
     <div class="acct-label">Account:</div>
-    <select class="acct-select" id="acctSelect" onchange="onAcctChange()"><option value="">LoadingÃÂ¢ÃÂÃÂ¦</option></select>
+    <select class="acct-select" id="acctSelect" onchange="onAcctChange()"><option value="">Loading&#8230;</option></select>
     <div class="status-dot off" id="statusDot"></div>
-    <div class="status-txt" id="statusTxt">ConnectingÃÂ¢ÃÂÃÂ¦</div>
+    <div class="status-txt" id="statusTxt">Connecting&#8230;</div>
     <div class="last-sync" id="lastSync"></div>
   </div>
 </div>
 
 <div class="day-strip">
-  <div class="ds-item"><div class="ds-label">Day</div><div class="ds-val" id="dsDay">ÃÂ¢ÃÂÃÂ</div></div>
+  <div class="ds-item"><div class="ds-label">Day</div><div class="ds-val" id="dsDay">&#8212;</div></div>
   <div class="ds-sep"></div>
-  <div class="ds-item"><div class="ds-label">Lot</div><div class="ds-val" id="dsLot">ÃÂ¢ÃÂÃÂ</div></div>
+  <div class="ds-item"><div class="ds-label">Lot</div><div class="ds-val" id="dsLot">&#8212;</div></div>
   <div class="ds-sep"></div>
-  <div class="ds-item"><div class="ds-label">Today P&L</div><div class="ds-val" id="dsPnl">ÃÂ¢ÃÂÃÂ</div></div>
+  <div class="ds-item"><div class="ds-label">Today P&amp;L</div><div class="ds-val" id="dsPnl">&#8212;</div></div>
   <div class="ds-sep"></div>
-  <div class="ds-item"><div class="ds-label">Trades</div><div class="ds-val" id="dsTrades">ÃÂ¢ÃÂÃÂ</div></div>
+  <div class="ds-item"><div class="ds-label">Trades</div><div class="ds-val" id="dsTrades">&#8212;</div></div>
   <div class="ds-sep"></div>
-  <div class="ds-item"><div class="ds-label">Open Pos</div><div class="ds-val" id="dsPos">ÃÂ¢ÃÂÃÂ</div></div>
+  <div class="ds-item"><div class="ds-label">Open Pos</div><div class="ds-val" id="dsPos">&#8212;</div></div>
   <div class="ds-sep"></div>
   <div class="ds-progress">
-    <div class="ds-prog-label"><span>Compound Progress</span><span id="dsProgPct">ÃÂ¢ÃÂÃÂ</span></div>
+    <div class="ds-prog-label"><span>Compound Progress</span><span id="dsProgPct">&#8212;</span></div>
     <div class="ds-prog-track"><div class="ds-prog-fill" id="dsProgFill" style="width:0%"></div></div>
   </div>
 </div>
 
 <div class="date-bar">
-  <span class="date-bar-label">ÃÂ°ÃÂÃÂÃÂ Range:</span>
+  <span class="date-bar-label">&#128197; Range:</span>
   <div class="preset-btns">
     <button class="preset" onclick="setPreset('today')">Today</button>
     <button class="preset" onclick="setPreset('week')">This Week</button>
@@ -181,10 +181,10 @@ tr:hover td{background:#f8fafc;cursor:pointer}
   </div>
   <div class="date-inputs">
     <input type="date" id="dateFrom" onchange="onDateChange()"/>
-    <span class="date-sep">ÃÂ¢ÃÂÃÂ</span>
+    <span class="date-sep">&rarr;</span>
     <input type="date" id="dateTo" onchange="onDateChange()"/>
   </div>
-  <div class="range-count" id="rangeCount">ÃÂ¢ÃÂÃÂ trades in range</div>
+  <div class="range-count" id="rangeCount">&#8212; trades in range</div>
 </div>
 
 <div class="tabs" id="tabBar"></div>
@@ -192,7 +192,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 
 <div class="overlay" id="overlay" onclick="closeInspector()"></div>
 <div class="inspector" id="inspector">
-  <button class="insp-close" onclick="closeInspector()">ÃÂ¢ÃÂÃÂ</button>
+  <button class="insp-close" onclick="closeInspector()">&#10005;</button>
   <div id="inspBody"></div>
 </div>
 
@@ -201,29 +201,18 @@ const SB_URL='https://nmyveijljquxvhjelqbc.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5teXZlaWpsanF1eHZoamVscWJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjc2MjgsImV4cCI6MjA4Nzk0MzYyOH0.YT-sAh2Spn1805dnylTsZ2gBx-T7yC6fyOKIs0YPlP4';
 const HDR={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DATALABELS: register globally, control per-chart ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 Chart.register(ChartDataLabels);
 
-// Base datalabels config for bar charts (labels ON TOP)
-var DL_BAR = {
-  display: true,
-  anchor: 'end',
-  align: 'end',
-  offset: 2,
-  clamp: true,
-  font: {size:9, weight:'700'},
-  formatter: function(v){ return (v>=0?'+':'')+v.toFixed(2); },
-  color: function(ctx){ return ctx.dataset.data[ctx.dataIndex]>=0?'#16a34a':'#dc2626'; }
-};
+var DL_BAR={display:true,anchor:'end',align:'end',offset:2,clamp:true,font:{size:9,weight:'700'},
+  formatter:function(v){return(v>=0?'+':'')+v.toFixed(2);},
+  color:function(ctx){return ctx.dataset.data[ctx.dataIndex]>=0?'#16a34a':'#dc2626';}};
+var DL_OFF={display:false};
 
-// Datalabels config for line/equity charts (labels OFF)
-var DL_OFF = { display: false };
-
-var mode='strategy', activeTab='overview', acctId='';
-var allAccounts=[], allAccountsData={}, charts={};
+var mode='strategy',activeTab='overview',acctId='';
+var allAccounts=[],allAccountsData={},charts={};
 var rawDb={trades:[],signals:[],daily:[],positions:[]};
 var db={trades:[],signals:[],daily:[],positions:[]};
-var dateFrom='', dateTo='', activePreset='all';
+var dateFrom='',dateTo='',activePreset='all';
 var posRefreshTimer=null;
 
 const STRATEGY_TABS=['overview','positions','trades','signals','daily','heatmap','currencies','compare'];
@@ -231,7 +220,6 @@ const PORTFOLIO_TABS=['overview','trades','performance','compare'];
 const TAB_LABELS={overview:'Overview',positions:'Positions',trades:'Trades',signals:'Signals',daily:'Daily',heatmap:'Pair Heatmap',currencies:'Currencies',performance:'Performance',compare:'Compare'};
 const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SUPABASE ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function sb(table,params){
   params=params||'';
   var PAGE=1000,all=[],from=0;
@@ -247,7 +235,6 @@ async function sb(table,params){
   return all;
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ INIT ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function init(){
   var saved=localStorage.getItem('csea_account_id');
   var savedMode=localStorage.getItem('csea_mode')||'strategy';
@@ -267,7 +254,7 @@ async function init(){
 async function loadData(){
   var dot=document.getElementById('statusDot');
   var txt=document.getElementById('statusTxt');
-  dot.className='status-dot off'; txt.textContent='LoadingÃÂ¢ÃÂÃÂ¦';
+  dot.className='status-dot off'; txt.textContent='Loading...';
   var f=acctId?('&account_id=eq.'+acctId):'';
   var results=await Promise.all([
     sb('trades','select=*&order=ts'+f),
@@ -276,15 +263,12 @@ async function loadData(){
     sb('trades','select=*&event=eq.OPEN'+f)
   ]);
   rawDb={trades:results[0]||[],signals:results[1]||[],daily:results[2]||[],positions:results[3]||[]};
-
-  // Populate allAccountsData for Compare tab ÃÂ¢ÃÂÃÂ fetch trades per account in parallel
   if(allAccounts.length>1){
     var perAcct=await Promise.all(allAccounts.map(function(a){
       return sb('trades','select=*&order=ts&account_id=eq.'+a.id);
     }));
-    allAccounts.forEach(function(a,i){ allAccountsData[a.id]=perAcct[i]||[]; });
+    allAccounts.forEach(function(a,i){allAccountsData[a.id]=perAcct[i]||[];});
   }
-
   applyDateFilter();
   dot.className='status-dot'; txt.textContent='Live';
   document.getElementById('lastSync').textContent='Updated '+new Date().toLocaleTimeString();
@@ -293,7 +277,6 @@ async function loadData(){
   renderContent();
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DATE FILTER ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function applyDateFilter(){
   var from=dateFrom?new Date(dateFrom):null;
   var to=dateTo?new Date(dateTo+' 23:59:59'):null;
@@ -314,7 +297,6 @@ function closed(){
 }
 function fmtPnl(v){return(v>=0?'+':'')+parseFloat(v).toFixed(2);}
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ PRESETS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function setPreset(p){
   activePreset=p;
   document.querySelectorAll('.preset').forEach(function(b){b.classList.remove('active');});
@@ -339,7 +321,6 @@ function onDateChange(){
   applyDateFilter();destroyCharts();renderContent();
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ MODE / TABS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function setMode(m,reload){
   mode=m;localStorage.setItem('csea_mode',m);
   document.getElementById('btnStrategy').className='mode-btn'+(m==='strategy'?' active':'');
@@ -364,7 +345,6 @@ function onAcctChange(){
   loadData();
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ POS REFRESH ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function startPosRefresh(){
   stopPosRefresh();
   posRefreshTimer=setInterval(async function(){
@@ -379,11 +359,9 @@ function startPosRefresh(){
 }
 function stopPosRefresh(){if(posRefreshTimer){clearInterval(posRefreshTimer);posRefreshTimer=null;}}
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DAY STRIP ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function updateDayStrip(){
   var today=new Date().toISOString().slice(0,10);
-  var row=rawDb.daily.filter(function(r){return r.date===today;}).slice(-1)[0]
-       ||rawDb.daily.slice(-1)[0]||null;
+  var row=rawDb.daily.filter(function(r){return r.date===today;}).slice(-1)[0]||rawDb.daily.slice(-1)[0]||null;
   var pnl=row?parseFloat(row.daily_pnl||0):0;
   var lot=row?parseFloat(row.compound_lot||0):0;
   var target=row?parseFloat(row.compound_target||0):0;
@@ -392,25 +370,24 @@ function updateDayStrip(){
   var openPos=rawDb.positions.length;
   var pct=target>0?Math.min(100,(pnl/target)*100):0;
   var hit=target>0&&pnl>=target;
-  document.getElementById('dsDay').textContent=day>0?'Day '+day:'ÃÂ¢ÃÂÃÂ';
-  document.getElementById('dsLot').textContent=lot>0?lot.toFixed(2):'ÃÂ¢ÃÂÃÂ';
+  document.getElementById('dsDay').textContent=day>0?'Day '+day:'--';
+  document.getElementById('dsLot').textContent=lot>0?lot.toFixed(2):'--';
   var pnlEl=document.getElementById('dsPnl');
-  pnlEl.textContent=row?'$'+fmtPnl(pnl):'ÃÂ¢ÃÂÃÂ';
+  pnlEl.textContent=row?'$'+fmtPnl(pnl):'--';
   pnlEl.className='ds-val '+(pnl>0?'pos':pnl<0?'neg':'');
   document.getElementById('dsTrades').textContent=trades;
   document.getElementById('dsPos').className='ds-val '+(openPos>0?'pos':'');
   document.getElementById('dsPos').textContent=openPos;
-  document.getElementById('dsProgPct').textContent=hit?'ÃÂ¢ÃÂÃÂ HIT':(target>0?pct.toFixed(0)+'%':'ÃÂ¢ÃÂÃÂ');
+  document.getElementById('dsProgPct').textContent=hit?'✓ HIT':(target>0?pct.toFixed(0)+'%':'--');
   var fill=document.getElementById('dsProgFill');
   fill.style.width=Math.max(0,pct)+'%';
   fill.className='ds-prog-fill'+(hit?' gold':'');
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ RENDER CONTENT ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderContent(){
   var el=document.getElementById('mainContent');
   if(mode==='strategy'){
-    if(activeTab==='overview')   el.innerHTML=renderStratOverview();
+    if(activeTab==='overview')       el.innerHTML=renderStratOverview();
     else if(activeTab==='positions') el.innerHTML=renderPositions();
     else if(activeTab==='trades')    el.innerHTML=renderTrades();
     else if(activeTab==='signals')   el.innerHTML=renderSignals();
@@ -419,10 +396,10 @@ function renderContent(){
     else if(activeTab==='currencies') el.innerHTML=renderCurrencies();
     else if(activeTab==='compare')   el.innerHTML=renderCompare();
   } else {
-    if(activeTab==='overview')     el.innerHTML=renderPortOverview();
-    else if(activeTab==='trades')  el.innerHTML=renderTrades();
+    if(activeTab==='overview')         el.innerHTML=renderPortOverview();
+    else if(activeTab==='trades')      el.innerHTML=renderTrades();
     else if(activeTab==='performance') el.innerHTML=renderPerformance();
-    else if(activeTab==='compare') el.innerHTML=renderCompare();
+    else if(activeTab==='compare')     el.innerHTML=renderCompare();
   }
   setTimeout(renderCharts,50);
 }
@@ -431,7 +408,6 @@ function destroyCharts(){
   charts={};
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ MONTHLY GRID HELPER ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function buildMonthlyGrid(cl){
   var yearMap={};
   cl.forEach(function(t){
@@ -447,7 +423,7 @@ function buildMonthlyGrid(cl){
     var row=yearMap[yr];
     var ytd=row.reduce(function(s,v){return s+(v||0);},0);
     var cells=row.map(function(v){
-      if(v===null) return'<td class="m-zero">ÃÂ¢ÃÂÃÂ</td>';
+      if(v===null) return'<td class="m-zero">--</td>';
       return'<td class="'+(v>0?'m-pos':v<0?'m-neg':'m-zero')+'">$'+fmtPnl(v)+'</td>';
     }).join('');
     return'<tr><td class="year-col">'+yr+'</td>'+cells+'<td class="ytd-col '+(ytd>=0?'m-pos':'m-neg')+'">$'+fmtPnl(ytd)+'</td></tr>';
@@ -455,27 +431,20 @@ function buildMonthlyGrid(cl){
   return'<div class="monthly-table-wrap"><table class="monthly-table"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CHART BUILDER HELPERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
-// Creates options for a bar chart with labels on top
 function barOpts(base){
   return Object.assign({},base,{
     layout:{padding:{top:20}},
     plugins:Object.assign({},base.plugins,{datalabels:DL_BAR})
   });
 }
-// Creates options for a line/equity chart with no labels
 function lineOpts(base){
   return Object.assign({},base,{
     plugins:Object.assign({},base.plugins,{datalabels:DL_OFF})
   });
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ STRATEGY OVERVIEW ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderStratOverview(){
   var cl=closed();
-  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
-  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
-  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
   var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
   var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
   var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
@@ -484,7 +453,7 @@ function renderStratOverview(){
   var avgLoss=losses.length?(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/losses.length).toFixed(2):0;
   var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
   var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
-  var pf=gl>0?(gw/gl).toFixed(2):'ÃÂ¢ÃÂÃÂ';
+  var pf=gl>0?(gw/gl).toFixed(2):'∞';
   var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
   var sorted=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
   var bal=[],runBal=0;
@@ -498,8 +467,8 @@ function renderStratOverview(){
   return'<div class="kpi-grid">'
     +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed trades</div></div>'
     +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'ÃÂ¢ÃÂÃÂ')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+(pf)+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'--')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
     +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
     +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
     +'<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">$'+maxDD.toFixed(2)+'</div></div>'
@@ -516,23 +485,22 @@ function renderStratOverview(){
     +'<div class="filters">'
     +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
     +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
-    +'<button class="csv-btn" onclick="exportCSV()">ÃÂ¢ÃÂÃÂ CSV</button>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
     +'</div></div>'
     +'<div class="tbl-wrap"><table><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
     +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ POSITIONS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderPositions(){
   var pos=db.positions;
   var floatPnl=pos.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
   var html='<div class="float-bar">'
     +'<div><div class="float-label">Float P&L</div><div class="float-val '+(floatPnl>=0?'pos':'neg')+'">$'+fmtPnl(floatPnl)+'</div></div>'
     +'<div class="pos-count">'+pos.length+' Open Positions</div>'
-    +'<button class="refresh-btn" onclick="loadData()">ÃÂ¢ÃÂÃÂ» Refresh</button>'
+    +'<button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>'
     +'<div><div class="refresh-label" id="posRefreshLabel">Auto-refresh 30s</div></div>'
     +'</div>';
-  if(!pos.length) return html+'<div class="empty-state"><div class="empty-icon">ÃÂ°ÃÂÃÂÃÂ­</div><div class="empty-msg">No open positions</div></div>';
+  if(!pos.length) return html+'<div class="empty-state"><div class="empty-icon">&#128205;</div><div class="empty-msg">No open positions</div></div>';
   html+='<div class="table-card"><div class="table-header"><span class="table-title">Open Positions</span><span class="count-badge">'+pos.length+'</span></div>'
     +'<div class="tbl-wrap"><table><thead><tr><th>Opened</th><th>Symbol</th><th>Dir</th><th>Lot</th><th>Entry</th><th>SL</th><th>TP</th><th>Time Open</th></tr></thead><tbody>';
   pos.forEach(function(p){
@@ -543,15 +511,14 @@ function renderPositions(){
       +'<td><span class="badge-'+((p.direction||'').toLowerCase())+'">'+p.direction+'</span></td>'
       +'<td>'+parseFloat(p.lot||0).toFixed(2)+'</td>'
       +'<td>'+parseFloat(p.entry||0).toFixed(5)+'</td>'
-      +'<td>'+(p.sl?parseFloat(p.sl).toFixed(5):'ÃÂ¢ÃÂÃÂ')+'</td>'
-      +'<td>'+(p.tp?parseFloat(p.tp).toFixed(5):'ÃÂ¢ÃÂÃÂ')+'</td>'
+      +'<td>'+(p.sl?parseFloat(p.sl).toFixed(5):'--')+'</td>'
+      +'<td>'+(p.tp?parseFloat(p.tp).toFixed(5):'--')+'</td>'
       +'<td style="color:#64748b">'+to+'</td></tr>';
   });
   html+='</tbody></table></div></div>';
   return html;
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ TRADES ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderTrades(){
   var cl=closed();
   var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
@@ -560,7 +527,7 @@ function renderTrades(){
     +'<div class="filters">'
     +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
     +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
-    +'<button class="csv-btn" onclick="exportCSV()">ÃÂ¢ÃÂÃÂ CSV</button>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
     +'</div></div>'
     +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th>'
     +(mode==='strategy'?'<th>Strong</th><th>Weak</th><th>Gap</th>':'')
@@ -575,11 +542,11 @@ function renderTradeRows(rows){
     var pnl=parseFloat(t.pnl||0);
     var oe=openMap[t.ticket];
     return'<tr onclick="openInspector(\''+t.id+'\')">'
-      +'<td style="color:#94a3b8">'+(oe?(oe.ts||'').slice(0,16):'ÃÂ¢ÃÂÃÂ')+'</td>'
+      +'<td style="color:#94a3b8">'+(oe?(oe.ts||'').slice(0,16):'--')+'</td>'
       +'<td style="color:#94a3b8">'+(t.ts||'').slice(0,16)+'</td>'
-      +'<td style="color:#1e40af;font-weight:700">'+(t.symbol||'ÃÂ¢ÃÂÃÂ')+'</td>'
-      +'<td><span class="badge-'+((t.direction||'').toLowerCase())+'">'+(t.direction||'ÃÂ¢ÃÂÃÂ')+'</span></td>'
-      +(mode==='strategy'?('<td style="color:#16a34a">'+(t.strong_cur||'ÃÂ¢ÃÂÃÂ')+'</td><td style="color:#dc2626">'+(t.weak_cur||'ÃÂ¢ÃÂÃÂ')+'</td><td>'+parseFloat(t.gap||0).toFixed(3)+'</td>'):'')
+      +'<td style="color:#1e40af;font-weight:700">'+(t.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((t.direction||'').toLowerCase())+'">'+(t.direction||'--')+'</span></td>'
+      +(mode==='strategy'?('<td style="color:#16a34a">'+(t.strong_cur||'--')+'</td><td style="color:#dc2626">'+(t.weak_cur||'--')+'</td><td>'+parseFloat(t.gap||0).toFixed(3)+'</td>'):'')
       +'<td>'+parseFloat(t.lot||0).toFixed(2)+'</td>'
       +'<td>'+parseFloat(t.entry||0).toFixed(5)+'</td>'
       +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
@@ -609,7 +576,6 @@ function exportCSV(){
   a.click();
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ SIGNALS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderSignals(){
   var opened=db.signals.filter(function(s){return s.result==='OPENED';}).length;
   var blocked=db.signals.filter(function(s){return s.result==='BLOCKED';}).length;
@@ -646,13 +612,13 @@ function renderSignalRows(rows){
   return rows.slice().reverse().slice(0,300).map(function(s){
     return'<tr>'
       +'<td style="color:#64748b">'+(s.ts||'').slice(0,16)+'</td>'
-      +'<td style="color:#1e40af;font-weight:700">'+(s.symbol||'ÃÂ¢ÃÂÃÂ')+'</td>'
-      +'<td><span class="badge-'+((s.direction||'').toLowerCase())+'">'+(s.direction||'ÃÂ¢ÃÂÃÂ')+'</span></td>'
-      +'<td style="color:#16a34a">'+(s.strong_cur||'ÃÂ¢ÃÂÃÂ')+'</td>'
-      +'<td style="color:#dc2626">'+(s.weak_cur||'ÃÂ¢ÃÂÃÂ')+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((s.direction||'').toLowerCase())+'">'+(s.direction||'--')+'</span></td>'
+      +'<td style="color:#16a34a">'+(s.strong_cur||'--')+'</td>'
+      +'<td style="color:#dc2626">'+(s.weak_cur||'--')+'</td>'
       +'<td>'+parseFloat(s.gap||0).toFixed(3)+'</td>'
-      +'<td><span class="badge-'+((s.result||'').toLowerCase())+'">'+(s.result||'ÃÂ¢ÃÂÃÂ')+'</span></td>'
-      +'<td style="color:#64748b">'+(s.block_reason||'ÃÂ¢ÃÂÃÂ')+'</td></tr>';
+      +'<td><span class="badge-'+((s.result||'').toLowerCase())+'">'+(s.result||'--')+'</span></td>'
+      +'<td style="color:#64748b">'+(s.block_reason||'--')+'</td></tr>';
   }).join('');
 }
 
@@ -666,10 +632,9 @@ function filterSignals(){
   if(body) body.innerHTML=renderSignalRows(rows);
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DAILY ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderDaily(){
   var cl=closed();
-  if(!db.daily.length) return'<div class="empty-state"><div class="empty-icon">ÃÂ°ÃÂÃÂÃÂ</div><div class="empty-msg">No daily data yet</div></div>';
+  if(!db.daily.length) return'<div class="empty-state"><div class="empty-icon">&#128197;</div><div class="empty-msg">No daily data yet</div></div>';
   var sorted=db.daily.slice().sort(function(a,b){return a.date.localeCompare(b.date);});
   var streak=0,streakDir='';
   for(var i=sorted.length-1;i>=0;i--){
@@ -722,7 +687,7 @@ function renderDaily(){
     +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyDailyChart" data-mkeys="'+encodeURIComponent(JSON.stringify(mKeys))+'" data-mvals="'+encodeURIComponent(JSON.stringify(mVals))+'"></canvas></div></div>'
     +'</div>'
     +'<div class="table-card" style="margin-bottom:20px">'
-    +'<div class="table-header"><span class="table-title">ÃÂ°ÃÂÃÂÃÂ Monthly Performance ($)</span></div>'
+    +'<div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
     +perfTable
     +'</div>'
     +'<div class="table-card"><div class="table-header"><span class="table-title">Daily Log</span><span class="count-badge">'+sorted.length+' days</span></div>'
@@ -738,15 +703,14 @@ function renderDaily(){
         +'<td>'+r.trades_closed+'</td>'
         +'<td>'+parseFloat(r.compound_lot||0).toFixed(2)+'</td>'
         +'<td>$'+parseFloat(r.compound_target||0).toFixed(2)+'</td>'
-        +'<td>'+(r.target_hit?'ÃÂ¢ÃÂÃÂ':'ÃÂ¢ÃÂÃÂ')+'</td></tr>';
+        +'<td>'+(r.target_hit?'✅':'--')+'</td></tr>';
     }).join('')
     +'</tbody></table></div></div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ HEATMAP ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderHeatmap(){
   var cl=closed();
-  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">ÃÂ°ÃÂÃÂÃÂ¥</div><div class="empty-msg">No trade data</div></div>';
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128293;</div><div class="empty-msg">No trade data</div></div>';
   var symData={};
   cl.forEach(function(t){
     if(!t.symbol) return;
@@ -765,14 +729,13 @@ function renderHeatmap(){
       +'<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'
       +'<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
   }).join('');
-  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> ÃÂ¢ÃÂÃÂ '+syms.length+' pairs ÃÂÃÂ· sorted by P&L</div>'
+  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'
     +'<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CURRENCIES ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderCurrencies(){
   var cl=closed().filter(function(t){return t.strong_cur&&t.weak_cur;});
-  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">ÃÂ°ÃÂÃÂÃÂ±</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128177;</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
   var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
   var sPnl={},wPnl={},sWr={},wWr={};
   curs.forEach(function(c){sPnl[c]=0;wPnl[c]=0;sWr[c]=[0,0];wWr[c]=[0,0];});
@@ -804,7 +767,6 @@ function renderCurrencies(){
     }).join('')+'</tbody></table></div></div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ PORTFOLIO OVERVIEW ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderPortOverview(){
   var cl=closed();
   var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
@@ -813,7 +775,7 @@ function renderPortOverview(){
   var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
   var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
   var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
-  var pf=gl>0?(gw/gl).toFixed(2):'ÃÂ¢ÃÂÃÂ';
+  var pf=gl>0?(gw/gl).toFixed(2):'∞';
   return'<div class="kpi-grid">'
     +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
     +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
@@ -827,10 +789,8 @@ function renderPortOverview(){
     +'</div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ PERFORMANCE ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderPerformance(){
   var cl=closed();
-
   var hVals=new Array(24).fill(0);
   cl.forEach(function(t){if(t.ts) hVals[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
   hVals=hVals.map(function(v){return+v.toFixed(2);});
@@ -847,8 +807,6 @@ function renderPerformance(){
   cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
   var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
 
-  // Daily P&L ÃÂ¢ÃÂÃÂ last 5 days ÃÂ¢ÃÂÃÂ calculated from closed trades (rawDb), NOT daily_pnl column
-  // (daily_pnl is only written at EA rollover so may be 0 even when trades exist)
   var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
   var dayMap={};
   allClosed.forEach(function(t){
@@ -870,14 +828,13 @@ function renderPerformance(){
     +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
     +'</div>'
     +'<div class="table-card">'
-    +'<div class="table-header"><span class="table-title">ÃÂ°ÃÂÃÂÃÂ Monthly Performance ($)</span></div>'
+    +'<div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
     +perfTable
     +'</div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ COMPARE ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function renderCompare(){
-  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">ÃÂ°ÃÂÃÂÃÂ</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
   var cards=allAccounts.map(function(a){
     var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
     var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
@@ -887,12 +844,12 @@ function renderCompare(){
     cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal.push(+run.toFixed(2));});
     return'<div class="compare-card">'
       +'<div class="compare-title">'+(a.label||a.name||a.account_number)+'</div>'
-      +'<div class="compare-sub">'+(a.account_type||'ÃÂ¢ÃÂÃÂ')+' ÃÂÃÂ· '+(a.broker||'ÃÂ¢ÃÂÃÂ')+'</div>'
+      +'<div class="compare-sub">'+(a.account_type||'--')+' &middot; '+(a.broker||'--')+'</div>'
       +'<div class="compare-kpis">'
       +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
       +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
       +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
-      +'<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'ÃÂ¢ÃÂÃÂ')+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'--')+'</div></div>'
       +'</div>'
       +'<div class="eq-mini"><canvas id="eq_'+a.id+'" data-labels="'+encodeURIComponent(JSON.stringify(bal.map(function(_,i){return String(i);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div>'
       +'</div>';
@@ -900,7 +857,6 @@ function renderCompare(){
   return'<div class="compare-grid">'+cards+'</div>';
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ INSPECTOR ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 function openInspector(id){
   var t=rawDb.trades.find(function(x){return x.id===id;});
   if(!t) return;
@@ -908,14 +864,14 @@ function openInspector(id){
   var pnl=parseFloat(t.pnl||0);
   var dur=oe?Math.round((new Date(t.ts)-new Date(oe.ts))/60000):null;
   var rows=[
-    ['Symbol',t.symbol||'ÃÂ¢ÃÂÃÂ'],['Direction',t.direction||'ÃÂ¢ÃÂÃÂ'],['Event',t.event||'ÃÂ¢ÃÂÃÂ'],
+    ['Symbol',t.symbol||'--'],['Direction',t.direction||'--'],['Event',t.event||'--'],
     ['Entry',parseFloat(t.entry||0).toFixed(5)],['Lot',parseFloat(t.lot||0).toFixed(2)],
-    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'ÃÂ¢ÃÂÃÂ'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'ÃÂ¢ÃÂÃÂ'],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
     ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
-    ['Open Time',oe?(oe.ts||'').slice(0,16):'ÃÂ¢ÃÂÃÂ'],['Close Time',(t.ts||'').slice(0,16)],
-    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+dur%60+'m'):'ÃÂ¢ÃÂÃÂ'],
-    ['Strong',t.strong_cur||'ÃÂ¢ÃÂÃÂ'],['Weak',t.weak_cur||'ÃÂ¢ÃÂÃÂ'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'ÃÂ¢ÃÂÃÂ'],
-    ['Compound Day',t.compound_day||'ÃÂ¢ÃÂÃÂ']
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+dur%60+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--'],
+    ['Compound Day',t.compound_day||'--']
   ];
   document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
     +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
@@ -927,18 +883,16 @@ function closeInspector(){
   document.getElementById('overlay').classList.remove('open');
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ CHARTS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+// ── CHARTS ────────────────────────────────────────────────────────
 function renderCharts(){
-  // Base options (NO datalabels here ÃÂ¢ÃÂÃÂ set per chart via barOpts/lineOpts)
   var cd={
     responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
     scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}
   };
-    var cl=closed();
+  var cl=closed();
+  // allCl = ALL closed trades from rawDb, ignores date filter — used for monthly/weekly overview charts
   var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
-
-  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ LINE CHARTS (no labels) ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 
   // Equity curve
   var eq=document.getElementById('equityChart');
@@ -956,17 +910,15 @@ function renderCharts(){
     charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
   }
 
-  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ BAR CHARTS (labels on top) ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
-
+  // Monthly — strategy overview — last 12M — uses allCl (full history)
   var mc=document.getElementById('monthlyChart');
   if(mc){
-    var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
     var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
     var mk=Object.keys(mm).sort().slice(-12),mv=mk.map(function(k){return+mm[k].toFixed(2);});
     charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Weekly ÃÂ¢ÃÂÃÂ strategy & portfolio overview ÃÂ¢ÃÂÃÂ last 4W
+  // Weekly — strategy & portfolio overview — last 4W — uses allCl (full history)
   var wc=document.getElementById('weeklyChart');
   if(wc){
     var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mo=new Date(d);mo.setDate(d.getDate()-((d.getDay()+6)%7));var w=mo.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
@@ -974,7 +926,7 @@ function renderCharts(){
     charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Duration ÃÂ¢ÃÂÃÂ strategy overview
+  // Duration — strategy overview
   var dc=document.getElementById('durationChart');
   if(dc){
     var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
@@ -983,14 +935,14 @@ function renderCharts(){
     charts.dc=new Chart(dc,{type:'bar',data:{labels:Object.keys(dm),datasets:[{data:dv,backgroundColor:dv.map(function(v){return v>=0?'#3b82f6':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Signal pie (datalabels OFF ÃÂ¢ÃÂÃÂ pie chart)
+  // Signal pie
   var sp=document.getElementById('sigPieChart');
   if(sp){
     charts.sp=new Chart(sp,{type:'doughnut',data:{labels:['Opened','Blocked'],datasets:[{data:[db.signals.filter(function(s){return s.result==='OPENED';}).length,db.signals.filter(function(s){return s.result==='BLOCKED';}).length],backgroundColor:['#16a34a','#dc2626'],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'bottom',labels:{color:'#64748b',font:{size:11}}},datalabels:{display:false}}}});
   }
 
-  // Block chart (bar, labels on top)
+  // Block chart
   var blk=document.getElementById('blockChart');
   if(blk){
     var br={};db.signals.filter(function(s){return s.result==='BLOCKED';}).forEach(function(s){var r=s.block_reason||'Unknown';br[r]=(br[r]||0)+1;});
@@ -998,14 +950,14 @@ function renderCharts(){
     charts.blk=new Chart(blk,{type:'bar',data:{labels:bk,datasets:[{data:bk.map(function(k){return br[k];}),backgroundColor:'#dc2626'}]},options:barOpts(Object.assign({},cd,{indexAxis:'y'}))});
   }
 
-  // Daily ÃÂ¢ÃÂÃÂ Time of Day
+  // Daily — Time of Day
   var tod=document.getElementById('todChart');
   if(tod){
     var hv=JSON.parse(decodeURIComponent(tod.dataset.hvals||'[]'));
     charts.tod=new Chart(tod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:hv,backgroundColor:hv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Daily ÃÂ¢ÃÂÃÂ Weekly 4W
+  // Daily — Weekly 4W
   var wdc=document.getElementById('weeklyDailyChart');
   if(wdc){
     var wk2=JSON.parse(decodeURIComponent(wdc.dataset.wkeys||'[]'));
@@ -1013,7 +965,7 @@ function renderCharts(){
     charts.wdc=new Chart(wdc,{type:'bar',data:{labels:wk2.map(function(w){return w.slice(5);}),datasets:[{data:wv2,backgroundColor:wv2.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Daily ÃÂ¢ÃÂÃÂ Monthly 12M
+  // Daily — Monthly 12M
   var mdc=document.getElementById('monthlyDailyChart');
   if(mdc){
     var mk2=JSON.parse(decodeURIComponent(mdc.dataset.mkeys||'[]'));
@@ -1033,7 +985,7 @@ function renderCharts(){
     charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Performance ÃÂ¢ÃÂÃÂ Daily 5 days ÃÂ¢ÃÂÃÂ WAS MISSING IN v5.4
+  // Performance — Daily 5 days
   var pd5=document.getElementById('perfDaily5');
   if(pd5){
     var pd5l=JSON.parse(decodeURIComponent(pd5.dataset.labels||'[]'));
@@ -1041,35 +993,35 @@ function renderCharts(){
     charts.pd5=new Chart(pd5,{type:'bar',data:{labels:pd5l,datasets:[{data:pd5v,backgroundColor:pd5v.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Performance ÃÂ¢ÃÂÃÂ Weekly 4W
+  // Performance — Weekly 4W
   var pw=document.getElementById('perfWeekly');
   if(pw){
     var pwl=JSON.parse(decodeURIComponent(pw.dataset.labels||'[]')),pwv=JSON.parse(decodeURIComponent(pw.dataset.vals||'[]'));
     charts.pw=new Chart(pw,{type:'bar',data:{labels:pwl.map(function(w){return w.slice(5);}),datasets:[{data:pwv,backgroundColor:pwv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Performance ÃÂ¢ÃÂÃÂ Monthly 12M
+  // Performance — Monthly 12M
   var pm=document.getElementById('perfMonthly');
   if(pm){
     var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
     charts.pm=new Chart(pm,{type:'bar',data:{labels:pml,datasets:[{data:pmv,backgroundColor:pmv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Performance ÃÂ¢ÃÂÃÂ Time of Day
+  // Performance — Time of Day
   var ptod=document.getElementById('perfTod');
   if(ptod){
     var ptv=JSON.parse(decodeURIComponent(ptod.dataset.vals||'[]'));
     charts.ptod=new Chart(ptod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:ptv,backgroundColor:ptv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Performance ÃÂ¢ÃÂÃÂ Duration
+  // Performance — Duration
   var pdur=document.getElementById('perfDuration');
   if(pdur){
     var pdk=JSON.parse(decodeURIComponent(pdur.dataset.keys||'[]')),pdv=JSON.parse(decodeURIComponent(pdur.dataset.vals||'[]'));
     charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#3b82f6':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Portfolio ÃÂ¢ÃÂÃÂ Monthly bar 12M
+  // Portfolio — Monthly bar 12M — uses allCl (full history)
   var mb=document.getElementById('monthlyBarChart');
   if(mb){
     var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
@@ -1077,7 +1029,7 @@ function renderCharts(){
     charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Compare mini equity curves (line, no labels)
+  // Compare mini equity curves
   document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
     try{
       var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
@@ -1089,7 +1041,6 @@ function renderCharts(){
   });
 }
 
-// ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ START ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 setInterval(function(){if(document.visibilityState==='visible') loadData();},60000);
 init();
 </script>
