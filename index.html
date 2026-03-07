@@ -844,10 +844,18 @@ function renderPerformance(){
   cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
   var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
 
-  // Daily P&L — last 5 days (always from rawDb, not date-filtered)
-  var d5=rawDb.daily.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).slice(-5);
-  var d5labels=d5.map(function(r){return r.date.slice(5);});
-  var d5vals=d5.map(function(r){return+parseFloat(r.daily_pnl||0).toFixed(2);});
+  // Daily P&L — last 5 days — calculated from closed trades (rawDb), NOT daily_pnl column
+  // (daily_pnl is only written at EA rollover so may be 0 even when trades exist)
+  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var dayMap={};
+  allClosed.forEach(function(t){
+    if(!t.ts) return;
+    var day=t.ts.slice(0,10);
+    dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);
+  });
+  var d5keys=Object.keys(dayMap).sort().slice(-5);
+  var d5labels=d5keys.map(function(d){return d.slice(5);});
+  var d5vals=d5keys.map(function(d){return+dayMap[d].toFixed(2);});
 
   var perfTable=buildMonthlyGrid(cl);
 
