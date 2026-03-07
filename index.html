@@ -910,7 +910,7 @@ function renderCharts(){
     charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
   }
 
-  // Monthly — strategy overview — last 12M — uses allCl (full history)
+// Monthly — strategy overview — last 12M — uses allCl (full history)
   var mc=document.getElementById('monthlyChart');
   if(mc){
     var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
@@ -918,7 +918,7 @@ function renderCharts(){
     charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Weekly — strategy & portfolio overview — last 4W — uses allCl (full history)
+// Weekly — strategy & portfolio overview — last 4W — uses allCl (full history)
   var wc=document.getElementById('weeklyChart');
   if(wc){
     var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mo=new Date(d);mo.setDate(d.getDate()-((d.getDay()+6)%7));var w=mo.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
@@ -1021,14 +1021,13 @@ function renderCharts(){
     charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#3b82f6':'#dc2626';})}]},options:barOpts(cd)});
   }
 
-  // Portfolio — Monthly bar 12M — uses allCl (full history)
+// Portfolio — Monthly bar 12M — uses allCl (full history)
   var mb=document.getElementById('monthlyBarChart');
   if(mb){
     var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
     var mbk=Object.keys(mbm).sort().slice(-12),mbv=mbk.map(function(k){return+mbm[k].toFixed(2);});
     charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
-
   // Compare mini equity curves
   document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
     try{
