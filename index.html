@@ -823,16 +823,16 @@ function renderPerformance() {
   cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
   var dk=Object.keys(dMap), dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
 
-  // Daily P&L — last 5 days (from daily table)
+  // Daily P&L — last 5 days from rawDb (unaffected by date filter)
   var d5 = rawDb.daily.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).slice(-5);
-  var d5keys = d5.map(function(r){return r.date.slice(5);});
-  var d5vals = d5.map(function(r){return+parseFloat(r.daily_pnl||0).toFixed(2);});
+  var d5labels = d5.map(function(r){return r.date.slice(5);});
+  var d5vals   = d5.map(function(r){return+parseFloat(r.daily_pnl||0).toFixed(2);});
 
   // Monthly performance grid
   var perfTable = buildMonthlyGrid(cl);
 
   return '<div class="perf-grid">'
-    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-keys="'+encodeURIComponent(JSON.stringify(d5keys))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-labels="'+encodeURIComponent(JSON.stringify(d5labels))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons.map(function(m){return MON[parseInt(m.slice(5))-1];})))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
