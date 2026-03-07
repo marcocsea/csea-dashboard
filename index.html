@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CSEA Trading Intelligence v5.3</title>
+<title>CSEA Trading Intelligence v5.4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f1f5f9;color:#1e293b;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
@@ -123,7 +124,8 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 .compare-kpi-label{font-size:10px;color:var(--sub);font-weight:600;margin-bottom:2px}
 .compare-kpi-val{font-size:14px;font-weight:700}
 .eq-mini{position:relative;height:60px}
-.cur-grid,.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.cur-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.perf-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px}
 /* EMPTY */
 .empty-state{text-align:center;padding:60px 20px;color:var(--sub)}
 .empty-icon{font-size:48px;margin-bottom:12px}
@@ -141,7 +143,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 
 <div class="header">
   <div class="logo">⚡ <span>CSEA</span> Intelligence</div>
-  <div class="badge">v5.3</div>
+  <div class="badge">v5.4</div>
   <div class="mode-toggle">
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">📊 Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">💼 Portfolio</button>
@@ -203,6 +205,8 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 
 <script>
 const SB_URL='https://nmyveijljquxvhjelqbc.supabase.co';
+// Register datalabels plugin globally — controlled per-chart via display flag
+Chart.register(ChartDataLabels);
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5teXZlaWpsanF1eHZoamVscWJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjc2MjgsImV4cCI6MjA4Nzk0MzYyOH0.YT-sAh2Spn1805dnylTsZ2gBx-T7yC6fyOKIs0YPlP4';
 const HDR={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY};
 
@@ -819,12 +823,18 @@ function renderPerformance() {
   cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
   var dk=Object.keys(dMap), dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
 
-  // Monthly performance grid (all-time Year × Month)
+  // Daily P&L — last 5 days (from daily table)
+  var d5 = rawDb.daily.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).slice(-5);
+  var d5keys = d5.map(function(r){return r.date.slice(5);});
+  var d5vals = d5.map(function(r){return+parseFloat(r.daily_pnl||0).toFixed(2);});
+
+  // Monthly performance grid
   var perfTable = buildMonthlyGrid(cl);
 
   return '<div class="perf-grid">'
-    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons.map(function(m){return MON[parseInt(m.slice(5))-1];})))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-keys="'+encodeURIComponent(JSON.stringify(d5keys))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons.map(function(m){return MON[parseInt(m.slice(5))-1];})))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
     +'</div>'
