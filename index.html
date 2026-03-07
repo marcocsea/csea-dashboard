@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CSEA Trading Intelligence v5.5.1</title>
+<title>CSEA Trading Intelligence v5.5.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -136,7 +136,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 
 <div class="header">
   <div class="logo">⚡ <span>CSEA</span> Intelligence</div>
-  <div class="badge">v5.5.1</div>
+  <div class="badge">v5.5.2</div>
   <div class="mode-toggle">
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">📊 Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">💼 Portfolio</button>
@@ -932,7 +932,8 @@ function renderCharts(){
     plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
     scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}
   };
-  var cl=closed();
+    var cl=closed();
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
 
   // ── LINE CHARTS (no labels) ──────────────────────────────────────
 
@@ -954,10 +955,10 @@ function renderCharts(){
 
   // ── BAR CHARTS (labels on top) ───────────────────────────────────
 
-  // Monthly — strategy overview — last 12M
   var mc=document.getElementById('monthlyChart');
   if(mc){
-    var mm={};cl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+    var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
     var mk=Object.keys(mm).sort().slice(-12),mv=mk.map(function(k){return+mm[k].toFixed(2);});
     charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
@@ -965,7 +966,7 @@ function renderCharts(){
   // Weekly — strategy & portfolio overview — last 4W
   var wc=document.getElementById('weeklyChart');
   if(wc){
-    var wm={};cl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mo=new Date(d);mo.setDate(d.getDate()-((d.getDay()+6)%7));var w=mo.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mo=new Date(d);mo.setDate(d.getDate()-((d.getDay()+6)%7));var w=mo.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
     var wk=Object.keys(wm).sort().slice(-4),wv=wk.map(function(k){return+wm[k].toFixed(2);});
     charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
@@ -1068,7 +1069,7 @@ function renderCharts(){
   // Portfolio — Monthly bar 12M
   var mb=document.getElementById('monthlyBarChart');
   if(mb){
-    var mbm={};cl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
+    var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
     var mbk=Object.keys(mbm).sort().slice(-12),mbv=mbk.map(function(k){return+mbm[k].toFixed(2);});
     charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#dc2626';})}]},options:barOpts(cd)});
   }
