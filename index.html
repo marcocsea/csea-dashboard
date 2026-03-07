@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CSEA Trading Intelligence v5.5</title>
+<title>CSEA Trading Intelligence v5.5.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -136,7 +136,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 
 <div class="header">
   <div class="logo">⚡ <span>CSEA</span> Intelligence</div>
-  <div class="badge">v5.5</div>
+  <div class="badge">v5.5.1</div>
   <div class="mode-toggle">
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">📊 Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">💼 Portfolio</button>
@@ -276,6 +276,15 @@ async function loadData(){
     sb('trades','select=*&event=eq.OPEN'+f)
   ]);
   rawDb={trades:results[0]||[],signals:results[1]||[],daily:results[2]||[],positions:results[3]||[]};
+
+  // Populate allAccountsData for Compare tab — fetch trades per account in parallel
+  if(allAccounts.length>1){
+    var perAcct=await Promise.all(allAccounts.map(function(a){
+      return sb('trades','select=*&order=ts&account_id=eq.'+a.id);
+    }));
+    allAccounts.forEach(function(a,i){ allAccountsData[a.id]=perAcct[i]||[]; });
+  }
+
   applyDateFilter();
   dot.className='status-dot'; txt.textContent='Live';
   document.getElementById('lastSync').textContent='Updated '+new Date().toLocaleTimeString();
