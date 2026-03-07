@@ -504,7 +504,7 @@ function renderStratOverview(){
     +'</div>'
     +'<div class="equity-card"><div class="chart-title">Equity Curve</div>'
     +'<div class="equity-wrap"><canvas id="equityChart" data-labels="'+encodeURIComponent(JSON.stringify(sorted.map(function(t){return(t.ts||'').slice(0,10);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div></div>'
-    +'<div class="charts-row-3">'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
     +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyChart"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="durationChart"></canvas></div></div>'
