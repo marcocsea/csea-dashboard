@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CSEA Trading Intelligence v5.2</title>
+<title>CSEA Trading Intelligence v5.3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -141,7 +141,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 
 <div class="header">
   <div class="logo">⚡ <span>CSEA</span> Intelligence</div>
-  <div class="badge">v5.2</div>
+  <div class="badge">v5.3</div>
   <div class="mode-toggle">
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">📊 Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">💼 Portfolio</button>
@@ -411,6 +411,31 @@ function destroyCharts() {
   charts = {};
 }
 
+// ── MONTHLY GRID HELPER ───────────────────────────────────────────
+function buildMonthlyGrid(cl) {
+  var yearMap = {};
+  cl.forEach(function(t){
+    if(!t.ts) return;
+    var yr = t.ts.slice(0,4);
+    var mo = parseInt(t.ts.slice(5,7))-1;
+    if(!yearMap[yr]) yearMap[yr] = new Array(12).fill(null);
+    yearMap[yr][mo] = (yearMap[yr][mo]||0)+parseFloat(t.pnl||0);
+  });
+  var years = Object.keys(yearMap).sort();
+  if(!years.length) return '';
+  var thead = '<tr><th class="left">Year</th>'+MON.map(function(m){return'<th>'+m+'</th>';}).join('')+'<th>YTD</th></tr>';
+  var tbody = years.map(function(yr){
+    var row = yearMap[yr];
+    var ytd = row.reduce(function(s,v){return s+(v||0);},0);
+    var cells = row.map(function(v){
+      if(v===null) return '<td class="m-zero">—</td>';
+      return '<td class="'+(v>0?'m-pos':v<0?'m-neg':'m-zero')+'">$'+fmtPnl(v)+'</td>';
+    }).join('');
+    return '<tr><td class="year-col">'+yr+'</td>'+cells+'<td class="ytd-col '+(ytd>=0?'m-pos':'m-neg')+'">$'+fmtPnl(ytd)+'</td></tr>';
+  }).join('');
+  return '<div class="monthly-table-wrap"><table class="monthly-table"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
+}
+
 // ── STRATEGY OVERVIEW ─────────────────────────────────────────────
 function renderStratOverview() {
   var cl = closed();
@@ -437,7 +462,7 @@ function renderStratOverview() {
     +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed trades</div></div>'
     +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
     +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'—')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+(pf)+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
     +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
     +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
     +'<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">$'+maxDD.toFixed(2)+'</div></div>'
@@ -609,7 +634,6 @@ function renderDaily() {
   var cl = closed();
   if(!db.daily.length) return '<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-msg">No daily data yet</div></div>';
 
-  // Streak
   var sorted = db.daily.slice().sort(function(a,b){return a.date.localeCompare(b.date);});
   var streak=0, streakDir='';
   for(var i=sorted.length-1; i>=0; i--) {
@@ -619,14 +643,13 @@ function renderDaily() {
     if(dir===streakDir) streak++; else break;
   }
 
-  // Last 20 streak dots
   var last20 = sorted.slice(-20);
   var dots = last20.map(function(r){
     var v = parseFloat(r.daily_pnl||0);
     return '<span class="streak-dot" style="background:'+(v>=0?'#4ade80':'#f87171')+'" title="'+r.date+' $'+fmtPnl(v)+'"></span>';
   }).join('');
 
-  // Weekly chart data — last 4 weeks
+  // Weekly — last 4 weeks
   var wMap = {};
   cl.forEach(function(t){
     if(!t.ts) return;
@@ -638,7 +661,7 @@ function renderDaily() {
   var wKeys = Object.keys(wMap).sort().slice(-4);
   var wVals = wKeys.map(function(k){return+(wMap[k]).toFixed(2);});
 
-  // Monthly chart data — last 12 months
+  // Monthly — last 12 months
   var mMap = {};
   cl.forEach(function(t){ if(t.ts){var m=t.ts.slice(0,7); mMap[m]=(mMap[m]||0)+parseFloat(t.pnl||0);} });
   var mKeys = Object.keys(mMap).sort().slice(-12);
@@ -649,32 +672,7 @@ function renderDaily() {
   cl.forEach(function(t){ if(t.ts) hVals[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0); });
   hVals = hVals.map(function(v){return+v.toFixed(2);});
 
-  // Monthly performance table — Year × Jan–Dec grid from closed trades
-  var yearMap = {};
-  cl.forEach(function(t){
-    if(!t.ts) return;
-    var yr = t.ts.slice(0,4);
-    var mo = parseInt(t.ts.slice(5,7))-1;
-    if(!yearMap[yr]) yearMap[yr] = new Array(12).fill(null);
-    yearMap[yr][mo] = (yearMap[yr][mo]||0)+parseFloat(t.pnl||0);
-  });
-  var years = Object.keys(yearMap).sort();
-  var perfTable = '';
-  if(years.length) {
-    var thead = '<tr><th class="left">Year</th>'+MON.map(function(m){return'<th>'+m+'</th>';}).join('')+'<th>YTD</th></tr>';
-    var tbody = years.map(function(yr){
-      var row = yearMap[yr];
-      var ytd = row.reduce(function(s,v){return s+(v||0);},0);
-      var cells = row.map(function(v){
-        if(v===null) return '<td class="m-zero">—</td>';
-        return '<td class="'+(v>0?'m-pos':v<0?'m-neg':'m-zero')+'">$'+fmtPnl(v)+'</td>';
-      }).join('');
-      return '<tr><td class="year-col">'+yr+'</td>'+cells+'<td class="ytd-col '+(ytd>=0?'m-pos':'m-neg')+'">$'+fmtPnl(ytd)+'</td></tr>';
-    }).join('');
-    perfTable = '<div class="monthly-table-wrap"><table class="monthly-table"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
-  }
-
-  // KPIs
+  var perfTable = buildMonthlyGrid(cl);
   var winDays  = sorted.filter(function(r){return parseFloat(r.daily_pnl||0)>0;}).length;
   var lossDays = sorted.filter(function(r){return parseFloat(r.daily_pnl||0)<0;}).length;
 
@@ -800,23 +798,39 @@ function renderPortOverview() {
 // ── PERFORMANCE ───────────────────────────────────────────────────
 function renderPerformance() {
   var cl=closed();
+
+  // Time of day
   var hVals=new Array(24).fill(0);
   cl.forEach(function(t){if(t.ts) hVals[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
   hVals=hVals.map(function(v){return+v.toFixed(2);});
+
+  // Weekly — last 4 weeks
   var wMap={};
   cl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),m=new Date(d);m.setDate(d.getDate()-((d.getDay()+6)%7));var w=m.toISOString().slice(0,10);wMap[w]=(wMap[w]||0)+parseFloat(t.pnl||0);});
   var wks=Object.keys(wMap).sort().slice(-4), wvs=wks.map(function(k){return+wMap[k].toFixed(2);});
+
+  // Monthly — last 12 months
   var mMap={};
   cl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mMap[m]=(mMap[m]||0)+parseFloat(t.pnl||0);}});
   var mons=Object.keys(mMap).sort().slice(-12), mvs=mons.map(function(k){return+mMap[k].toFixed(2);});
+
+  // Duration
   var dMap={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
   cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
   var dk=Object.keys(dMap), dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
+
+  // Monthly performance grid (all-time Year × Month)
+  var perfTable = buildMonthlyGrid(cl);
+
   return '<div class="perf-grid">'
     +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons.map(function(m){return MON[parseInt(m.slice(5))-1];})))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card">'
+    +'<div class="table-header"><span class="table-title">📅 Monthly Performance ($)</span></div>'
+    +perfTable
     +'</div>';
 }
 
@@ -897,7 +911,7 @@ function renderCharts() {
     charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:Object.assign({},cd)});
   }
 
-  // Monthly (overview) — last 12M
+  // Monthly (strategy overview) — last 12M
   var mc = document.getElementById('monthlyChart');
   if(mc){
     var mm={};cl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
@@ -905,7 +919,7 @@ function renderCharts() {
     charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#0d9488':'#dc2626';})}]},options:Object.assign({},cd)});
   }
 
-  // Weekly (overview/portfolio) — last 4W
+  // Weekly (strategy overview / portfolio overview) — last 4W
   var wc = document.getElementById('weeklyChart');
   if(wc){
     var wm={};cl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mo=new Date(d);mo.setDate(d.getDate()-((d.getDay()+6)%7));var w=mo.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
@@ -913,7 +927,7 @@ function renderCharts() {
     charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#0d9488':'#dc2626';})}]},options:Object.assign({},cd)});
   }
 
-  // Duration
+  // Duration (strategy overview)
   var dc = document.getElementById('durationChart');
   if(dc){
     var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
@@ -971,7 +985,7 @@ function renderCharts() {
     charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#0d9488':'#dc2626';})}]},options:Object.assign({},cd)});
   }
 
-  // Performance tab
+  // Performance tab charts (data embedded in canvas attributes)
   var pm = document.getElementById('perfMonthly');
   if(pm){
     var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
@@ -993,7 +1007,7 @@ function renderCharts() {
     charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#3b82f6':'#dc2626';})}]},options:Object.assign({},cd)});
   }
 
-  // Portfolio monthly bar — 12M
+  // Portfolio monthly bar — last 12M
   var mb = document.getElementById('monthlyBarChart');
   if(mb){
     var mbm={};cl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
