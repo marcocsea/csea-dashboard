@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CSEA Trading Intelligence v5.5.2</title>
+<title>CSEA Trading Intelligence v5.5.3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -301,7 +301,7 @@ function applyDateFilter(){
 }
 
 function closed(){
-  return db.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  return db.trades.filter(function(t){return t.event==='CLOSE';});
 }
 function fmtPnl(v){return(v>=0?'+':'')+parseFloat(v).toFixed(2);}
 
@@ -815,7 +815,7 @@ function renderPerformance(){
   cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
   var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
 
-  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE';});
   var dayMap={};
   allClosed.forEach(function(t){
     if(!t.ts) return;
@@ -844,7 +844,7 @@ function renderPerformance(){
 function renderCompare(){
   if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
   var cards=allAccounts.map(function(a){
-    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE';}); ```  ---  **Change 6 — title tag** Find: ``` CSEA Trading Intelligence v5.5.2 ``` Replace with: ``` CSEA Trading Intelligence v5.5.3
     var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
     var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
     var wr=cl.length?((wins/cl.length)*100).toFixed(1):0;
@@ -900,7 +900,7 @@ function renderCharts(){
   };
   var cl=closed();
   // allCl = ALL closed trades from rawDb, ignores date filter — used for monthly/weekly overview charts
-  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE';});
 
   // Equity curve
   var eq=document.getElementById('equityChart');
