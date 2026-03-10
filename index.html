@@ -844,7 +844,7 @@ function renderPerformance(){
 function renderCompare(){
   if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
   var cards=allAccounts.map(function(a){
-    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE';}); ```  ---  **Change 6 — title tag** Find: ``` CSEA Trading Intelligence v5.5.2 ``` Replace with: ``` CSEA Trading Intelligence v5.5.3
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE';});
     var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
     var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
     var wr=cl.length?((wins/cl.length)*100).toFixed(1):0;
