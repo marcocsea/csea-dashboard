@@ -301,7 +301,7 @@ function applyDateFilter(){
 }
 
 function closed(){
-  return db.trades.filter(function(t){return t.event==='CLOSE';});
+  return db.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
 }
 function fmtPnl(v){return(v>=0?'+':'')+parseFloat(v).toFixed(2);}
 
