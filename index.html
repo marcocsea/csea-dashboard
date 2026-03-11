@@ -209,18 +209,21 @@ var allAccounts=[],allAccountsData={},charts={};
 // Register datalabels once globally
 Chart.register(ChartDataLabels);
 
-// Green/red bar colours — original palette
+// Solid bar colours — no opacity so they match the hover colour exactly
 function bgColors(vals){
-  return vals.map(function(v){return v>=0?'rgba(34,197,94,.80)':'rgba(239,68,68,.80)';});
+  return vals.map(function(v){return v>=0?'#22c55e':'#ef4444';});
 }
 function bdColors(vals){
   return vals.map(function(v){return v>=0?'#16a34a':'#dc2626';});
 }
 
-// Datalabels config for bar charts
+// Datalabels config — use dataset.data lookup, not ctx.raw, to avoid timing issues
 var DL_BAR={
   anchor:'end',align:'end',clamp:true,
-  color:function(ctx){return ctx.raw>=0?'#15803d':'#b91c1c';},
+  color:function(ctx){
+    var v=ctx.dataset.data[ctx.dataIndex];
+    return v>=0?'#15803d':'#b91c1c';
+  },
   font:{size:9,weight:'700'},
   formatter:function(v){return(v>=0?'+':'')+parseFloat(v).toFixed(2);}
 };
@@ -772,26 +775,1212 @@ function renderHeatmap(){
 
 // ── CURRENCIES ────────────────────────────────────────────────────
 function renderCurrencies(){
-  var cl=closed();
-  var cm={};
+  var cl=closed().filter(function(t){return t.strong_cur&&t.weak_cur;});
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128177;</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
+  var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
+  var sPnl={},wPnl={},sW={},wW={},sCt={},wCt={};
+  curs.forEach(function(c){sPnl[c]=0;wPnl[c]=0;sW[c]=0;wW[c]=0;sCt[c]=0;wCt[c]=0;});
   cl.forEach(function(t){
-    [t.strong_cur,t.weak_cur].filter(Boolean).forEach(function(c){
-      if(!cm[c]) cm[c]={pnl:0,trades:0,wins:0,strong:0,weak:0};
-      cm[c].pnl+=parseFloat(t.pnl||0);cm[c].trades++;
-      if(parseFloat(t.pnl||0)>0) cm[c].wins++;
-      if(t.strong_cur===c) cm[c].strong++; else cm[c].weak++;
+    var pnl=parseFloat(t.pnl||0);
+    if(curs.indexOf(t.strong_cur)>=0){sPnl[t.strong_cur]+=pnl;sCt[t.strong_cur]++;if(pnl>0)sW[t.strong_cur]++;}
+    if(curs.indexOf(t.weak_cur)>=0){wPnl[t.weak_cur]+=pnl;wCt[t.weak_cur]++;if(pnl>0)wW[t.weak_cur]++;}
+  });
+  var allPnls=curs.map(function(c){return sPnl[c]+wPnl[c];});
+  var maxAbs=Math.max.apply(null,allPnls.map(function(v){return Math.abs(v);}));
+  var tiles=curs.map(function(c){
+    var total=sPnl[c]+wPnl[c];
+    var intensity=maxAbs>0?Math.abs(total)/maxAbs:0;
+    var bg=total>=0?'rgba(16,185,129,'+(0.12+intensity*0.65)+')':'rgba(239,68,68,'+(0.12+intensity*0.65)+')';
+    var border=total>=0?'#059669':'#dc2626';
+    var textCol=total>=0?'#064e3b':'#7f1d1d';
+    var sWr=sCt[c]?(sW[c]/sCt[c]*100).toFixed(0):0;
+    var wWr=wCt[c]?(wW[c]/wCt[c]*100).toFixed(0):0;
+    return'<div style="background:'+bg+';border:1px solid '+border+'40;border-radius:10px;padding:14px 12px;text-align:center;min-width:0">'
+      +'<div style="font-size:15px;font-weight:800;color:'+textCol+';margin-bottom:6px">'+c+'</div>'
+      +'<div style="font-size:13px;font-weight:700;color:'+(total>=0?'#16a34a':'#dc2626')+';margin-bottom:8px">
+
+// ── COMPARE ───────────────────────────────────────────────────────
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  var cards=allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?(wins/cl.length*100).toFixed(1):0;
+    var sorted=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+    var bal=[],run=0;
+    sorted.forEach(function(t){run+=parseFloat(t.pnl||0);bal.push(+run.toFixed(2));});
+    var lbl=a.label||a.broker||a.id.slice(0,8);
+    return'<div class="compare-card">'
+      +'<div class="compare-card-title">'+lbl+'</div>'
+      +'<div class="compare-kpi-grid">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">
+
+// ── PORTFOLIO OVERVIEW ────────────────────────────────────────────
+function renderPortOverview(){
+  var cl=closed();
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val">'+pf+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── PERFORMANCE TAB ───────────────────────────────────────────────
+function renderPerformance(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  var perfTable=buildMonthlyGrid(cl);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5Chart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeeklyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTodChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDurChart"></canvas></div></div>'
+    +'</div>'
+    +perfTable;
+}
+
+// ── INSPECTOR ─────────────────────────────────────────────────────
+function openInspector(ticket){
+  var t=db.trades.find(function(x){return String(x.ticket)===String(ticket)&&(x.event==='CLOSE'||x.event==='COMPOUND_CLOSE');});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return String(x.ticket)===String(ticket)&&x.event==='OPEN';});
+  var dur=null;
+  if(oe&&oe.ts&&t.ts) dur=Math.round((new Date(t.ts)-new Date(oe.ts))/60000);
+  var pnl=parseFloat(t.pnl||0);
+  var rows=[
+    ['Symbol',t.symbol],['Direction',t.direction],['Ticket',t.ticket],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Lot',parseFloat(t.lot||0).toFixed(2)],['Entry',parseFloat(t.entry||0).toFixed(5)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function renderCharts(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+
+  // ── STRATEGY OVERVIEW ──
+  // Equity
+  var eqD=document.getElementById('eqData');
+  if(eqD){
+    var eqL=JSON.parse(decodeURIComponent(eqD.dataset.labels||'[]'));
+    var eqV=JSON.parse(decodeURIComponent(eqD.dataset.vals||'[]'));
+    mkLine('eqChart',eqL,eqV);
+  }
+  // Monthly 12M (full history)
+  var mm=monthlyMap(allCl);
+  var mk=Object.keys(mm).sort().slice(-12);
+  mkBar('monthlyChart',mk.map(function(k){return MON[parseInt(k.slice(5))-1];}),mk.map(function(k){return+mm[k].toFixed(2);}));
+  // Weekly 4W
+  var wm=weeklyMap(allCl);
+  var wk=Object.keys(wm).sort().slice(-4);
+  mkBar('weeklyChart',wk.map(function(k){return k.slice(5);}),wk.map(function(k){return+wm[k].toFixed(2);}));
+  // Duration
+  var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)dm['<1h']+=parseFloat(t.pnl||0);else if(d<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('durationChart',Object.keys(dm),Object.values(dm).map(function(v){return+v.toFixed(2);}));
+
+  // ── DAILY TAB ──
+  // Monthly 12M
+  var dmm=monthlyMap(cl);
+  var dmk=Object.keys(dmm).sort().slice(-12);
+  mkBar('dailyMonthlyChart',dmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),dmk.map(function(k){return+dmm[k].toFixed(2);}));
+  // Weekly 4W
+  var dwm=weeklyMap(cl);
+  var dwk=Object.keys(dwm).sort().slice(-4);
+  mkBar('dailyWeeklyChart',dwk.map(function(k){return k.slice(5);}),dwk.map(function(k){return+dwm[k].toFixed(2);}));
+  // Daily last 5 days (full history, unfiltered)
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('daily5Chart',d5k.map(function(k){return k.slice(5);}),d5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  // Time of Day 24h
+  var hv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) hv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('dailyTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),hv.map(function(v){return+v.toFixed(2);}));
+
+  // ── PORTFOLIO OVERVIEW ──
+  var portCl=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+  var portBal=[],portRun=0;
+  portCl.forEach(function(t){portRun+=parseFloat(t.pnl||0);portBal.push(+portRun.toFixed(2));});
+  mkLine('portEqChart',portBal.map(function(_,i){return String(i);}),portBal);
+  var pmm=monthlyMap(allCl);var pmk=Object.keys(pmm).sort().slice(-12);
+  mkBar('portMonthlyChart',pmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pmk.map(function(k){return+pmm[k].toFixed(2);}));
+  var pwm=weeklyMap(allCl);var pwk=Object.keys(pwm).sort().slice(-4);
+  mkBar('portWeeklyChart',pwk.map(function(k){return k.slice(5);}),pwk.map(function(k){return+pwm[k].toFixed(2);}));
+
+  // ── PERFORMANCE TAB ──
+  var pd5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('perfDaily5Chart',pd5k.map(function(k){return k.slice(5);}),pd5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  var pewm=weeklyMap(cl);var pewk=Object.keys(pewm).sort().slice(-4);
+  mkBar('perfWeeklyChart',pewk.map(function(k){return k.slice(5);}),pewk.map(function(k){return+pewm[k].toFixed(2);}));
+  var pemm=monthlyMap(cl);var pemk=Object.keys(pemm).sort().slice(-12);
+  mkBar('perfMonthlyChart',pemk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pemk.map(function(k){return+pemm[k].toFixed(2);}));
+  var phv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) phv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('perfTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),phv.map(function(v){return+v.toFixed(2);}));
+  var pdm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)pdm['<1h']+=parseFloat(t.pnl||0);else if(d<240)pdm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)pdm['4-24h']+=parseFloat(t.pnl||0);else pdm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('perfDurChart',Object.keys(pdm),Object.values(pdm).map(function(v){return+v.toFixed(2);}));
+
+  // ── CURRENCIES TAB ──
+  var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
+  var sPnl2={},wPnl2={};
+  curs.forEach(function(c){sPnl2[c]=0;wPnl2[c]=0;});
+  cl.forEach(function(t){
+    if(curs.indexOf(t.strong_cur)>=0) sPnl2[t.strong_cur]+=parseFloat(t.pnl||0);
+    if(curs.indexOf(t.weak_cur)>=0)   wPnl2[t.weak_cur]+=parseFloat(t.pnl||0);
+  });
+  mkBar('curStrongChart',curs,curs.map(function(c){return+sPnl2[c].toFixed(2);}));
+  mkBar('curWeakChart',  curs,curs.map(function(c){return+wPnl2[c].toFixed(2);}));
+
+  // ── COMPARE MINI EQUITY CURVES ──
+  allAccounts.forEach(function(a){
+    var el=document.getElementById('cmpEq_'+a.id);
+    if(!el) return;
+    var vals=JSON.parse(decodeURIComponent(el.dataset.vals||'[]'));
+    var color=vals.length&&vals[vals.length-1]>=0?'#22c55e':'#ef4444';
+    charts['cmpEq_'+a.id]=new Chart(el,{
+      type:'line',
+      data:{labels:vals.map(function(_,i){return String(i);}),datasets:[{data:vals,borderColor:color,backgroundColor:color.replace(')',',0.15)').replace('rgb','rgba'),fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}
     });
   });
-  var curs=Object.keys(cm).sort(function(a,b){return cm[b].pnl-cm[a].pnl;});
-  if(!curs.length) return'<div class="empty-state"><div class="empty-icon">&#128176;</div><div class="empty-msg">No currency data</div></div>';
-  return'<div class="cur-grid">'+curs.map(function(c){
-    var d=cm[c],wr=d.trades?(d.wins/d.trades*100).toFixed(1):0;
-    return'<div class="kpi"><div class="kpi-label">'+c+'</div>'
-      +'<div class="kpi-val '+(d.pnl>=0?'pos':'neg')+'">$'+fmtPnl(d.pnl)+'</div>'
-      +'<div class="kpi-sub">'+d.trades+' trades &bull; '+wr+'% WR</div>'
-      +'<div class="kpi-sub">Strong: '+d.strong+' &bull; Weak: '+d.weak+'</div>'
-      +'</div>';
+}
+</script>
+</body>
+</html>
++fmtPnl(total)+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'
+      +'<div style="background:rgba(255,255,255,.35);border-radius:6px;padding:5px 4px">'
+      +'<div style="font-size:9px;color:'+textCol+';font-weight:600;text-transform:uppercase;letter-spacing:.4px">Strong</div>'
+      +'<div style="font-size:11px;font-weight:700;color:'+(sPnl[c]>=0?'#065f46':'#7f1d1d')+'">'+(sCt[c]?'
+
+// ── COMPARE ───────────────────────────────────────────────────────
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  return'<div class="compare-grid">'+allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?(wins/cl.length*100).toFixed(1):0;
+    var lbl=a.label||a.broker||a.id.slice(0,8);
+    return'<div class="compare-card"><div class="compare-card-title">'+lbl+'</div>'
+      +'<div class="compare-kpi-grid">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Wins</div><div class="compare-kpi-val">'+wins+'</div></div>'
+      +'</div></div>';
   }).join('')+'</div>';
+}
+
+// ── PORTFOLIO OVERVIEW ────────────────────────────────────────────
+function renderPortOverview(){
+  var cl=closed();
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val">'+pf+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── PERFORMANCE TAB ───────────────────────────────────────────────
+function renderPerformance(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  var perfTable=buildMonthlyGrid(cl);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5Chart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeeklyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTodChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDurChart"></canvas></div></div>'
+    +'</div>'
+    +perfTable;
+}
+
+// ── INSPECTOR ─────────────────────────────────────────────────────
+function openInspector(ticket){
+  var t=db.trades.find(function(x){return String(x.ticket)===String(ticket)&&(x.event==='CLOSE'||x.event==='COMPOUND_CLOSE');});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return String(x.ticket)===String(ticket)&&x.event==='OPEN';});
+  var dur=null;
+  if(oe&&oe.ts&&t.ts) dur=Math.round((new Date(t.ts)-new Date(oe.ts))/60000);
+  var pnl=parseFloat(t.pnl||0);
+  var rows=[
+    ['Symbol',t.symbol],['Direction',t.direction],['Ticket',t.ticket],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Lot',parseFloat(t.lot||0).toFixed(2)],['Entry',parseFloat(t.entry||0).toFixed(5)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function renderCharts(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+
+  // ── STRATEGY OVERVIEW ──
+  // Equity
+  var eqD=document.getElementById('eqData');
+  if(eqD){
+    var eqL=JSON.parse(decodeURIComponent(eqD.dataset.labels||'[]'));
+    var eqV=JSON.parse(decodeURIComponent(eqD.dataset.vals||'[]'));
+    mkLine('eqChart',eqL,eqV);
+  }
+  // Monthly 12M (full history)
+  var mm=monthlyMap(allCl);
+  var mk=Object.keys(mm).sort().slice(-12);
+  mkBar('monthlyChart',mk.map(function(k){return MON[parseInt(k.slice(5))-1];}),mk.map(function(k){return+mm[k].toFixed(2);}));
+  // Weekly 4W
+  var wm=weeklyMap(allCl);
+  var wk=Object.keys(wm).sort().slice(-4);
+  mkBar('weeklyChart',wk.map(function(k){return k.slice(5);}),wk.map(function(k){return+wm[k].toFixed(2);}));
+  // Duration
+  var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)dm['<1h']+=parseFloat(t.pnl||0);else if(d<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('durationChart',Object.keys(dm),Object.values(dm).map(function(v){return+v.toFixed(2);}));
+
+  // ── DAILY TAB ──
+  // Monthly 12M
+  var dmm=monthlyMap(cl);
+  var dmk=Object.keys(dmm).sort().slice(-12);
+  mkBar('dailyMonthlyChart',dmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),dmk.map(function(k){return+dmm[k].toFixed(2);}));
+  // Weekly 4W
+  var dwm=weeklyMap(cl);
+  var dwk=Object.keys(dwm).sort().slice(-4);
+  mkBar('dailyWeeklyChart',dwk.map(function(k){return k.slice(5);}),dwk.map(function(k){return+dwm[k].toFixed(2);}));
+  // Daily last 5 days (full history, unfiltered)
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('daily5Chart',d5k.map(function(k){return k.slice(5);}),d5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  // Time of Day 24h
+  var hv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) hv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('dailyTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),hv.map(function(v){return+v.toFixed(2);}));
+
+  // ── PORTFOLIO OVERVIEW ──
+  var portCl=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+  var portBal=[],portRun=0;
+  portCl.forEach(function(t){portRun+=parseFloat(t.pnl||0);portBal.push(+portRun.toFixed(2));});
+  mkLine('portEqChart',portBal.map(function(_,i){return String(i);}),portBal);
+  var pmm=monthlyMap(allCl);var pmk=Object.keys(pmm).sort().slice(-12);
+  mkBar('portMonthlyChart',pmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pmk.map(function(k){return+pmm[k].toFixed(2);}));
+  var pwm=weeklyMap(allCl);var pwk=Object.keys(pwm).sort().slice(-4);
+  mkBar('portWeeklyChart',pwk.map(function(k){return k.slice(5);}),pwk.map(function(k){return+pwm[k].toFixed(2);}));
+
+  // ── PERFORMANCE TAB ──
+  var pd5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('perfDaily5Chart',pd5k.map(function(k){return k.slice(5);}),pd5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  var pewm=weeklyMap(cl);var pewk=Object.keys(pewm).sort().slice(-4);
+  mkBar('perfWeeklyChart',pewk.map(function(k){return k.slice(5);}),pewk.map(function(k){return+pewm[k].toFixed(2);}));
+  var pemm=monthlyMap(cl);var pemk=Object.keys(pemm).sort().slice(-12);
+  mkBar('perfMonthlyChart',pemk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pemk.map(function(k){return+pemm[k].toFixed(2);}));
+  var phv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) phv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('perfTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),phv.map(function(v){return+v.toFixed(2);}));
+  var pdm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)pdm['<1h']+=parseFloat(t.pnl||0);else if(d<240)pdm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)pdm['4-24h']+=parseFloat(t.pnl||0);else pdm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('perfDurChart',Object.keys(pdm),Object.values(pdm).map(function(v){return+v.toFixed(2);}));
+}
+</script>
+</body>
+</html>
++fmtPnl(sPnl[c]):'--')+'</div>'
+      +'<div style="font-size:9px;color:'+textCol+'">'+(sCt[c]?sCt[c]+'t '+sWr+'%WR':'--')+'</div>'
+      +'</div>'
+      +'<div style="background:rgba(255,255,255,.35);border-radius:6px;padding:5px 4px">'
+      +'<div style="font-size:9px;color:'+textCol+';font-weight:600;text-transform:uppercase;letter-spacing:.4px">Weak</div>'
+      +'<div style="font-size:11px;font-weight:700;color:'+(wPnl[c]>=0?'#065f46':'#7f1d1d')+'">'+(wCt[c]?'
+
+// ── COMPARE ───────────────────────────────────────────────────────
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  return'<div class="compare-grid">'+allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?(wins/cl.length*100).toFixed(1):0;
+    var lbl=a.label||a.broker||a.id.slice(0,8);
+    return'<div class="compare-card"><div class="compare-card-title">'+lbl+'</div>'
+      +'<div class="compare-kpi-grid">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Wins</div><div class="compare-kpi-val">'+wins+'</div></div>'
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+
+// ── PORTFOLIO OVERVIEW ────────────────────────────────────────────
+function renderPortOverview(){
+  var cl=closed();
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val">'+pf+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── PERFORMANCE TAB ───────────────────────────────────────────────
+function renderPerformance(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  var perfTable=buildMonthlyGrid(cl);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5Chart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeeklyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTodChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDurChart"></canvas></div></div>'
+    +'</div>'
+    +perfTable;
+}
+
+// ── INSPECTOR ─────────────────────────────────────────────────────
+function openInspector(ticket){
+  var t=db.trades.find(function(x){return String(x.ticket)===String(ticket)&&(x.event==='CLOSE'||x.event==='COMPOUND_CLOSE');});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return String(x.ticket)===String(ticket)&&x.event==='OPEN';});
+  var dur=null;
+  if(oe&&oe.ts&&t.ts) dur=Math.round((new Date(t.ts)-new Date(oe.ts))/60000);
+  var pnl=parseFloat(t.pnl||0);
+  var rows=[
+    ['Symbol',t.symbol],['Direction',t.direction],['Ticket',t.ticket],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Lot',parseFloat(t.lot||0).toFixed(2)],['Entry',parseFloat(t.entry||0).toFixed(5)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function renderCharts(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+
+  // ── STRATEGY OVERVIEW ──
+  // Equity
+  var eqD=document.getElementById('eqData');
+  if(eqD){
+    var eqL=JSON.parse(decodeURIComponent(eqD.dataset.labels||'[]'));
+    var eqV=JSON.parse(decodeURIComponent(eqD.dataset.vals||'[]'));
+    mkLine('eqChart',eqL,eqV);
+  }
+  // Monthly 12M (full history)
+  var mm=monthlyMap(allCl);
+  var mk=Object.keys(mm).sort().slice(-12);
+  mkBar('monthlyChart',mk.map(function(k){return MON[parseInt(k.slice(5))-1];}),mk.map(function(k){return+mm[k].toFixed(2);}));
+  // Weekly 4W
+  var wm=weeklyMap(allCl);
+  var wk=Object.keys(wm).sort().slice(-4);
+  mkBar('weeklyChart',wk.map(function(k){return k.slice(5);}),wk.map(function(k){return+wm[k].toFixed(2);}));
+  // Duration
+  var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)dm['<1h']+=parseFloat(t.pnl||0);else if(d<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('durationChart',Object.keys(dm),Object.values(dm).map(function(v){return+v.toFixed(2);}));
+
+  // ── DAILY TAB ──
+  // Monthly 12M
+  var dmm=monthlyMap(cl);
+  var dmk=Object.keys(dmm).sort().slice(-12);
+  mkBar('dailyMonthlyChart',dmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),dmk.map(function(k){return+dmm[k].toFixed(2);}));
+  // Weekly 4W
+  var dwm=weeklyMap(cl);
+  var dwk=Object.keys(dwm).sort().slice(-4);
+  mkBar('dailyWeeklyChart',dwk.map(function(k){return k.slice(5);}),dwk.map(function(k){return+dwm[k].toFixed(2);}));
+  // Daily last 5 days (full history, unfiltered)
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('daily5Chart',d5k.map(function(k){return k.slice(5);}),d5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  // Time of Day 24h
+  var hv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) hv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('dailyTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),hv.map(function(v){return+v.toFixed(2);}));
+
+  // ── PORTFOLIO OVERVIEW ──
+  var portCl=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+  var portBal=[],portRun=0;
+  portCl.forEach(function(t){portRun+=parseFloat(t.pnl||0);portBal.push(+portRun.toFixed(2));});
+  mkLine('portEqChart',portBal.map(function(_,i){return String(i);}),portBal);
+  var pmm=monthlyMap(allCl);var pmk=Object.keys(pmm).sort().slice(-12);
+  mkBar('portMonthlyChart',pmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pmk.map(function(k){return+pmm[k].toFixed(2);}));
+  var pwm=weeklyMap(allCl);var pwk=Object.keys(pwm).sort().slice(-4);
+  mkBar('portWeeklyChart',pwk.map(function(k){return k.slice(5);}),pwk.map(function(k){return+pwm[k].toFixed(2);}));
+
+  // ── PERFORMANCE TAB ──
+  var pd5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('perfDaily5Chart',pd5k.map(function(k){return k.slice(5);}),pd5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  var pewm=weeklyMap(cl);var pewk=Object.keys(pewm).sort().slice(-4);
+  mkBar('perfWeeklyChart',pewk.map(function(k){return k.slice(5);}),pewk.map(function(k){return+pewm[k].toFixed(2);}));
+  var pemm=monthlyMap(cl);var pemk=Object.keys(pemm).sort().slice(-12);
+  mkBar('perfMonthlyChart',pemk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pemk.map(function(k){return+pemm[k].toFixed(2);}));
+  var phv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) phv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('perfTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),phv.map(function(v){return+v.toFixed(2);}));
+  var pdm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)pdm['<1h']+=parseFloat(t.pnl||0);else if(d<240)pdm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)pdm['4-24h']+=parseFloat(t.pnl||0);else pdm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('perfDurChart',Object.keys(pdm),Object.values(pdm).map(function(v){return+v.toFixed(2);}));
+}
+</script>
+</body>
+</html>
++fmtPnl(wPnl[c]):'--')+'</div>'
+      +'<div style="font-size:9px;color:'+textCol+'">'+(wCt[c]?wCt[c]+'t '+wWr+'%WR':'--')+'</div>'
+      +'</div></div>'
+      +'</div>';
+  }).join('');
+  return'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px">'+tiles+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Strong Currency P&L</div><div class="chart-wrap"><canvas id="curStrongChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weak Currency P&L</div><div class="chart-wrap"><canvas id="curWeakChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── COMPARE ───────────────────────────────────────────────────────
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  return'<div class="compare-grid">'+allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?(wins/cl.length*100).toFixed(1):0;
+    var lbl=a.label||a.broker||a.id.slice(0,8);
+    return'<div class="compare-card"><div class="compare-card-title">'+lbl+'</div>'
+      +'<div class="compare-kpi-grid">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Wins</div><div class="compare-kpi-val">'+wins+'</div></div>'
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+
+// ── PORTFOLIO OVERVIEW ────────────────────────────────────────────
+function renderPortOverview(){
+  var cl=closed();
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val">'+pf+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── PERFORMANCE TAB ───────────────────────────────────────────────
+function renderPerformance(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  var perfTable=buildMonthlyGrid(cl);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5Chart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeeklyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTodChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDurChart"></canvas></div></div>'
+    +'</div>'
+    +perfTable;
+}
+
+// ── INSPECTOR ─────────────────────────────────────────────────────
+function openInspector(ticket){
+  var t=db.trades.find(function(x){return String(x.ticket)===String(ticket)&&(x.event==='CLOSE'||x.event==='COMPOUND_CLOSE');});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return String(x.ticket)===String(ticket)&&x.event==='OPEN';});
+  var dur=null;
+  if(oe&&oe.ts&&t.ts) dur=Math.round((new Date(t.ts)-new Date(oe.ts))/60000);
+  var pnl=parseFloat(t.pnl||0);
+  var rows=[
+    ['Symbol',t.symbol],['Direction',t.direction],['Ticket',t.ticket],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Lot',parseFloat(t.lot||0).toFixed(2)],['Entry',parseFloat(t.entry||0).toFixed(5)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function renderCharts(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+
+  // ── STRATEGY OVERVIEW ──
+  // Equity
+  var eqD=document.getElementById('eqData');
+  if(eqD){
+    var eqL=JSON.parse(decodeURIComponent(eqD.dataset.labels||'[]'));
+    var eqV=JSON.parse(decodeURIComponent(eqD.dataset.vals||'[]'));
+    mkLine('eqChart',eqL,eqV);
+  }
+  // Monthly 12M (full history)
+  var mm=monthlyMap(allCl);
+  var mk=Object.keys(mm).sort().slice(-12);
+  mkBar('monthlyChart',mk.map(function(k){return MON[parseInt(k.slice(5))-1];}),mk.map(function(k){return+mm[k].toFixed(2);}));
+  // Weekly 4W
+  var wm=weeklyMap(allCl);
+  var wk=Object.keys(wm).sort().slice(-4);
+  mkBar('weeklyChart',wk.map(function(k){return k.slice(5);}),wk.map(function(k){return+wm[k].toFixed(2);}));
+  // Duration
+  var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)dm['<1h']+=parseFloat(t.pnl||0);else if(d<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('durationChart',Object.keys(dm),Object.values(dm).map(function(v){return+v.toFixed(2);}));
+
+  // ── DAILY TAB ──
+  // Monthly 12M
+  var dmm=monthlyMap(cl);
+  var dmk=Object.keys(dmm).sort().slice(-12);
+  mkBar('dailyMonthlyChart',dmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),dmk.map(function(k){return+dmm[k].toFixed(2);}));
+  // Weekly 4W
+  var dwm=weeklyMap(cl);
+  var dwk=Object.keys(dwm).sort().slice(-4);
+  mkBar('dailyWeeklyChart',dwk.map(function(k){return k.slice(5);}),dwk.map(function(k){return+dwm[k].toFixed(2);}));
+  // Daily last 5 days (full history, unfiltered)
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('daily5Chart',d5k.map(function(k){return k.slice(5);}),d5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  // Time of Day 24h
+  var hv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) hv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('dailyTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),hv.map(function(v){return+v.toFixed(2);}));
+
+  // ── PORTFOLIO OVERVIEW ──
+  var portCl=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+  var portBal=[],portRun=0;
+  portCl.forEach(function(t){portRun+=parseFloat(t.pnl||0);portBal.push(+portRun.toFixed(2));});
+  mkLine('portEqChart',portBal.map(function(_,i){return String(i);}),portBal);
+  var pmm=monthlyMap(allCl);var pmk=Object.keys(pmm).sort().slice(-12);
+  mkBar('portMonthlyChart',pmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pmk.map(function(k){return+pmm[k].toFixed(2);}));
+  var pwm=weeklyMap(allCl);var pwk=Object.keys(pwm).sort().slice(-4);
+  mkBar('portWeeklyChart',pwk.map(function(k){return k.slice(5);}),pwk.map(function(k){return+pwm[k].toFixed(2);}));
+
+  // ── PERFORMANCE TAB ──
+  var pd5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('perfDaily5Chart',pd5k.map(function(k){return k.slice(5);}),pd5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  var pewm=weeklyMap(cl);var pewk=Object.keys(pewm).sort().slice(-4);
+  mkBar('perfWeeklyChart',pewk.map(function(k){return k.slice(5);}),pewk.map(function(k){return+pewm[k].toFixed(2);}));
+  var pemm=monthlyMap(cl);var pemk=Object.keys(pemm).sort().slice(-12);
+  mkBar('perfMonthlyChart',pemk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pemk.map(function(k){return+pemm[k].toFixed(2);}));
+  var phv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) phv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('perfTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),phv.map(function(v){return+v.toFixed(2);}));
+  var pdm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)pdm['<1h']+=parseFloat(t.pnl||0);else if(d<240)pdm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)pdm['4-24h']+=parseFloat(t.pnl||0);else pdm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('perfDurChart',Object.keys(pdm),Object.values(pdm).map(function(v){return+v.toFixed(2);}));
+}
+</script>
+</body>
+</html>
++fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Wins</div><div class="compare-kpi-val">'+wins+'</div></div>'
+      +'</div>'
+      +'<div style="position:relative;height:60px"><canvas id="cmpEq_'+a.id+'" data-vals="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div>'
+      +'</div>';
+  }).join('');
+  return'<div class="compare-grid">'+cards+'</div>';
+}
+
+// ── PORTFOLIO OVERVIEW ────────────────────────────────────────────
+function renderPortOverview(){
+  var cl=closed();
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val">'+pf+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── PERFORMANCE TAB ───────────────────────────────────────────────
+function renderPerformance(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  var perfTable=buildMonthlyGrid(cl);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5Chart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeeklyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTodChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDurChart"></canvas></div></div>'
+    +'</div>'
+    +perfTable;
+}
+
+// ── INSPECTOR ─────────────────────────────────────────────────────
+function openInspector(ticket){
+  var t=db.trades.find(function(x){return String(x.ticket)===String(ticket)&&(x.event==='CLOSE'||x.event==='COMPOUND_CLOSE');});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return String(x.ticket)===String(ticket)&&x.event==='OPEN';});
+  var dur=null;
+  if(oe&&oe.ts&&t.ts) dur=Math.round((new Date(t.ts)-new Date(oe.ts))/60000);
+  var pnl=parseFloat(t.pnl||0);
+  var rows=[
+    ['Symbol',t.symbol],['Direction',t.direction],['Ticket',t.ticket],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Lot',parseFloat(t.lot||0).toFixed(2)],['Entry',parseFloat(t.entry||0).toFixed(5)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function renderCharts(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+
+  // ── STRATEGY OVERVIEW ──
+  // Equity
+  var eqD=document.getElementById('eqData');
+  if(eqD){
+    var eqL=JSON.parse(decodeURIComponent(eqD.dataset.labels||'[]'));
+    var eqV=JSON.parse(decodeURIComponent(eqD.dataset.vals||'[]'));
+    mkLine('eqChart',eqL,eqV);
+  }
+  // Monthly 12M (full history)
+  var mm=monthlyMap(allCl);
+  var mk=Object.keys(mm).sort().slice(-12);
+  mkBar('monthlyChart',mk.map(function(k){return MON[parseInt(k.slice(5))-1];}),mk.map(function(k){return+mm[k].toFixed(2);}));
+  // Weekly 4W
+  var wm=weeklyMap(allCl);
+  var wk=Object.keys(wm).sort().slice(-4);
+  mkBar('weeklyChart',wk.map(function(k){return k.slice(5);}),wk.map(function(k){return+wm[k].toFixed(2);}));
+  // Duration
+  var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)dm['<1h']+=parseFloat(t.pnl||0);else if(d<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('durationChart',Object.keys(dm),Object.values(dm).map(function(v){return+v.toFixed(2);}));
+
+  // ── DAILY TAB ──
+  // Monthly 12M
+  var dmm=monthlyMap(cl);
+  var dmk=Object.keys(dmm).sort().slice(-12);
+  mkBar('dailyMonthlyChart',dmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),dmk.map(function(k){return+dmm[k].toFixed(2);}));
+  // Weekly 4W
+  var dwm=weeklyMap(cl);
+  var dwk=Object.keys(dwm).sort().slice(-4);
+  mkBar('dailyWeeklyChart',dwk.map(function(k){return k.slice(5);}),dwk.map(function(k){return+dwm[k].toFixed(2);}));
+  // Daily last 5 days (full history, unfiltered)
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('daily5Chart',d5k.map(function(k){return k.slice(5);}),d5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  // Time of Day 24h
+  var hv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) hv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('dailyTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),hv.map(function(v){return+v.toFixed(2);}));
+
+  // ── PORTFOLIO OVERVIEW ──
+  var portCl=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+  var portBal=[],portRun=0;
+  portCl.forEach(function(t){portRun+=parseFloat(t.pnl||0);portBal.push(+portRun.toFixed(2));});
+  mkLine('portEqChart',portBal.map(function(_,i){return String(i);}),portBal);
+  var pmm=monthlyMap(allCl);var pmk=Object.keys(pmm).sort().slice(-12);
+  mkBar('portMonthlyChart',pmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pmk.map(function(k){return+pmm[k].toFixed(2);}));
+  var pwm=weeklyMap(allCl);var pwk=Object.keys(pwm).sort().slice(-4);
+  mkBar('portWeeklyChart',pwk.map(function(k){return k.slice(5);}),pwk.map(function(k){return+pwm[k].toFixed(2);}));
+
+  // ── PERFORMANCE TAB ──
+  var pd5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('perfDaily5Chart',pd5k.map(function(k){return k.slice(5);}),pd5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  var pewm=weeklyMap(cl);var pewk=Object.keys(pewm).sort().slice(-4);
+  mkBar('perfWeeklyChart',pewk.map(function(k){return k.slice(5);}),pewk.map(function(k){return+pewm[k].toFixed(2);}));
+  var pemm=monthlyMap(cl);var pemk=Object.keys(pemm).sort().slice(-12);
+  mkBar('perfMonthlyChart',pemk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pemk.map(function(k){return+pemm[k].toFixed(2);}));
+  var phv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) phv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('perfTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),phv.map(function(v){return+v.toFixed(2);}));
+  var pdm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)pdm['<1h']+=parseFloat(t.pnl||0);else if(d<240)pdm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)pdm['4-24h']+=parseFloat(t.pnl||0);else pdm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('perfDurChart',Object.keys(pdm),Object.values(pdm).map(function(v){return+v.toFixed(2);}));
+}
+</script>
+</body>
+</html>
++fmtPnl(total)+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'
+      +'<div style="background:rgba(255,255,255,.35);border-radius:6px;padding:5px 4px">'
+      +'<div style="font-size:9px;color:'+textCol+';font-weight:600;text-transform:uppercase;letter-spacing:.4px">Strong</div>'
+      +'<div style="font-size:11px;font-weight:700;color:'+(sPnl[c]>=0?'#065f46':'#7f1d1d')+'">'+(sCt[c]?'
+
+// ── COMPARE ───────────────────────────────────────────────────────
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  return'<div class="compare-grid">'+allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?(wins/cl.length*100).toFixed(1):0;
+    var lbl=a.label||a.broker||a.id.slice(0,8);
+    return'<div class="compare-card"><div class="compare-card-title">'+lbl+'</div>'
+      +'<div class="compare-kpi-grid">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Wins</div><div class="compare-kpi-val">'+wins+'</div></div>'
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+
+// ── PORTFOLIO OVERVIEW ────────────────────────────────────────────
+function renderPortOverview(){
+  var cl=closed();
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val">'+pf+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── PERFORMANCE TAB ───────────────────────────────────────────────
+function renderPerformance(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  var perfTable=buildMonthlyGrid(cl);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5Chart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeeklyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTodChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDurChart"></canvas></div></div>'
+    +'</div>'
+    +perfTable;
+}
+
+// ── INSPECTOR ─────────────────────────────────────────────────────
+function openInspector(ticket){
+  var t=db.trades.find(function(x){return String(x.ticket)===String(ticket)&&(x.event==='CLOSE'||x.event==='COMPOUND_CLOSE');});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return String(x.ticket)===String(ticket)&&x.event==='OPEN';});
+  var dur=null;
+  if(oe&&oe.ts&&t.ts) dur=Math.round((new Date(t.ts)-new Date(oe.ts))/60000);
+  var pnl=parseFloat(t.pnl||0);
+  var rows=[
+    ['Symbol',t.symbol],['Direction',t.direction],['Ticket',t.ticket],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Lot',parseFloat(t.lot||0).toFixed(2)],['Entry',parseFloat(t.entry||0).toFixed(5)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function renderCharts(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+
+  // ── STRATEGY OVERVIEW ──
+  // Equity
+  var eqD=document.getElementById('eqData');
+  if(eqD){
+    var eqL=JSON.parse(decodeURIComponent(eqD.dataset.labels||'[]'));
+    var eqV=JSON.parse(decodeURIComponent(eqD.dataset.vals||'[]'));
+    mkLine('eqChart',eqL,eqV);
+  }
+  // Monthly 12M (full history)
+  var mm=monthlyMap(allCl);
+  var mk=Object.keys(mm).sort().slice(-12);
+  mkBar('monthlyChart',mk.map(function(k){return MON[parseInt(k.slice(5))-1];}),mk.map(function(k){return+mm[k].toFixed(2);}));
+  // Weekly 4W
+  var wm=weeklyMap(allCl);
+  var wk=Object.keys(wm).sort().slice(-4);
+  mkBar('weeklyChart',wk.map(function(k){return k.slice(5);}),wk.map(function(k){return+wm[k].toFixed(2);}));
+  // Duration
+  var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)dm['<1h']+=parseFloat(t.pnl||0);else if(d<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('durationChart',Object.keys(dm),Object.values(dm).map(function(v){return+v.toFixed(2);}));
+
+  // ── DAILY TAB ──
+  // Monthly 12M
+  var dmm=monthlyMap(cl);
+  var dmk=Object.keys(dmm).sort().slice(-12);
+  mkBar('dailyMonthlyChart',dmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),dmk.map(function(k){return+dmm[k].toFixed(2);}));
+  // Weekly 4W
+  var dwm=weeklyMap(cl);
+  var dwk=Object.keys(dwm).sort().slice(-4);
+  mkBar('dailyWeeklyChart',dwk.map(function(k){return k.slice(5);}),dwk.map(function(k){return+dwm[k].toFixed(2);}));
+  // Daily last 5 days (full history, unfiltered)
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('daily5Chart',d5k.map(function(k){return k.slice(5);}),d5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  // Time of Day 24h
+  var hv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) hv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('dailyTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),hv.map(function(v){return+v.toFixed(2);}));
+
+  // ── PORTFOLIO OVERVIEW ──
+  var portCl=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+  var portBal=[],portRun=0;
+  portCl.forEach(function(t){portRun+=parseFloat(t.pnl||0);portBal.push(+portRun.toFixed(2));});
+  mkLine('portEqChart',portBal.map(function(_,i){return String(i);}),portBal);
+  var pmm=monthlyMap(allCl);var pmk=Object.keys(pmm).sort().slice(-12);
+  mkBar('portMonthlyChart',pmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pmk.map(function(k){return+pmm[k].toFixed(2);}));
+  var pwm=weeklyMap(allCl);var pwk=Object.keys(pwm).sort().slice(-4);
+  mkBar('portWeeklyChart',pwk.map(function(k){return k.slice(5);}),pwk.map(function(k){return+pwm[k].toFixed(2);}));
+
+  // ── PERFORMANCE TAB ──
+  var pd5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('perfDaily5Chart',pd5k.map(function(k){return k.slice(5);}),pd5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  var pewm=weeklyMap(cl);var pewk=Object.keys(pewm).sort().slice(-4);
+  mkBar('perfWeeklyChart',pewk.map(function(k){return k.slice(5);}),pewk.map(function(k){return+pewm[k].toFixed(2);}));
+  var pemm=monthlyMap(cl);var pemk=Object.keys(pemm).sort().slice(-12);
+  mkBar('perfMonthlyChart',pemk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pemk.map(function(k){return+pemm[k].toFixed(2);}));
+  var phv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) phv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('perfTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),phv.map(function(v){return+v.toFixed(2);}));
+  var pdm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)pdm['<1h']+=parseFloat(t.pnl||0);else if(d<240)pdm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)pdm['4-24h']+=parseFloat(t.pnl||0);else pdm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('perfDurChart',Object.keys(pdm),Object.values(pdm).map(function(v){return+v.toFixed(2);}));
+}
+</script>
+</body>
+</html>
++fmtPnl(sPnl[c]):'--')+'</div>'
+      +'<div style="font-size:9px;color:'+textCol+'">'+(sCt[c]?sCt[c]+'t '+sWr+'%WR':'--')+'</div>'
+      +'</div>'
+      +'<div style="background:rgba(255,255,255,.35);border-radius:6px;padding:5px 4px">'
+      +'<div style="font-size:9px;color:'+textCol+';font-weight:600;text-transform:uppercase;letter-spacing:.4px">Weak</div>'
+      +'<div style="font-size:11px;font-weight:700;color:'+(wPnl[c]>=0?'#065f46':'#7f1d1d')+'">'+(wCt[c]?'
+
+// ── COMPARE ───────────────────────────────────────────────────────
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  return'<div class="compare-grid">'+allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?(wins/cl.length*100).toFixed(1):0;
+    var lbl=a.label||a.broker||a.id.slice(0,8);
+    return'<div class="compare-card"><div class="compare-card-title">'+lbl+'</div>'
+      +'<div class="compare-kpi-grid">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Wins</div><div class="compare-kpi-val">'+wins+'</div></div>'
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+
+// ── PORTFOLIO OVERVIEW ────────────────────────────────────────────
+function renderPortOverview(){
+  var cl=closed();
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var wr=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val">'+pf+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+// ── PERFORMANCE TAB ───────────────────────────────────────────────
+function renderPerformance(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  var perfTable=buildMonthlyGrid(cl);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5Chart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeeklyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthlyChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L</div><div class="chart-wrap"><canvas id="perfTodChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDurChart"></canvas></div></div>'
+    +'</div>'
+    +perfTable;
+}
+
+// ── INSPECTOR ─────────────────────────────────────────────────────
+function openInspector(ticket){
+  var t=db.trades.find(function(x){return String(x.ticket)===String(ticket)&&(x.event==='CLOSE'||x.event==='COMPOUND_CLOSE');});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return String(x.ticket)===String(ticket)&&x.event==='OPEN';});
+  var dur=null;
+  if(oe&&oe.ts&&t.ts) dur=Math.round((new Date(t.ts)-new Date(oe.ts))/60000);
+  var pnl=parseFloat(t.pnl||0);
+  var rows=[
+    ['Symbol',t.symbol],['Direction',t.direction],['Ticket',t.ticket],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Lot',parseFloat(t.lot||0).toFixed(2)],['Entry',parseFloat(t.entry||0).toFixed(5)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────
+function renderCharts(){
+  var cl=closed();
+  var allCl=allClosedTrades();
+
+  // ── STRATEGY OVERVIEW ──
+  // Equity
+  var eqD=document.getElementById('eqData');
+  if(eqD){
+    var eqL=JSON.parse(decodeURIComponent(eqD.dataset.labels||'[]'));
+    var eqV=JSON.parse(decodeURIComponent(eqD.dataset.vals||'[]'));
+    mkLine('eqChart',eqL,eqV);
+  }
+  // Monthly 12M (full history)
+  var mm=monthlyMap(allCl);
+  var mk=Object.keys(mm).sort().slice(-12);
+  mkBar('monthlyChart',mk.map(function(k){return MON[parseInt(k.slice(5))-1];}),mk.map(function(k){return+mm[k].toFixed(2);}));
+  // Weekly 4W
+  var wm=weeklyMap(allCl);
+  var wk=Object.keys(wm).sort().slice(-4);
+  mkBar('weeklyChart',wk.map(function(k){return k.slice(5);}),wk.map(function(k){return+wm[k].toFixed(2);}));
+  // Duration
+  var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)dm['<1h']+=parseFloat(t.pnl||0);else if(d<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('durationChart',Object.keys(dm),Object.values(dm).map(function(v){return+v.toFixed(2);}));
+
+  // ── DAILY TAB ──
+  // Monthly 12M
+  var dmm=monthlyMap(cl);
+  var dmk=Object.keys(dmm).sort().slice(-12);
+  mkBar('dailyMonthlyChart',dmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),dmk.map(function(k){return+dmm[k].toFixed(2);}));
+  // Weekly 4W
+  var dwm=weeklyMap(cl);
+  var dwk=Object.keys(dwm).sort().slice(-4);
+  mkBar('dailyWeeklyChart',dwk.map(function(k){return k.slice(5);}),dwk.map(function(k){return+dwm[k].toFixed(2);}));
+  // Daily last 5 days (full history, unfiltered)
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('daily5Chart',d5k.map(function(k){return k.slice(5);}),d5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  // Time of Day 24h
+  var hv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) hv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('dailyTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),hv.map(function(v){return+v.toFixed(2);}));
+
+  // ── PORTFOLIO OVERVIEW ──
+  var portCl=cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+  var portBal=[],portRun=0;
+  portCl.forEach(function(t){portRun+=parseFloat(t.pnl||0);portBal.push(+portRun.toFixed(2));});
+  mkLine('portEqChart',portBal.map(function(_,i){return String(i);}),portBal);
+  var pmm=monthlyMap(allCl);var pmk=Object.keys(pmm).sort().slice(-12);
+  mkBar('portMonthlyChart',pmk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pmk.map(function(k){return+pmm[k].toFixed(2);}));
+  var pwm=weeklyMap(allCl);var pwk=Object.keys(pwm).sort().slice(-4);
+  mkBar('portWeeklyChart',pwk.map(function(k){return k.slice(5);}),pwk.map(function(k){return+pwm[k].toFixed(2);}));
+
+  // ── PERFORMANCE TAB ──
+  var pd5k=Object.keys(dayMap).sort().slice(-5);
+  mkBar('perfDaily5Chart',pd5k.map(function(k){return k.slice(5);}),pd5k.map(function(k){return+dayMap[k].toFixed(2);}));
+  var pewm=weeklyMap(cl);var pewk=Object.keys(pewm).sort().slice(-4);
+  mkBar('perfWeeklyChart',pewk.map(function(k){return k.slice(5);}),pewk.map(function(k){return+pewm[k].toFixed(2);}));
+  var pemm=monthlyMap(cl);var pemk=Object.keys(pemm).sort().slice(-12);
+  mkBar('perfMonthlyChart',pemk.map(function(k){return MON[parseInt(k.slice(5))-1];}),pemk.map(function(k){return+pemm[k].toFixed(2);}));
+  var phv=new Array(24).fill(0);
+  cl.forEach(function(t){if(t.ts) phv[new Date(t.ts).getUTCHours()]+=parseFloat(t.pnl||0);});
+  mkBar('perfTodChart',Array.from({length:24},function(_,i){return String(i).padStart(2,'0')+'h';}),phv.map(function(v){return+v.toFixed(2);}));
+  var pdm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  cl.forEach(function(t){var d=parseFloat(t.duration_min||0);if(d<60)pdm['<1h']+=parseFloat(t.pnl||0);else if(d<240)pdm['1-4h']+=parseFloat(t.pnl||0);else if(d<1440)pdm['4-24h']+=parseFloat(t.pnl||0);else pdm['>24h']+=parseFloat(t.pnl||0);});
+  mkBar('perfDurChart',Object.keys(pdm),Object.values(pdm).map(function(v){return+v.toFixed(2);}));
+}
+</script>
+</body>
+</html>
++fmtPnl(wPnl[c]):'--')+'</div>'
+      +'<div style="font-size:9px;color:'+textCol+'">'+(wCt[c]?wCt[c]+'t '+wWr+'%WR':'--')+'</div>'
+      +'</div></div>'
+      +'</div>';
+  }).join('');
+  return'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px">'+tiles+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Strong Currency P&L</div><div class="chart-wrap"><canvas id="curStrongChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weak Currency P&L</div><div class="chart-wrap"><canvas id="curWeakChart"></canvas></div></div>'
+    +'</div>';
 }
 
 // ── COMPARE ───────────────────────────────────────────────────────
