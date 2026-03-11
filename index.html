@@ -471,19 +471,2682 @@ function renderStratOverview(){
   var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
 
   return'<div class="kpi-grid">'
-    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Recent Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+/* ── POSITIONS ─────────────────────────────────────────────────── */
+function renderPositions(){
+  var pos=db.positions;
+  var floatPnl=pos.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var html='<div class="float-bar">'
+    +'<div><div class="float-label">Float P&L</div><div class="float-val '+(floatPnl>=0?'pos':'neg')+'">$'+fmtPnl(floatPnl)+'</div></div>'
+    +'<div class="pos-count">'+pos.length+' Open Positions</div>'
+    +'<button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>'
+    +'<div><div class="refresh-label" id="posRefreshLabel">Auto-refresh 60s</div></div>'
+    +'</div>';
+  if(!pos.length) return html+'<div class="empty-state"><div class="empty-icon">&#128205;</div><div class="empty-msg">No open positions</div></div>';
+  html+='<div class="table-card"><div class="table-header"><span class="table-title">Open Positions</span><span class="count-badge">'+pos.length+'</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Opened</th><th>Symbol</th><th>Dir</th><th>Lot</th><th>Entry</th><th>SL</th><th>TP</th><th>Time Open</th></tr></thead><tbody>';
+  pos.forEach(function(p){
+    var mins=Math.round((Date.now()-new Date(p.ts).getTime())/60000);
+    var to=mins<60?(mins+'m'):mins<1440?(Math.floor(mins/60)+'h '+(mins%60)+'m'):Math.floor(mins/1440)+'d';
+    html+='<tr><td style="color:#94a3b8">'+(p.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+p.symbol+'</td>'
+      +'<td><span class="badge-'+((p.direction||'').toLowerCase())+'">'+p.direction+'</span></td>'
+      +'<td>'+parseFloat(p.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(p.entry||0).toFixed(5)+'</td>'
+      +'<td>'+(p.sl?parseFloat(p.sl).toFixed(5):'--')+'</td>'
+      +'<td>'+(p.tp?parseFloat(p.tp).toFixed(5):'--')+'</td>'
+      +'<td style="color:#64748b">'+to+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  return html;
+}
+
+/* ── TRADES ────────────────────────────────────────────────────── */
+function renderTrades(){
+  var cl=closed();
+  var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
+  return'<div class="table-card"><div class="table-header">'
+    +'<span class="table-title">Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th>'
+    +(mode==='strategy'?'<th>Strong</th><th>Weak</th><th>Gap</th>':'')
+    +'<th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+function renderTradeRows(rows){
+  var openMap={};
+  rawDb.trades.filter(function(t){return t.event==='OPEN';}).forEach(function(t){openMap[t.ticket]=t;});
+  return rows.slice().reverse().map(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    var oe=openMap[t.ticket];
+    return'<tr onclick="openInspector(\''+t.id+'\')">'
+      +'<td style="color:#94a3b8">'+(oe?(oe.ts||'').slice(0,16):'--')+'</td>'
+      +'<td style="color:#94a3b8">'+(t.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(t.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((t.direction||'').toLowerCase())+'">'+(t.direction||'--')+'</span></td>'
+      +(mode==='strategy'?('<td style="color:#16a34a">'+(t.strong_cur||'--')+'</td><td style="color:#dc2626">'+(t.weak_cur||'--')+'</td><td>'+parseFloat(t.gap||0).toFixed(3)+'</td>'):'')
+      +'<td>'+parseFloat(t.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(t.entry||0).toFixed(5)+'</td>'
+      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+      +'<td>$'+parseFloat(t.balance||0).toFixed(2)+'</td></tr>';
+  }).join('');
+}
+
+function filterTrades(){
+  var sym=(document.getElementById('symF')||{}).value||'';
+  var dir=(document.getElementById('dirF')||{}).value||'';
+  var rows=closed();
+  if(sym) rows=rows.filter(function(t){return t.symbol===sym;});
+  if(dir) rows=rows.filter(function(t){return t.direction===dir;});
+  var body=document.getElementById('trdBody');
+  if(body) body.innerHTML=renderTradeRows(rows);
+  var cnt=document.getElementById('trdCount');
+  if(cnt) cnt.textContent=rows.length;
+}
+
+function exportCSV(){
+  var cl=closed();
+  var hdr=['ts','symbol','direction','lot','entry','pnl','balance','strong_cur','weak_cur','gap'];
+  var csv=[hdr.join(',')].concat(cl.map(function(t){return hdr.map(function(k){return t[k]||'';}).join(',');})).join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='csea_trades_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+/* ── SIGNALS ───────────────────────────────────────────────────── */
+function renderSignals(){
+  var opened=db.signals.filter(function(s){return s.result==='OPENED';}).length;
+  var blocked=db.signals.filter(function(s){return s.result==='BLOCKED';}).length;
+  var reasons={};
+  db.signals.filter(function(s){return s.result==='BLOCKED';}).forEach(function(s){
+    var r=s.block_reason||'Unknown';reasons[r]=(reasons[r]||0)+1;
+  });
+  var rKeys=Object.keys(reasons).sort(function(a,b){return reasons[b]-reasons[a];});
+  var syms=Array.from(new Set(db.signals.map(function(s){return s.symbol;}).filter(Boolean))).sort();
+  return'<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">'
+    +'<div class="kpi"><div class="kpi-label">Total Signals</div><div class="kpi-val">'+db.signals.length+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Opened</div><div class="kpi-val pos">'+opened+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Blocked</div><div class="kpi-val neg">'+blocked+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Open Rate</div><div class="kpi-val">'+(db.signals.length?(opened/db.signals.length*100).toFixed(1):0)+'%</div></div>'
+    +'</div>'
+    +(rKeys.length?'<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Block Reasons</span></div><div class="tbl-wrap"><table><thead><tr><th>Reason</th><th>Count</th></tr></thead><tbody>'
+      +rKeys.map(function(r){return'<tr><td>'+r+'</td><td style="font-weight:700">'+reasons[r]+'</td></tr>';}).join('')
+      +'</tbody></table></div></div>':'')
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Signal Log</span><span class="count-badge">'+db.signals.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="sigSymF" onchange="filterSignals()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="sigResF" onchange="filterSignals()"><option value="">All Results</option><option>OPENED</option><option>BLOCKED</option></select>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>'
+    +'<tbody id="sigBody">'+renderSignalRows(db.signals)+'</tbody></table></div></div>';
+}
+
+function renderSignalRows(rows){
+  return rows.slice().reverse().map(function(s){
+    return'<tr>'
+      +'<td style="color:#94a3b8">'+(s.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((s.direction||'').toLowerCase())+'">'+(s.direction||'--')+'</span></td>'
+      +'<td style="color:#16a34a">'+(s.strong_cur||'--')+'</td>'
+      +'<td style="color:#dc2626">'+(s.weak_cur||'--')+'</td>'
+      +'<td>'+parseFloat(s.gap||0).toFixed(3)+'</td>'
+      +'<td><span class="'+(s.result==='OPENED'?'badge-opened':'badge-blocked')+'">'+(s.result||'--')+'</span></td>'
+      +'<td style="color:#64748b">'+(s.block_reason||'--')+'</td></tr>';
+  }).join('');
+}
+
+function filterSignals(){
+  var sym=(document.getElementById('sigSymF')||{}).value||'';
+  var res=(document.getElementById('sigResF')||{}).value||'';
+  var rows=db.signals;
+  if(sym) rows=rows.filter(function(s){return s.symbol===sym;});
+  if(res) rows=rows.filter(function(s){return s.result===res;});
+  var body=document.getElementById('sigBody');
+  if(body) body.innerHTML=renderSignalRows(rows);
+}
+
+/* ── DAILY ─────────────────────────────────────────────────────── */
+function renderDaily(){
+  if(!rawDb.daily.length) return'<div class="empty-state"><div class="empty-icon">&#128197;</div><div class="empty-msg">No daily data</div></div>';
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  /* daily P&L per day — last 5 days */
+  var dayMap={};
+  allCl.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5keys=Object.keys(dayMap).sort().slice(-5);
+  var d5labels=d5keys.map(function(d){return d.slice(5);});
+  var d5vals=d5keys.map(function(d){return+dayMap[d].toFixed(2);});
+  /* weekly */
+  var wm={};
+  allCl.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wm[k].toFixed(2);});
+  /* monthly */
+  var mm={};
+  allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mm).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mm[k].toFixed(2);});
+  var monthlyTable=buildMonthlyGrid(allCl);
+  var sorted=rawDb.daily.slice().reverse();
+  return'<div class="charts-row-2" style="margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="weeklyDailyChart" data-wkeys="'+encodeURIComponent(JSON.stringify(d5labels))+'" data-wvals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="monthlyDailyChart" data-mkeys="'+encodeURIComponent(JSON.stringify(wks))+'" data-mvals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="dailyMonthlyChart" data-mkeys="'+encodeURIComponent(JSON.stringify(mons))+'" data-mvals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
+    +monthlyTable+'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Daily Summary</span><span class="count-badge">'+rawDb.daily.length+' days</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>Target</th><th>P&L</th><th>Closed</th><th>Lot</th><th>Hit</th></tr></thead><tbody>'
+    +sorted.map(function(d){
+      var pnl=parseFloat(d.daily_pnl||0);
+      return'<tr>'
+        +'<td style="color:#94a3b8">'+d.date+'</td>'
+        +'<td style="color:#d97706">'+(d.compound_day?'Day '+d.compound_day:'--')+'</td>'
+        +'<td>$'+parseFloat(d.start_balance||0).toFixed(2)+'</td>'
+        +'<td style="color:#16a34a">$'+parseFloat(d.compound_target||0).toFixed(2)+'</td>'
+        +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+        +'<td>'+(d.trades_closed||0)+'</td>'
+        +'<td>'+parseFloat(d.compound_lot||0).toFixed(2)+'</td>'
+        +'<td>'+(d.target_hit?'&#9989;':'--')+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── HEATMAP ────────────────────────────────────────────────────── */
+function renderHeatmap(){
+  var cl=closed();
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128293;</div><div class="empty-msg">No trade data</div></div>';
+  var symData={};
+  cl.forEach(function(t){
+    if(!t.symbol) return;
+    if(!symData[t.symbol]) symData[t.symbol]={pnl:0,count:0,wins:0};
+    symData[t.symbol].pnl+=parseFloat(t.pnl||0);
+    symData[t.symbol].count++;
+    if(parseFloat(t.pnl||0)>0) symData[t.symbol].wins++;
+  });
+  var syms=Object.keys(symData).sort(function(a,b){return symData[b].pnl-symData[a].pnl;});
+  var maxAbs=Math.max.apply(null,syms.map(function(s){return Math.abs(symData[s].pnl);}));
+  var cells=syms.map(function(s){
+    var d=symData[s],intensity=maxAbs>0?Math.abs(d.pnl)/maxAbs:0;
+    var bg=d.pnl>=0?'rgba(16,185,129,'+(0.15+intensity*0.7)+')':'rgba(239,68,68,'+(0.15+intensity*0.7)+')';
+    var wr=d.count?(d.wins/d.count*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'
+      +'<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
+  }).join('');
+  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
+}
+
+/* ── CURRENCIES (FIX 3: coloured intensity tiles) ──────────────── */
+function renderCurrencies(){
+  var cl=closed().filter(function(t){return t.strong_cur&&t.weak_cur;});
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128177;</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
+  var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
+  var sPnl={},wPnl={},sWr={},wWr={};
+  curs.forEach(function(c){sPnl[c]=0;wPnl[c]=0;sWr[c]=[0,0];wWr[c]=[0,0];});
+  cl.forEach(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    if(curs.indexOf(t.strong_cur)>=0){sPnl[t.strong_cur]+=pnl;sWr[t.strong_cur][1]++;if(pnl>0)sWr[t.strong_cur][0]++;}
+    if(curs.indexOf(t.weak_cur)>=0){wPnl[t.weak_cur]+=pnl;wWr[t.weak_cur][1]++;if(pnl>0)wWr[t.weak_cur][0]++;}
+  });
+  /* combined total P&L per currency for tile intensity */
+  var totPnl={};
+  curs.forEach(function(c){totPnl[c]=sPnl[c]+wPnl[c];});
+  var maxAbs=Math.max.apply(null,curs.map(function(c){return Math.abs(totPnl[c]);}));
+  var tiles=curs.map(function(c){
+    var tot=totPnl[c];
+    var intensity=maxAbs>0?Math.abs(tot)/maxAbs:0;
+    var bg=tot>=0?'rgba(16,185,129,'+(0.2+intensity*0.65)+')':'rgba(239,68,68,'+(0.2+intensity*0.65)+')';
+    var tc=tot>=0?'#064e3b':'#7f1d1d';
+    var totalTrades=sWr[c][1]+wWr[c][1];
+    var totalWins=sWr[c][0]+wWr[c][0];
+    var wr=totalTrades>0?(totalWins/totalTrades*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'
+      +'<div style="font-size:14px;font-weight:800">'+c+'</div>'
+      +'<div style="font-size:15px;font-weight:700;margin:4px 0">$'+tot.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:500">'+totalTrades+' trades</div>'
+      +'<div style="font-size:10px;font-weight:400">'+wr+'% WR</div>'
+      +'</div>';
+  }).join('');
+  var spv=curs.map(function(c){return+sPnl[c].toFixed(2);});
+  var wpv=curs.map(function(c){return+wPnl[c].toFixed(2);});
+  return'<div class="heatmap-header"><b>Currency Performance</b> &mdash; '+cl.length+' trades &middot; combined P&L per currency</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(8,1fr);margin-bottom:20px">'+tiles+'</div>'
+    +'<div class="cur-grid">'
+    +'<div class="chart-card"><div class="chart-title">P&L as Strong Currency</div><div class="chart-wrap"><canvas id="curStrongChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(spv))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">P&L as Weak Currency</div><div class="chart-wrap"><canvas id="curWeakChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(wpv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Currency Breakdown</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Currency</th><th>P&L Strong</th><th>WR Strong</th><th>Trades Strong</th><th>P&L Weak</th><th>WR Weak</th><th>Trades Weak</th></tr></thead><tbody>'
+    +curs.map(function(c){
+      return'<tr><td style="font-weight:700">'+c+'</td>'
+        +'<td style="color:'+(sPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(sWr[c][1]>0?(sWr[c][0]/sWr[c][1]*100).toFixed(0):0)+'%</td><td>'+sWr[c][1]+'</td>'
+        +'<td style="color:'+(wPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(wWr[c][1]>0?(wWr[c][0]/wWr[c][1]*100).toFixed(0):0)+'%</td><td>'+wWr[c][1]+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────── */
+function renderPortOverview(){
+  var cl=closed();
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var winRate=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var avgWin=wins.length?(wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/wins.length).toFixed(2):0;
+  var avgLoss=losses.length?(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/losses.length).toFixed(2):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
     +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
     +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'--')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
     +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
     +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
     +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">$'+maxDD.toFixed(2)+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div>'
+    +'<div class="equity-wrap"><canvas id="portEquityChart"></canvas></div></div>'
+    +'<div class="charts-row-2">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyBarChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+/* ── PERFORMANCE ─────────────────────────────────────────────────── */
+function renderPerformance(){
+  var cl=closed();
+  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wkm={};
+  allClosed.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wkm[w]=(wkm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wkm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wkm[k].toFixed(2);});
+  var mMap={};
+  allClosed.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mMap[m]=(mMap[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mMap).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mMap[k].toFixed(2);});
+  var hVals=new Array(24).fill(0);
+  allClosed.forEach(function(t){if(t.ts){var h=parseInt(t.ts.slice(11,13));hVals[h]+=parseFloat(t.pnl||0);}});
+  hVals=hVals.map(function(v){return+v.toFixed(2);});
+  var dMap={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  allClosed.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
+  var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
+  var dayMap={};
+  allClosed.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5keys=Object.keys(dayMap).sort().slice(-5);
+  var d5labels=d5keys.map(function(d){return d.slice(5);});
+  var d5vals=d5keys.map(function(d){return+dayMap[d].toFixed(2);});
+  var perfTable=buildMonthlyGrid(allClosed);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-labels="'+encodeURIComponent(JSON.stringify(d5labels))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L (Hour)</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
+    +perfTable+'</div>';
+}
+
+/* ── COMPARE (FIX 4: mini equity curves) ─────────────────────────── */
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  var cards=allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?((wins/cl.length)*100).toFixed(1):0;
+    var bal=[],run=0;
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal.push(+run.toFixed(2));});
+    return'<div class="compare-card">'
+      +'<div class="compare-title">'+(a.label||a.name||a.account_number)+'</div>'
+      +'<div class="compare-sub">'+(a.account_type||'--')+' &middot; '+(a.broker||'--')+'</div>'
+      +'<div class="compare-kpis">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'--')+'</div></div>'
+      +'</div>'
+      +'<div class="eq-mini"><canvas id="eq_'+a.id+'" data-labels="'+encodeURIComponent(JSON.stringify(bal.map(function(_,i){return String(i);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div>'
+      +'</div>';
+  }).join('');
+  return'<div class="compare-grid">'+cards+'</div>';
+}
+
+/* ── INSPECTOR ──────────────────────────────────────────────────── */
+function openInspector(id){
+  var t=rawDb.trades.find(function(x){return x.id===id;});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return x.ticket===t.ticket&&x.event==='OPEN';});
+  var pnl=parseFloat(t.pnl||0);
+  var dur=oe?Math.round((new Date(t.ts)-new Date(oe.ts))/60000):null;
+  var rows=[
+    ['Symbol',t.symbol||'--'],['Direction',t.direction||'--'],['Event',t.event||'--'],
+    ['Entry',parseFloat(t.entry||0).toFixed(5)],['Lot',parseFloat(t.lot||0).toFixed(2)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--'],
+    ['Compound Day',t.compound_day||'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+/* ── CHARTS ─────────────────────────────────────────────────────── */
+function renderCharts(){
+  var cd={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}
+  };
+  var cl=closed();
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+
+  /* FIX 1: all bar backgroundColor uses solid #22c55e / #ef4444 — no rgba opacity */
+
+  /* Strategy overview — equity curve */
+  var eq=document.getElementById('equityChart');
+  if(eq){
+    var el=JSON.parse(decodeURIComponent(eq.dataset.labels||'[]'));
+    var ev=JSON.parse(decodeURIComponent(eq.dataset.values||'[]'));
+    charts.eq=new Chart(eq,{type:'line',data:{labels:el,datasets:[{data:ev,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Portfolio overview — equity curve */
+  var peq=document.getElementById('portEquityChart');
+  if(peq){
+    var run=0,bal2=[];
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal2.push(+run.toFixed(2));});
+    charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Strategy overview — monthly (allCl — full history) */
+  var mc=document.getElementById('monthlyChart');
+  if(mc){
+    var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+    var mk=Object.keys(mm).sort().slice(-12),mv=mk.map(function(k){return+mm[k].toFixed(2);});
+    charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — weekly (allCl) */
+  var wc=document.getElementById('weeklyChart');
+  if(wc){
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);var w=mon.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wk=Object.keys(wm).sort().slice(-4),wv=wk.map(function(k){return+wm[k].toFixed(2);});
+    charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — duration */
+  var dc=document.getElementById('durationChart');
+  if(dc){
+    var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+    cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dm['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+    var ddk=Object.keys(dm),ddv=Object.values(dm).map(function(v){return+v.toFixed(2);});
+    charts.dc=new Chart(dc,{type:'bar',data:{labels:ddk,datasets:[{data:ddv,backgroundColor:ddv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — weekly */
+  var wdc=document.getElementById('weeklyDailyChart');
+  if(wdc){
+    var wk2=JSON.parse(decodeURIComponent(wdc.dataset.wkeys||'[]'));
+    var wv2=JSON.parse(decodeURIComponent(wdc.dataset.wvals||'[]'));
+    charts.wdc=new Chart(wdc,{type:'bar',data:{labels:wk2.map(function(w){return w.slice(5);}),datasets:[{data:wv2,backgroundColor:wv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — weekly (reuses weeklyDailyChart slot, now shows last 5 days labels) */
+  var mdc=document.getElementById('monthlyDailyChart');
+  if(mdc){
+    var mk2=JSON.parse(decodeURIComponent(mdc.dataset.mkeys||'[]'));
+    var mv2=JSON.parse(decodeURIComponent(mdc.dataset.mvals||'[]'));
+    charts.mdc=new Chart(mdc,{type:'bar',data:{labels:mk2.map(function(w){return w.slice(5);}),datasets:[{data:mv2,backgroundColor:mv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Daily tab — monthly full-width */
+  var dmc=document.getElementById('dailyMonthlyChart');
+  if(dmc){
+    var dmk=JSON.parse(decodeURIComponent(dmc.dataset.mkeys||'[]'));
+    var dmv=JSON.parse(decodeURIComponent(dmc.dataset.mvals||'[]'));
+    charts.dmc=new Chart(dmc,{type:'bar',data:{labels:dmk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:dmv,backgroundColor:dmv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Currency — strong */
+  var csc=document.getElementById('curStrongChart');
+  if(csc){
+    var cc=JSON.parse(decodeURIComponent(csc.dataset.curs||'[]')),sv=JSON.parse(decodeURIComponent(csc.dataset.vals||'[]'));
+    charts.csc=new Chart(csc,{type:'bar',data:{labels:cc,datasets:[{data:sv,backgroundColor:sv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Currency — weak */
+  var cwc=document.getElementById('curWeakChart');
+  if(cwc){
+    var cc2=JSON.parse(decodeURIComponent(cwc.dataset.curs||'[]')),wv3=JSON.parse(decodeURIComponent(cwc.dataset.vals||'[]'));
+    charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Performance — daily 5 */
+  var pd5=document.getElementById('perfDaily5');
+  if(pd5){
+    var pd5l=JSON.parse(decodeURIComponent(pd5.dataset.labels||'[]'));
+    var pd5v=JSON.parse(decodeURIComponent(pd5.dataset.vals||'[]'));
+    charts.pd5=new Chart(pd5,{type:'bar',data:{labels:pd5l,datasets:[{data:pd5v,backgroundColor:pd5v.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — weekly */
+  var pw=document.getElementById('perfWeekly');
+  if(pw){
+    var pwl=JSON.parse(decodeURIComponent(pw.dataset.labels||'[]')),pwv=JSON.parse(decodeURIComponent(pw.dataset.vals||'[]'));
+    charts.pw=new Chart(pw,{type:'bar',data:{labels:pwl.map(function(w){return w.slice(5);}),datasets:[{data:pwv,backgroundColor:pwv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — monthly */
+  var pm=document.getElementById('perfMonthly');
+  if(pm){
+    var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
+    charts.pm=new Chart(pm,{type:'bar',data:{labels:pml.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:pmv,backgroundColor:pmv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — time of day */
+  var ptod=document.getElementById('perfTod');
+  if(ptod){
+    var ptv=JSON.parse(decodeURIComponent(ptod.dataset.vals||'[]'));
+    charts.ptod=new Chart(ptod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:ptv,backgroundColor:ptv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — duration */
+  var pdur=document.getElementById('perfDuration');
+  if(pdur){
+    var pdk=JSON.parse(decodeURIComponent(pdur.dataset.keys||'[]')),pdv=JSON.parse(decodeURIComponent(pdur.dataset.vals||'[]'));
+    charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Portfolio — monthly bar (allCl) */
+  var mb=document.getElementById('monthlyBarChart');
+  if(mb){
+    var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
+    var mbk=Object.keys(mbm).sort().slice(-12),mbv=mbk.map(function(k){return+mbm[k].toFixed(2);});
+    charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* FIX 4: Compare mini equity curves — colour = green if net positive, red if not */
+  document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
+    try{
+      var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
+      var vv=JSON.parse(decodeURIComponent(canvas.dataset.values||'[]'));
+      if(!vv.length) return;
+      var netPos=vv[vv.length-1]>=0;
+      charts[canvas.id]=new Chart(canvas,{type:'line',data:{labels:ll,datasets:[{data:vv,
+        borderColor:netPos?'#22c55e':'#ef4444',
+        backgroundColor:netPos?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)',
+        fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }catch(e){}
+  });
+}
+
+setInterval(function(){if(document.visibilityState==='visible') loadData();},60000);
+init();
+</script>
+</body>
+</html>
++fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Recent Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+/* ── POSITIONS ─────────────────────────────────────────────────── */
+function renderPositions(){
+  var pos=db.positions;
+  var floatPnl=pos.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var html='<div class="float-bar">'
+    +'<div><div class="float-label">Float P&L</div><div class="float-val '+(floatPnl>=0?'pos':'neg')+'">$'+fmtPnl(floatPnl)+'</div></div>'
+    +'<div class="pos-count">'+pos.length+' Open Positions</div>'
+    +'<button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>'
+    +'<div><div class="refresh-label" id="posRefreshLabel">Auto-refresh 60s</div></div>'
+    +'</div>';
+  if(!pos.length) return html+'<div class="empty-state"><div class="empty-icon">&#128205;</div><div class="empty-msg">No open positions</div></div>';
+  html+='<div class="table-card"><div class="table-header"><span class="table-title">Open Positions</span><span class="count-badge">'+pos.length+'</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Opened</th><th>Symbol</th><th>Dir</th><th>Lot</th><th>Entry</th><th>SL</th><th>TP</th><th>Time Open</th></tr></thead><tbody>';
+  pos.forEach(function(p){
+    var mins=Math.round((Date.now()-new Date(p.ts).getTime())/60000);
+    var to=mins<60?(mins+'m'):mins<1440?(Math.floor(mins/60)+'h '+(mins%60)+'m'):Math.floor(mins/1440)+'d';
+    html+='<tr><td style="color:#94a3b8">'+(p.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+p.symbol+'</td>'
+      +'<td><span class="badge-'+((p.direction||'').toLowerCase())+'">'+p.direction+'</span></td>'
+      +'<td>'+parseFloat(p.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(p.entry||0).toFixed(5)+'</td>'
+      +'<td>'+(p.sl?parseFloat(p.sl).toFixed(5):'--')+'</td>'
+      +'<td>'+(p.tp?parseFloat(p.tp).toFixed(5):'--')+'</td>'
+      +'<td style="color:#64748b">'+to+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  return html;
+}
+
+/* ── TRADES ────────────────────────────────────────────────────── */
+function renderTrades(){
+  var cl=closed();
+  var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
+  return'<div class="table-card"><div class="table-header">'
+    +'<span class="table-title">Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th>'
+    +(mode==='strategy'?'<th>Strong</th><th>Weak</th><th>Gap</th>':'')
+    +'<th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+function renderTradeRows(rows){
+  var openMap={};
+  rawDb.trades.filter(function(t){return t.event==='OPEN';}).forEach(function(t){openMap[t.ticket]=t;});
+  return rows.slice().reverse().map(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    var oe=openMap[t.ticket];
+    return'<tr onclick="openInspector(\''+t.id+'\')">'
+      +'<td style="color:#94a3b8">'+(oe?(oe.ts||'').slice(0,16):'--')+'</td>'
+      +'<td style="color:#94a3b8">'+(t.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(t.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((t.direction||'').toLowerCase())+'">'+(t.direction||'--')+'</span></td>'
+      +(mode==='strategy'?('<td style="color:#16a34a">'+(t.strong_cur||'--')+'</td><td style="color:#dc2626">'+(t.weak_cur||'--')+'</td><td>'+parseFloat(t.gap||0).toFixed(3)+'</td>'):'')
+      +'<td>'+parseFloat(t.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(t.entry||0).toFixed(5)+'</td>'
+      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+      +'<td>$'+parseFloat(t.balance||0).toFixed(2)+'</td></tr>';
+  }).join('');
+}
+
+function filterTrades(){
+  var sym=(document.getElementById('symF')||{}).value||'';
+  var dir=(document.getElementById('dirF')||{}).value||'';
+  var rows=closed();
+  if(sym) rows=rows.filter(function(t){return t.symbol===sym;});
+  if(dir) rows=rows.filter(function(t){return t.direction===dir;});
+  var body=document.getElementById('trdBody');
+  if(body) body.innerHTML=renderTradeRows(rows);
+  var cnt=document.getElementById('trdCount');
+  if(cnt) cnt.textContent=rows.length;
+}
+
+function exportCSV(){
+  var cl=closed();
+  var hdr=['ts','symbol','direction','lot','entry','pnl','balance','strong_cur','weak_cur','gap'];
+  var csv=[hdr.join(',')].concat(cl.map(function(t){return hdr.map(function(k){return t[k]||'';}).join(',');})).join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='csea_trades_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+/* ── SIGNALS ───────────────────────────────────────────────────── */
+function renderSignals(){
+  var opened=db.signals.filter(function(s){return s.result==='OPENED';}).length;
+  var blocked=db.signals.filter(function(s){return s.result==='BLOCKED';}).length;
+  var reasons={};
+  db.signals.filter(function(s){return s.result==='BLOCKED';}).forEach(function(s){
+    var r=s.block_reason||'Unknown';reasons[r]=(reasons[r]||0)+1;
+  });
+  var rKeys=Object.keys(reasons).sort(function(a,b){return reasons[b]-reasons[a];});
+  var syms=Array.from(new Set(db.signals.map(function(s){return s.symbol;}).filter(Boolean))).sort();
+  return'<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">'
+    +'<div class="kpi"><div class="kpi-label">Total Signals</div><div class="kpi-val">'+db.signals.length+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Opened</div><div class="kpi-val pos">'+opened+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Blocked</div><div class="kpi-val neg">'+blocked+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Open Rate</div><div class="kpi-val">'+(db.signals.length?(opened/db.signals.length*100).toFixed(1):0)+'%</div></div>'
+    +'</div>'
+    +(rKeys.length?'<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Block Reasons</span></div><div class="tbl-wrap"><table><thead><tr><th>Reason</th><th>Count</th></tr></thead><tbody>'
+      +rKeys.map(function(r){return'<tr><td>'+r+'</td><td style="font-weight:700">'+reasons[r]+'</td></tr>';}).join('')
+      +'</tbody></table></div></div>':'')
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Signal Log</span><span class="count-badge">'+db.signals.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="sigSymF" onchange="filterSignals()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="sigResF" onchange="filterSignals()"><option value="">All Results</option><option>OPENED</option><option>BLOCKED</option></select>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>'
+    +'<tbody id="sigBody">'+renderSignalRows(db.signals)+'</tbody></table></div></div>';
+}
+
+function renderSignalRows(rows){
+  return rows.slice().reverse().map(function(s){
+    return'<tr>'
+      +'<td style="color:#94a3b8">'+(s.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((s.direction||'').toLowerCase())+'">'+(s.direction||'--')+'</span></td>'
+      +'<td style="color:#16a34a">'+(s.strong_cur||'--')+'</td>'
+      +'<td style="color:#dc2626">'+(s.weak_cur||'--')+'</td>'
+      +'<td>'+parseFloat(s.gap||0).toFixed(3)+'</td>'
+      +'<td><span class="'+(s.result==='OPENED'?'badge-opened':'badge-blocked')+'">'+(s.result||'--')+'</span></td>'
+      +'<td style="color:#64748b">'+(s.block_reason||'--')+'</td></tr>';
+  }).join('');
+}
+
+function filterSignals(){
+  var sym=(document.getElementById('sigSymF')||{}).value||'';
+  var res=(document.getElementById('sigResF')||{}).value||'';
+  var rows=db.signals;
+  if(sym) rows=rows.filter(function(s){return s.symbol===sym;});
+  if(res) rows=rows.filter(function(s){return s.result===res;});
+  var body=document.getElementById('sigBody');
+  if(body) body.innerHTML=renderSignalRows(rows);
+}
+
+/* ── DAILY ─────────────────────────────────────────────────────── */
+function renderDaily(){
+  if(!rawDb.daily.length) return'<div class="empty-state"><div class="empty-icon">&#128197;</div><div class="empty-msg">No daily data</div></div>';
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wm={};
+  allCl.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wm[k].toFixed(2);});
+  var mm={};
+  allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mm).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mm[k].toFixed(2);});
+  var sorted=rawDb.daily.slice().reverse();
+  return'<div class="charts-row-2" style="margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyDailyChart" data-wkeys="'+encodeURIComponent(JSON.stringify(wks))+'" data-wvals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyDailyChart" data-mkeys="'+encodeURIComponent(JSON.stringify(mons))+'" data-mvals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Daily Summary</span><span class="count-badge">'+rawDb.daily.length+' days</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>Target</th><th>P&L</th><th>Closed</th><th>Lot</th><th>Hit</th></tr></thead><tbody>'
+    +sorted.map(function(d){
+      var pnl=parseFloat(d.daily_pnl||0);
+      return'<tr>'
+        +'<td style="color:#94a3b8">'+d.date+'</td>'
+        +'<td style="color:#d97706">'+(d.compound_day?'Day '+d.compound_day:'--')+'</td>'
+        +'<td>$'+parseFloat(d.start_balance||0).toFixed(2)+'</td>'
+        +'<td style="color:#16a34a">$'+parseFloat(d.compound_target||0).toFixed(2)+'</td>'
+        +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+        +'<td>'+(d.trades_closed||0)+'</td>'
+        +'<td>'+parseFloat(d.compound_lot||0).toFixed(2)+'</td>'
+        +'<td>'+(d.target_hit?'&#9989;':'--')+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── HEATMAP ────────────────────────────────────────────────────── */
+function renderHeatmap(){
+  var cl=closed();
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128293;</div><div class="empty-msg">No trade data</div></div>';
+  var symData={};
+  cl.forEach(function(t){
+    if(!t.symbol) return;
+    if(!symData[t.symbol]) symData[t.symbol]={pnl:0,count:0,wins:0};
+    symData[t.symbol].pnl+=parseFloat(t.pnl||0);
+    symData[t.symbol].count++;
+    if(parseFloat(t.pnl||0)>0) symData[t.symbol].wins++;
+  });
+  var syms=Object.keys(symData).sort(function(a,b){return symData[b].pnl-symData[a].pnl;});
+  var maxAbs=Math.max.apply(null,syms.map(function(s){return Math.abs(symData[s].pnl);}));
+  var cells=syms.map(function(s){
+    var d=symData[s],intensity=maxAbs>0?Math.abs(d.pnl)/maxAbs:0;
+    var bg=d.pnl>=0?'rgba(16,185,129,'+(0.15+intensity*0.7)+')':'rgba(239,68,68,'+(0.15+intensity*0.7)+')';
+    var wr=d.count?(d.wins/d.count*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'
+      +'<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
+  }).join('');
+  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
+}
+
+/* ── CURRENCIES (FIX 3: coloured intensity tiles) ──────────────── */
+function renderCurrencies(){
+  var cl=closed().filter(function(t){return t.strong_cur&&t.weak_cur;});
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128177;</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
+  var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
+  var sPnl={},wPnl={},sWr={},wWr={};
+  curs.forEach(function(c){sPnl[c]=0;wPnl[c]=0;sWr[c]=[0,0];wWr[c]=[0,0];});
+  cl.forEach(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    if(curs.indexOf(t.strong_cur)>=0){sPnl[t.strong_cur]+=pnl;sWr[t.strong_cur][1]++;if(pnl>0)sWr[t.strong_cur][0]++;}
+    if(curs.indexOf(t.weak_cur)>=0){wPnl[t.weak_cur]+=pnl;wWr[t.weak_cur][1]++;if(pnl>0)wWr[t.weak_cur][0]++;}
+  });
+  /* combined total P&L per currency for tile intensity */
+  var totPnl={};
+  curs.forEach(function(c){totPnl[c]=sPnl[c]+wPnl[c];});
+  var maxAbs=Math.max.apply(null,curs.map(function(c){return Math.abs(totPnl[c]);}));
+  var tiles=curs.map(function(c){
+    var tot=totPnl[c];
+    var intensity=maxAbs>0?Math.abs(tot)/maxAbs:0;
+    var bg=tot>=0?'rgba(16,185,129,'+(0.2+intensity*0.65)+')':'rgba(239,68,68,'+(0.2+intensity*0.65)+')';
+    var tc=tot>=0?'#064e3b':'#7f1d1d';
+    var totalTrades=sWr[c][1]+wWr[c][1];
+    var totalWins=sWr[c][0]+wWr[c][0];
+    var wr=totalTrades>0?(totalWins/totalTrades*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'
+      +'<div style="font-size:14px;font-weight:800">'+c+'</div>'
+      +'<div style="font-size:15px;font-weight:700;margin:4px 0">$'+tot.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:500">'+totalTrades+' trades</div>'
+      +'<div style="font-size:10px;font-weight:400">'+wr+'% WR</div>'
+      +'</div>';
+  }).join('');
+  var spv=curs.map(function(c){return+sPnl[c].toFixed(2);});
+  var wpv=curs.map(function(c){return+wPnl[c].toFixed(2);});
+  return'<div class="heatmap-header"><b>Currency Performance</b> &mdash; '+cl.length+' trades &middot; combined P&L per currency</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(8,1fr);margin-bottom:20px">'+tiles+'</div>'
+    +'<div class="cur-grid">'
+    +'<div class="chart-card"><div class="chart-title">P&L as Strong Currency</div><div class="chart-wrap"><canvas id="curStrongChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(spv))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">P&L as Weak Currency</div><div class="chart-wrap"><canvas id="curWeakChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(wpv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Currency Breakdown</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Currency</th><th>P&L Strong</th><th>WR Strong</th><th>Trades Strong</th><th>P&L Weak</th><th>WR Weak</th><th>Trades Weak</th></tr></thead><tbody>'
+    +curs.map(function(c){
+      return'<tr><td style="font-weight:700">'+c+'</td>'
+        +'<td style="color:'+(sPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(sWr[c][1]>0?(sWr[c][0]/sWr[c][1]*100).toFixed(0):0)+'%</td><td>'+sWr[c][1]+'</td>'
+        +'<td style="color:'+(wPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(wWr[c][1]>0?(wWr[c][0]/wWr[c][1]*100).toFixed(0):0)+'%</td><td>'+wWr[c][1]+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────── */
+function renderPortOverview(){
+  var cl=closed();
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var winRate=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var avgWin=wins.length?(wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/wins.length).toFixed(2):0;
+  var avgLoss=losses.length?(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/losses.length).toFixed(2):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'--')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div>'
+    +'<div class="equity-wrap"><canvas id="portEquityChart"></canvas></div></div>'
+    +'<div class="charts-row-2">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyBarChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+/* ── PERFORMANCE ─────────────────────────────────────────────────── */
+function renderPerformance(){
+  var cl=closed();
+  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wkm={};
+  allClosed.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wkm[w]=(wkm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wkm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wkm[k].toFixed(2);});
+  var mMap={};
+  allClosed.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mMap[m]=(mMap[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mMap).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mMap[k].toFixed(2);});
+  var hVals=new Array(24).fill(0);
+  allClosed.forEach(function(t){if(t.ts){var h=parseInt(t.ts.slice(11,13));hVals[h]+=parseFloat(t.pnl||0);}});
+  hVals=hVals.map(function(v){return+v.toFixed(2);});
+  var dMap={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  allClosed.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
+  var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
+  var dayMap={};
+  allClosed.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5keys=Object.keys(dayMap).sort().slice(-5);
+  var d5labels=d5keys.map(function(d){return d.slice(5);});
+  var d5vals=d5keys.map(function(d){return+dayMap[d].toFixed(2);});
+  var perfTable=buildMonthlyGrid(allClosed);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-labels="'+encodeURIComponent(JSON.stringify(d5labels))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L (Hour)</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
+    +perfTable+'</div>';
+}
+
+/* ── COMPARE (FIX 4: mini equity curves) ─────────────────────────── */
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  var cards=allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?((wins/cl.length)*100).toFixed(1):0;
+    var bal=[],run=0;
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal.push(+run.toFixed(2));});
+    return'<div class="compare-card">'
+      +'<div class="compare-title">'+(a.label||a.name||a.account_number)+'</div>'
+      +'<div class="compare-sub">'+(a.account_type||'--')+' &middot; '+(a.broker||'--')+'</div>'
+      +'<div class="compare-kpis">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'--')+'</div></div>'
+      +'</div>'
+      +'<div class="eq-mini"><canvas id="eq_'+a.id+'" data-labels="'+encodeURIComponent(JSON.stringify(bal.map(function(_,i){return String(i);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div>'
+      +'</div>';
+  }).join('');
+  return'<div class="compare-grid">'+cards+'</div>';
+}
+
+/* ── INSPECTOR ──────────────────────────────────────────────────── */
+function openInspector(id){
+  var t=rawDb.trades.find(function(x){return x.id===id;});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return x.ticket===t.ticket&&x.event==='OPEN';});
+  var pnl=parseFloat(t.pnl||0);
+  var dur=oe?Math.round((new Date(t.ts)-new Date(oe.ts))/60000):null;
+  var rows=[
+    ['Symbol',t.symbol||'--'],['Direction',t.direction||'--'],['Event',t.event||'--'],
+    ['Entry',parseFloat(t.entry||0).toFixed(5)],['Lot',parseFloat(t.lot||0).toFixed(2)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--'],
+    ['Compound Day',t.compound_day||'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+/* ── CHARTS ─────────────────────────────────────────────────────── */
+function renderCharts(){
+  var cd={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}
+  };
+  var cl=closed();
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+
+  /* FIX 1: all bar backgroundColor uses solid #22c55e / #ef4444 — no rgba opacity */
+
+  /* Strategy overview — equity curve */
+  var eq=document.getElementById('equityChart');
+  if(eq){
+    var el=JSON.parse(decodeURIComponent(eq.dataset.labels||'[]'));
+    var ev=JSON.parse(decodeURIComponent(eq.dataset.values||'[]'));
+    charts.eq=new Chart(eq,{type:'line',data:{labels:el,datasets:[{data:ev,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Portfolio overview — equity curve */
+  var peq=document.getElementById('portEquityChart');
+  if(peq){
+    var run=0,bal2=[];
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal2.push(+run.toFixed(2));});
+    charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Strategy overview — monthly (allCl — full history) */
+  var mc=document.getElementById('monthlyChart');
+  if(mc){
+    var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+    var mk=Object.keys(mm).sort().slice(-12),mv=mk.map(function(k){return+mm[k].toFixed(2);});
+    charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — weekly (allCl) */
+  var wc=document.getElementById('weeklyChart');
+  if(wc){
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);var w=mon.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wk=Object.keys(wm).sort().slice(-4),wv=wk.map(function(k){return+wm[k].toFixed(2);});
+    charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — duration */
+  var dc=document.getElementById('durationChart');
+  if(dc){
+    var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+    cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dm['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+    var ddk=Object.keys(dm),ddv=Object.values(dm).map(function(v){return+v.toFixed(2);});
+    charts.dc=new Chart(dc,{type:'bar',data:{labels:ddk,datasets:[{data:ddv,backgroundColor:ddv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — weekly */
+  var wdc=document.getElementById('weeklyDailyChart');
+  if(wdc){
+    var wk2=JSON.parse(decodeURIComponent(wdc.dataset.wkeys||'[]'));
+    var wv2=JSON.parse(decodeURIComponent(wdc.dataset.wvals||'[]'));
+    charts.wdc=new Chart(wdc,{type:'bar',data:{labels:wk2.map(function(w){return w.slice(5);}),datasets:[{data:wv2,backgroundColor:wv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — monthly */
+  var mdc=document.getElementById('monthlyDailyChart');
+  if(mdc){
+    var mk2=JSON.parse(decodeURIComponent(mdc.dataset.mkeys||'[]'));
+    var mv2=JSON.parse(decodeURIComponent(mdc.dataset.mvals||'[]'));
+    charts.mdc=new Chart(mdc,{type:'bar',data:{labels:mk2.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv2,backgroundColor:mv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Currency — strong */
+  var csc=document.getElementById('curStrongChart');
+  if(csc){
+    var cc=JSON.parse(decodeURIComponent(csc.dataset.curs||'[]')),sv=JSON.parse(decodeURIComponent(csc.dataset.vals||'[]'));
+    charts.csc=new Chart(csc,{type:'bar',data:{labels:cc,datasets:[{data:sv,backgroundColor:sv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Currency — weak */
+  var cwc=document.getElementById('curWeakChart');
+  if(cwc){
+    var cc2=JSON.parse(decodeURIComponent(cwc.dataset.curs||'[]')),wv3=JSON.parse(decodeURIComponent(cwc.dataset.vals||'[]'));
+    charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Performance — daily 5 */
+  var pd5=document.getElementById('perfDaily5');
+  if(pd5){
+    var pd5l=JSON.parse(decodeURIComponent(pd5.dataset.labels||'[]'));
+    var pd5v=JSON.parse(decodeURIComponent(pd5.dataset.vals||'[]'));
+    charts.pd5=new Chart(pd5,{type:'bar',data:{labels:pd5l,datasets:[{data:pd5v,backgroundColor:pd5v.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — weekly */
+  var pw=document.getElementById('perfWeekly');
+  if(pw){
+    var pwl=JSON.parse(decodeURIComponent(pw.dataset.labels||'[]')),pwv=JSON.parse(decodeURIComponent(pw.dataset.vals||'[]'));
+    charts.pw=new Chart(pw,{type:'bar',data:{labels:pwl.map(function(w){return w.slice(5);}),datasets:[{data:pwv,backgroundColor:pwv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — monthly */
+  var pm=document.getElementById('perfMonthly');
+  if(pm){
+    var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
+    charts.pm=new Chart(pm,{type:'bar',data:{labels:pml.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:pmv,backgroundColor:pmv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — time of day */
+  var ptod=document.getElementById('perfTod');
+  if(ptod){
+    var ptv=JSON.parse(decodeURIComponent(ptod.dataset.vals||'[]'));
+    charts.ptod=new Chart(ptod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:ptv,backgroundColor:ptv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — duration */
+  var pdur=document.getElementById('perfDuration');
+  if(pdur){
+    var pdk=JSON.parse(decodeURIComponent(pdur.dataset.keys||'[]')),pdv=JSON.parse(decodeURIComponent(pdur.dataset.vals||'[]'));
+    charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Portfolio — monthly bar (allCl) */
+  var mb=document.getElementById('monthlyBarChart');
+  if(mb){
+    var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
+    var mbk=Object.keys(mbm).sort().slice(-12),mbv=mbk.map(function(k){return+mbm[k].toFixed(2);});
+    charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* FIX 4: Compare mini equity curves — colour = green if net positive, red if not */
+  document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
+    try{
+      var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
+      var vv=JSON.parse(decodeURIComponent(canvas.dataset.values||'[]'));
+      if(!vv.length) return;
+      var netPos=vv[vv.length-1]>=0;
+      charts[canvas.id]=new Chart(canvas,{type:'line',data:{labels:ll,datasets:[{data:vv,
+        borderColor:netPos?'#22c55e':'#ef4444',
+        backgroundColor:netPos?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)',
+        fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }catch(e){}
+  });
+}
+
+setInterval(function(){if(document.visibilityState==='visible') loadData();},60000);
+init();
+</script>
+</body>
+</html>
++fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'--')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Recent Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+/* ── POSITIONS ─────────────────────────────────────────────────── */
+function renderPositions(){
+  var pos=db.positions;
+  var floatPnl=pos.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var html='<div class="float-bar">'
+    +'<div><div class="float-label">Float P&L</div><div class="float-val '+(floatPnl>=0?'pos':'neg')+'">$'+fmtPnl(floatPnl)+'</div></div>'
+    +'<div class="pos-count">'+pos.length+' Open Positions</div>'
+    +'<button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>'
+    +'<div><div class="refresh-label" id="posRefreshLabel">Auto-refresh 60s</div></div>'
+    +'</div>';
+  if(!pos.length) return html+'<div class="empty-state"><div class="empty-icon">&#128205;</div><div class="empty-msg">No open positions</div></div>';
+  html+='<div class="table-card"><div class="table-header"><span class="table-title">Open Positions</span><span class="count-badge">'+pos.length+'</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Opened</th><th>Symbol</th><th>Dir</th><th>Lot</th><th>Entry</th><th>SL</th><th>TP</th><th>Time Open</th></tr></thead><tbody>';
+  pos.forEach(function(p){
+    var mins=Math.round((Date.now()-new Date(p.ts).getTime())/60000);
+    var to=mins<60?(mins+'m'):mins<1440?(Math.floor(mins/60)+'h '+(mins%60)+'m'):Math.floor(mins/1440)+'d';
+    html+='<tr><td style="color:#94a3b8">'+(p.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+p.symbol+'</td>'
+      +'<td><span class="badge-'+((p.direction||'').toLowerCase())+'">'+p.direction+'</span></td>'
+      +'<td>'+parseFloat(p.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(p.entry||0).toFixed(5)+'</td>'
+      +'<td>'+(p.sl?parseFloat(p.sl).toFixed(5):'--')+'</td>'
+      +'<td>'+(p.tp?parseFloat(p.tp).toFixed(5):'--')+'</td>'
+      +'<td style="color:#64748b">'+to+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  return html;
+}
+
+/* ── TRADES ────────────────────────────────────────────────────── */
+function renderTrades(){
+  var cl=closed();
+  var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
+  return'<div class="table-card"><div class="table-header">'
+    +'<span class="table-title">Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th>'
+    +(mode==='strategy'?'<th>Strong</th><th>Weak</th><th>Gap</th>':'')
+    +'<th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+function renderTradeRows(rows){
+  var openMap={};
+  rawDb.trades.filter(function(t){return t.event==='OPEN';}).forEach(function(t){openMap[t.ticket]=t;});
+  return rows.slice().reverse().map(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    var oe=openMap[t.ticket];
+    return'<tr onclick="openInspector(\''+t.id+'\')">'
+      +'<td style="color:#94a3b8">'+(oe?(oe.ts||'').slice(0,16):'--')+'</td>'
+      +'<td style="color:#94a3b8">'+(t.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(t.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((t.direction||'').toLowerCase())+'">'+(t.direction||'--')+'</span></td>'
+      +(mode==='strategy'?('<td style="color:#16a34a">'+(t.strong_cur||'--')+'</td><td style="color:#dc2626">'+(t.weak_cur||'--')+'</td><td>'+parseFloat(t.gap||0).toFixed(3)+'</td>'):'')
+      +'<td>'+parseFloat(t.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(t.entry||0).toFixed(5)+'</td>'
+      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+      +'<td>$'+parseFloat(t.balance||0).toFixed(2)+'</td></tr>';
+  }).join('');
+}
+
+function filterTrades(){
+  var sym=(document.getElementById('symF')||{}).value||'';
+  var dir=(document.getElementById('dirF')||{}).value||'';
+  var rows=closed();
+  if(sym) rows=rows.filter(function(t){return t.symbol===sym;});
+  if(dir) rows=rows.filter(function(t){return t.direction===dir;});
+  var body=document.getElementById('trdBody');
+  if(body) body.innerHTML=renderTradeRows(rows);
+  var cnt=document.getElementById('trdCount');
+  if(cnt) cnt.textContent=rows.length;
+}
+
+function exportCSV(){
+  var cl=closed();
+  var hdr=['ts','symbol','direction','lot','entry','pnl','balance','strong_cur','weak_cur','gap'];
+  var csv=[hdr.join(',')].concat(cl.map(function(t){return hdr.map(function(k){return t[k]||'';}).join(',');})).join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='csea_trades_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+/* ── SIGNALS ───────────────────────────────────────────────────── */
+function renderSignals(){
+  var opened=db.signals.filter(function(s){return s.result==='OPENED';}).length;
+  var blocked=db.signals.filter(function(s){return s.result==='BLOCKED';}).length;
+  var reasons={};
+  db.signals.filter(function(s){return s.result==='BLOCKED';}).forEach(function(s){
+    var r=s.block_reason||'Unknown';reasons[r]=(reasons[r]||0)+1;
+  });
+  var rKeys=Object.keys(reasons).sort(function(a,b){return reasons[b]-reasons[a];});
+  var syms=Array.from(new Set(db.signals.map(function(s){return s.symbol;}).filter(Boolean))).sort();
+  return'<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">'
+    +'<div class="kpi"><div class="kpi-label">Total Signals</div><div class="kpi-val">'+db.signals.length+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Opened</div><div class="kpi-val pos">'+opened+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Blocked</div><div class="kpi-val neg">'+blocked+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Open Rate</div><div class="kpi-val">'+(db.signals.length?(opened/db.signals.length*100).toFixed(1):0)+'%</div></div>'
+    +'</div>'
+    +(rKeys.length?'<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Block Reasons</span></div><div class="tbl-wrap"><table><thead><tr><th>Reason</th><th>Count</th></tr></thead><tbody>'
+      +rKeys.map(function(r){return'<tr><td>'+r+'</td><td style="font-weight:700">'+reasons[r]+'</td></tr>';}).join('')
+      +'</tbody></table></div></div>':'')
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Signal Log</span><span class="count-badge">'+db.signals.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="sigSymF" onchange="filterSignals()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="sigResF" onchange="filterSignals()"><option value="">All Results</option><option>OPENED</option><option>BLOCKED</option></select>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>'
+    +'<tbody id="sigBody">'+renderSignalRows(db.signals)+'</tbody></table></div></div>';
+}
+
+function renderSignalRows(rows){
+  return rows.slice().reverse().map(function(s){
+    return'<tr>'
+      +'<td style="color:#94a3b8">'+(s.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((s.direction||'').toLowerCase())+'">'+(s.direction||'--')+'</span></td>'
+      +'<td style="color:#16a34a">'+(s.strong_cur||'--')+'</td>'
+      +'<td style="color:#dc2626">'+(s.weak_cur||'--')+'</td>'
+      +'<td>'+parseFloat(s.gap||0).toFixed(3)+'</td>'
+      +'<td><span class="'+(s.result==='OPENED'?'badge-opened':'badge-blocked')+'">'+(s.result||'--')+'</span></td>'
+      +'<td style="color:#64748b">'+(s.block_reason||'--')+'</td></tr>';
+  }).join('');
+}
+
+function filterSignals(){
+  var sym=(document.getElementById('sigSymF')||{}).value||'';
+  var res=(document.getElementById('sigResF')||{}).value||'';
+  var rows=db.signals;
+  if(sym) rows=rows.filter(function(s){return s.symbol===sym;});
+  if(res) rows=rows.filter(function(s){return s.result===res;});
+  var body=document.getElementById('sigBody');
+  if(body) body.innerHTML=renderSignalRows(rows);
+}
+
+/* ── DAILY ─────────────────────────────────────────────────────── */
+function renderDaily(){
+  if(!rawDb.daily.length) return'<div class="empty-state"><div class="empty-icon">&#128197;</div><div class="empty-msg">No daily data</div></div>';
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wm={};
+  allCl.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wm[k].toFixed(2);});
+  var mm={};
+  allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mm).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mm[k].toFixed(2);});
+  var sorted=rawDb.daily.slice().reverse();
+  return'<div class="charts-row-2" style="margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyDailyChart" data-wkeys="'+encodeURIComponent(JSON.stringify(wks))+'" data-wvals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyDailyChart" data-mkeys="'+encodeURIComponent(JSON.stringify(mons))+'" data-mvals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Daily Summary</span><span class="count-badge">'+rawDb.daily.length+' days</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>Target</th><th>P&L</th><th>Closed</th><th>Lot</th><th>Hit</th></tr></thead><tbody>'
+    +sorted.map(function(d){
+      var pnl=parseFloat(d.daily_pnl||0);
+      return'<tr>'
+        +'<td style="color:#94a3b8">'+d.date+'</td>'
+        +'<td style="color:#d97706">'+(d.compound_day?'Day '+d.compound_day:'--')+'</td>'
+        +'<td>$'+parseFloat(d.start_balance||0).toFixed(2)+'</td>'
+        +'<td style="color:#16a34a">$'+parseFloat(d.compound_target||0).toFixed(2)+'</td>'
+        +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+        +'<td>'+(d.trades_closed||0)+'</td>'
+        +'<td>'+parseFloat(d.compound_lot||0).toFixed(2)+'</td>'
+        +'<td>'+(d.target_hit?'&#9989;':'--')+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── HEATMAP ────────────────────────────────────────────────────── */
+function renderHeatmap(){
+  var cl=closed();
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128293;</div><div class="empty-msg">No trade data</div></div>';
+  var symData={};
+  cl.forEach(function(t){
+    if(!t.symbol) return;
+    if(!symData[t.symbol]) symData[t.symbol]={pnl:0,count:0,wins:0};
+    symData[t.symbol].pnl+=parseFloat(t.pnl||0);
+    symData[t.symbol].count++;
+    if(parseFloat(t.pnl||0)>0) symData[t.symbol].wins++;
+  });
+  var syms=Object.keys(symData).sort(function(a,b){return symData[b].pnl-symData[a].pnl;});
+  var maxAbs=Math.max.apply(null,syms.map(function(s){return Math.abs(symData[s].pnl);}));
+  var cells=syms.map(function(s){
+    var d=symData[s],intensity=maxAbs>0?Math.abs(d.pnl)/maxAbs:0;
+    var bg=d.pnl>=0?'rgba(16,185,129,'+(0.15+intensity*0.7)+')':'rgba(239,68,68,'+(0.15+intensity*0.7)+')';
+    var wr=d.count?(d.wins/d.count*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'
+      +'<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
+  }).join('');
+  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
+}
+
+/* ── CURRENCIES (FIX 3: coloured intensity tiles) ──────────────── */
+function renderCurrencies(){
+  var cl=closed().filter(function(t){return t.strong_cur&&t.weak_cur;});
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128177;</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
+  var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
+  var sPnl={},wPnl={},sWr={},wWr={};
+  curs.forEach(function(c){sPnl[c]=0;wPnl[c]=0;sWr[c]=[0,0];wWr[c]=[0,0];});
+  cl.forEach(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    if(curs.indexOf(t.strong_cur)>=0){sPnl[t.strong_cur]+=pnl;sWr[t.strong_cur][1]++;if(pnl>0)sWr[t.strong_cur][0]++;}
+    if(curs.indexOf(t.weak_cur)>=0){wPnl[t.weak_cur]+=pnl;wWr[t.weak_cur][1]++;if(pnl>0)wWr[t.weak_cur][0]++;}
+  });
+  /* combined total P&L per currency for tile intensity */
+  var totPnl={};
+  curs.forEach(function(c){totPnl[c]=sPnl[c]+wPnl[c];});
+  var maxAbs=Math.max.apply(null,curs.map(function(c){return Math.abs(totPnl[c]);}));
+  var tiles=curs.map(function(c){
+    var tot=totPnl[c];
+    var intensity=maxAbs>0?Math.abs(tot)/maxAbs:0;
+    var bg=tot>=0?'rgba(16,185,129,'+(0.2+intensity*0.65)+')':'rgba(239,68,68,'+(0.2+intensity*0.65)+')';
+    var tc=tot>=0?'#064e3b':'#7f1d1d';
+    var totalTrades=sWr[c][1]+wWr[c][1];
+    var totalWins=sWr[c][0]+wWr[c][0];
+    var wr=totalTrades>0?(totalWins/totalTrades*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'
+      +'<div style="font-size:14px;font-weight:800">'+c+'</div>'
+      +'<div style="font-size:15px;font-weight:700;margin:4px 0">$'+tot.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:500">'+totalTrades+' trades</div>'
+      +'<div style="font-size:10px;font-weight:400">'+wr+'% WR</div>'
+      +'</div>';
+  }).join('');
+  var spv=curs.map(function(c){return+sPnl[c].toFixed(2);});
+  var wpv=curs.map(function(c){return+wPnl[c].toFixed(2);});
+  return'<div class="heatmap-header"><b>Currency Performance</b> &mdash; '+cl.length+' trades &middot; combined P&L per currency</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(8,1fr);margin-bottom:20px">'+tiles+'</div>'
+    +'<div class="cur-grid">'
+    +'<div class="chart-card"><div class="chart-title">P&L as Strong Currency</div><div class="chart-wrap"><canvas id="curStrongChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(spv))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">P&L as Weak Currency</div><div class="chart-wrap"><canvas id="curWeakChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(wpv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Currency Breakdown</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Currency</th><th>P&L Strong</th><th>WR Strong</th><th>Trades Strong</th><th>P&L Weak</th><th>WR Weak</th><th>Trades Weak</th></tr></thead><tbody>'
+    +curs.map(function(c){
+      return'<tr><td style="font-weight:700">'+c+'</td>'
+        +'<td style="color:'+(sPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(sWr[c][1]>0?(sWr[c][0]/sWr[c][1]*100).toFixed(0):0)+'%</td><td>'+sWr[c][1]+'</td>'
+        +'<td style="color:'+(wPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(wWr[c][1]>0?(wWr[c][0]/wWr[c][1]*100).toFixed(0):0)+'%</td><td>'+wWr[c][1]+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────── */
+function renderPortOverview(){
+  var cl=closed();
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var winRate=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var avgWin=wins.length?(wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/wins.length).toFixed(2):0;
+  var avgLoss=losses.length?(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/losses.length).toFixed(2):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'--')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div>'
+    +'<div class="equity-wrap"><canvas id="portEquityChart"></canvas></div></div>'
+    +'<div class="charts-row-2">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyBarChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+/* ── PERFORMANCE ─────────────────────────────────────────────────── */
+function renderPerformance(){
+  var cl=closed();
+  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wkm={};
+  allClosed.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wkm[w]=(wkm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wkm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wkm[k].toFixed(2);});
+  var mMap={};
+  allClosed.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mMap[m]=(mMap[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mMap).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mMap[k].toFixed(2);});
+  var hVals=new Array(24).fill(0);
+  allClosed.forEach(function(t){if(t.ts){var h=parseInt(t.ts.slice(11,13));hVals[h]+=parseFloat(t.pnl||0);}});
+  hVals=hVals.map(function(v){return+v.toFixed(2);});
+  var dMap={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  allClosed.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
+  var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
+  var dayMap={};
+  allClosed.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5keys=Object.keys(dayMap).sort().slice(-5);
+  var d5labels=d5keys.map(function(d){return d.slice(5);});
+  var d5vals=d5keys.map(function(d){return+dayMap[d].toFixed(2);});
+  var perfTable=buildMonthlyGrid(allClosed);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-labels="'+encodeURIComponent(JSON.stringify(d5labels))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L (Hour)</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
+    +perfTable+'</div>';
+}
+
+/* ── COMPARE (FIX 4: mini equity curves) ─────────────────────────── */
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  var cards=allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?((wins/cl.length)*100).toFixed(1):0;
+    var bal=[],run=0;
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal.push(+run.toFixed(2));});
+    return'<div class="compare-card">'
+      +'<div class="compare-title">'+(a.label||a.name||a.account_number)+'</div>'
+      +'<div class="compare-sub">'+(a.account_type||'--')+' &middot; '+(a.broker||'--')+'</div>'
+      +'<div class="compare-kpis">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'--')+'</div></div>'
+      +'</div>'
+      +'<div class="eq-mini"><canvas id="eq_'+a.id+'" data-labels="'+encodeURIComponent(JSON.stringify(bal.map(function(_,i){return String(i);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div>'
+      +'</div>';
+  }).join('');
+  return'<div class="compare-grid">'+cards+'</div>';
+}
+
+/* ── INSPECTOR ──────────────────────────────────────────────────── */
+function openInspector(id){
+  var t=rawDb.trades.find(function(x){return x.id===id;});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return x.ticket===t.ticket&&x.event==='OPEN';});
+  var pnl=parseFloat(t.pnl||0);
+  var dur=oe?Math.round((new Date(t.ts)-new Date(oe.ts))/60000):null;
+  var rows=[
+    ['Symbol',t.symbol||'--'],['Direction',t.direction||'--'],['Event',t.event||'--'],
+    ['Entry',parseFloat(t.entry||0).toFixed(5)],['Lot',parseFloat(t.lot||0).toFixed(2)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--'],
+    ['Compound Day',t.compound_day||'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+/* ── CHARTS ─────────────────────────────────────────────────────── */
+function renderCharts(){
+  var cd={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}
+  };
+  var cl=closed();
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+
+  /* FIX 1: all bar backgroundColor uses solid #22c55e / #ef4444 — no rgba opacity */
+
+  /* Strategy overview — equity curve */
+  var eq=document.getElementById('equityChart');
+  if(eq){
+    var el=JSON.parse(decodeURIComponent(eq.dataset.labels||'[]'));
+    var ev=JSON.parse(decodeURIComponent(eq.dataset.values||'[]'));
+    charts.eq=new Chart(eq,{type:'line',data:{labels:el,datasets:[{data:ev,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Portfolio overview — equity curve */
+  var peq=document.getElementById('portEquityChart');
+  if(peq){
+    var run=0,bal2=[];
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal2.push(+run.toFixed(2));});
+    charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Strategy overview — monthly (allCl — full history) */
+  var mc=document.getElementById('monthlyChart');
+  if(mc){
+    var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+    var mk=Object.keys(mm).sort().slice(-12),mv=mk.map(function(k){return+mm[k].toFixed(2);});
+    charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — weekly (allCl) */
+  var wc=document.getElementById('weeklyChart');
+  if(wc){
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);var w=mon.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wk=Object.keys(wm).sort().slice(-4),wv=wk.map(function(k){return+wm[k].toFixed(2);});
+    charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — duration */
+  var dc=document.getElementById('durationChart');
+  if(dc){
+    var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+    cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dm['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+    var ddk=Object.keys(dm),ddv=Object.values(dm).map(function(v){return+v.toFixed(2);});
+    charts.dc=new Chart(dc,{type:'bar',data:{labels:ddk,datasets:[{data:ddv,backgroundColor:ddv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — weekly */
+  var wdc=document.getElementById('weeklyDailyChart');
+  if(wdc){
+    var wk2=JSON.parse(decodeURIComponent(wdc.dataset.wkeys||'[]'));
+    var wv2=JSON.parse(decodeURIComponent(wdc.dataset.wvals||'[]'));
+    charts.wdc=new Chart(wdc,{type:'bar',data:{labels:wk2.map(function(w){return w.slice(5);}),datasets:[{data:wv2,backgroundColor:wv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — monthly */
+  var mdc=document.getElementById('monthlyDailyChart');
+  if(mdc){
+    var mk2=JSON.parse(decodeURIComponent(mdc.dataset.mkeys||'[]'));
+    var mv2=JSON.parse(decodeURIComponent(mdc.dataset.mvals||'[]'));
+    charts.mdc=new Chart(mdc,{type:'bar',data:{labels:mk2.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv2,backgroundColor:mv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Currency — strong */
+  var csc=document.getElementById('curStrongChart');
+  if(csc){
+    var cc=JSON.parse(decodeURIComponent(csc.dataset.curs||'[]')),sv=JSON.parse(decodeURIComponent(csc.dataset.vals||'[]'));
+    charts.csc=new Chart(csc,{type:'bar',data:{labels:cc,datasets:[{data:sv,backgroundColor:sv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Currency — weak */
+  var cwc=document.getElementById('curWeakChart');
+  if(cwc){
+    var cc2=JSON.parse(decodeURIComponent(cwc.dataset.curs||'[]')),wv3=JSON.parse(decodeURIComponent(cwc.dataset.vals||'[]'));
+    charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Performance — daily 5 */
+  var pd5=document.getElementById('perfDaily5');
+  if(pd5){
+    var pd5l=JSON.parse(decodeURIComponent(pd5.dataset.labels||'[]'));
+    var pd5v=JSON.parse(decodeURIComponent(pd5.dataset.vals||'[]'));
+    charts.pd5=new Chart(pd5,{type:'bar',data:{labels:pd5l,datasets:[{data:pd5v,backgroundColor:pd5v.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — weekly */
+  var pw=document.getElementById('perfWeekly');
+  if(pw){
+    var pwl=JSON.parse(decodeURIComponent(pw.dataset.labels||'[]')),pwv=JSON.parse(decodeURIComponent(pw.dataset.vals||'[]'));
+    charts.pw=new Chart(pw,{type:'bar',data:{labels:pwl.map(function(w){return w.slice(5);}),datasets:[{data:pwv,backgroundColor:pwv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — monthly */
+  var pm=document.getElementById('perfMonthly');
+  if(pm){
+    var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
+    charts.pm=new Chart(pm,{type:'bar',data:{labels:pml.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:pmv,backgroundColor:pmv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — time of day */
+  var ptod=document.getElementById('perfTod');
+  if(ptod){
+    var ptv=JSON.parse(decodeURIComponent(ptod.dataset.vals||'[]'));
+    charts.ptod=new Chart(ptod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:ptv,backgroundColor:ptv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — duration */
+  var pdur=document.getElementById('perfDuration');
+  if(pdur){
+    var pdk=JSON.parse(decodeURIComponent(pdur.dataset.keys||'[]')),pdv=JSON.parse(decodeURIComponent(pdur.dataset.vals||'[]'));
+    charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Portfolio — monthly bar (allCl) */
+  var mb=document.getElementById('monthlyBarChart');
+  if(mb){
+    var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
+    var mbk=Object.keys(mbm).sort().slice(-12),mbv=mbk.map(function(k){return+mbm[k].toFixed(2);});
+    charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* FIX 4: Compare mini equity curves — colour = green if net positive, red if not */
+  document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
+    try{
+      var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
+      var vv=JSON.parse(decodeURIComponent(canvas.dataset.values||'[]'));
+      if(!vv.length) return;
+      var netPos=vv[vv.length-1]>=0;
+      charts[canvas.id]=new Chart(canvas,{type:'line',data:{labels:ll,datasets:[{data:vv,
+        borderColor:netPos?'#22c55e':'#ef4444',
+        backgroundColor:netPos?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)',
+        fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }catch(e){}
+  });
+}
+
+setInterval(function(){if(document.visibilityState==='visible') loadData();},60000);
+init();
+</script>
+</body>
+</html>
++avgWin+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Recent Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+/* ── POSITIONS ─────────────────────────────────────────────────── */
+function renderPositions(){
+  var pos=db.positions;
+  var floatPnl=pos.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var html='<div class="float-bar">'
+    +'<div><div class="float-label">Float P&L</div><div class="float-val '+(floatPnl>=0?'pos':'neg')+'">$'+fmtPnl(floatPnl)+'</div></div>'
+    +'<div class="pos-count">'+pos.length+' Open Positions</div>'
+    +'<button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>'
+    +'<div><div class="refresh-label" id="posRefreshLabel">Auto-refresh 60s</div></div>'
+    +'</div>';
+  if(!pos.length) return html+'<div class="empty-state"><div class="empty-icon">&#128205;</div><div class="empty-msg">No open positions</div></div>';
+  html+='<div class="table-card"><div class="table-header"><span class="table-title">Open Positions</span><span class="count-badge">'+pos.length+'</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Opened</th><th>Symbol</th><th>Dir</th><th>Lot</th><th>Entry</th><th>SL</th><th>TP</th><th>Time Open</th></tr></thead><tbody>';
+  pos.forEach(function(p){
+    var mins=Math.round((Date.now()-new Date(p.ts).getTime())/60000);
+    var to=mins<60?(mins+'m'):mins<1440?(Math.floor(mins/60)+'h '+(mins%60)+'m'):Math.floor(mins/1440)+'d';
+    html+='<tr><td style="color:#94a3b8">'+(p.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+p.symbol+'</td>'
+      +'<td><span class="badge-'+((p.direction||'').toLowerCase())+'">'+p.direction+'</span></td>'
+      +'<td>'+parseFloat(p.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(p.entry||0).toFixed(5)+'</td>'
+      +'<td>'+(p.sl?parseFloat(p.sl).toFixed(5):'--')+'</td>'
+      +'<td>'+(p.tp?parseFloat(p.tp).toFixed(5):'--')+'</td>'
+      +'<td style="color:#64748b">'+to+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  return html;
+}
+
+/* ── TRADES ────────────────────────────────────────────────────── */
+function renderTrades(){
+  var cl=closed();
+  var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
+  return'<div class="table-card"><div class="table-header">'
+    +'<span class="table-title">Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th>'
+    +(mode==='strategy'?'<th>Strong</th><th>Weak</th><th>Gap</th>':'')
+    +'<th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+function renderTradeRows(rows){
+  var openMap={};
+  rawDb.trades.filter(function(t){return t.event==='OPEN';}).forEach(function(t){openMap[t.ticket]=t;});
+  return rows.slice().reverse().map(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    var oe=openMap[t.ticket];
+    return'<tr onclick="openInspector(\''+t.id+'\')">'
+      +'<td style="color:#94a3b8">'+(oe?(oe.ts||'').slice(0,16):'--')+'</td>'
+      +'<td style="color:#94a3b8">'+(t.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(t.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((t.direction||'').toLowerCase())+'">'+(t.direction||'--')+'</span></td>'
+      +(mode==='strategy'?('<td style="color:#16a34a">'+(t.strong_cur||'--')+'</td><td style="color:#dc2626">'+(t.weak_cur||'--')+'</td><td>'+parseFloat(t.gap||0).toFixed(3)+'</td>'):'')
+      +'<td>'+parseFloat(t.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(t.entry||0).toFixed(5)+'</td>'
+      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+      +'<td>$'+parseFloat(t.balance||0).toFixed(2)+'</td></tr>';
+  }).join('');
+}
+
+function filterTrades(){
+  var sym=(document.getElementById('symF')||{}).value||'';
+  var dir=(document.getElementById('dirF')||{}).value||'';
+  var rows=closed();
+  if(sym) rows=rows.filter(function(t){return t.symbol===sym;});
+  if(dir) rows=rows.filter(function(t){return t.direction===dir;});
+  var body=document.getElementById('trdBody');
+  if(body) body.innerHTML=renderTradeRows(rows);
+  var cnt=document.getElementById('trdCount');
+  if(cnt) cnt.textContent=rows.length;
+}
+
+function exportCSV(){
+  var cl=closed();
+  var hdr=['ts','symbol','direction','lot','entry','pnl','balance','strong_cur','weak_cur','gap'];
+  var csv=[hdr.join(',')].concat(cl.map(function(t){return hdr.map(function(k){return t[k]||'';}).join(',');})).join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='csea_trades_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+/* ── SIGNALS ───────────────────────────────────────────────────── */
+function renderSignals(){
+  var opened=db.signals.filter(function(s){return s.result==='OPENED';}).length;
+  var blocked=db.signals.filter(function(s){return s.result==='BLOCKED';}).length;
+  var reasons={};
+  db.signals.filter(function(s){return s.result==='BLOCKED';}).forEach(function(s){
+    var r=s.block_reason||'Unknown';reasons[r]=(reasons[r]||0)+1;
+  });
+  var rKeys=Object.keys(reasons).sort(function(a,b){return reasons[b]-reasons[a];});
+  var syms=Array.from(new Set(db.signals.map(function(s){return s.symbol;}).filter(Boolean))).sort();
+  return'<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">'
+    +'<div class="kpi"><div class="kpi-label">Total Signals</div><div class="kpi-val">'+db.signals.length+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Opened</div><div class="kpi-val pos">'+opened+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Blocked</div><div class="kpi-val neg">'+blocked+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Open Rate</div><div class="kpi-val">'+(db.signals.length?(opened/db.signals.length*100).toFixed(1):0)+'%</div></div>'
+    +'</div>'
+    +(rKeys.length?'<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Block Reasons</span></div><div class="tbl-wrap"><table><thead><tr><th>Reason</th><th>Count</th></tr></thead><tbody>'
+      +rKeys.map(function(r){return'<tr><td>'+r+'</td><td style="font-weight:700">'+reasons[r]+'</td></tr>';}).join('')
+      +'</tbody></table></div></div>':'')
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Signal Log</span><span class="count-badge">'+db.signals.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="sigSymF" onchange="filterSignals()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="sigResF" onchange="filterSignals()"><option value="">All Results</option><option>OPENED</option><option>BLOCKED</option></select>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>'
+    +'<tbody id="sigBody">'+renderSignalRows(db.signals)+'</tbody></table></div></div>';
+}
+
+function renderSignalRows(rows){
+  return rows.slice().reverse().map(function(s){
+    return'<tr>'
+      +'<td style="color:#94a3b8">'+(s.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((s.direction||'').toLowerCase())+'">'+(s.direction||'--')+'</span></td>'
+      +'<td style="color:#16a34a">'+(s.strong_cur||'--')+'</td>'
+      +'<td style="color:#dc2626">'+(s.weak_cur||'--')+'</td>'
+      +'<td>'+parseFloat(s.gap||0).toFixed(3)+'</td>'
+      +'<td><span class="'+(s.result==='OPENED'?'badge-opened':'badge-blocked')+'">'+(s.result||'--')+'</span></td>'
+      +'<td style="color:#64748b">'+(s.block_reason||'--')+'</td></tr>';
+  }).join('');
+}
+
+function filterSignals(){
+  var sym=(document.getElementById('sigSymF')||{}).value||'';
+  var res=(document.getElementById('sigResF')||{}).value||'';
+  var rows=db.signals;
+  if(sym) rows=rows.filter(function(s){return s.symbol===sym;});
+  if(res) rows=rows.filter(function(s){return s.result===res;});
+  var body=document.getElementById('sigBody');
+  if(body) body.innerHTML=renderSignalRows(rows);
+}
+
+/* ── DAILY ─────────────────────────────────────────────────────── */
+function renderDaily(){
+  if(!rawDb.daily.length) return'<div class="empty-state"><div class="empty-icon">&#128197;</div><div class="empty-msg">No daily data</div></div>';
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wm={};
+  allCl.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wm[k].toFixed(2);});
+  var mm={};
+  allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mm).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mm[k].toFixed(2);});
+  var sorted=rawDb.daily.slice().reverse();
+  return'<div class="charts-row-2" style="margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyDailyChart" data-wkeys="'+encodeURIComponent(JSON.stringify(wks))+'" data-wvals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyDailyChart" data-mkeys="'+encodeURIComponent(JSON.stringify(mons))+'" data-mvals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Daily Summary</span><span class="count-badge">'+rawDb.daily.length+' days</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>Target</th><th>P&L</th><th>Closed</th><th>Lot</th><th>Hit</th></tr></thead><tbody>'
+    +sorted.map(function(d){
+      var pnl=parseFloat(d.daily_pnl||0);
+      return'<tr>'
+        +'<td style="color:#94a3b8">'+d.date+'</td>'
+        +'<td style="color:#d97706">'+(d.compound_day?'Day '+d.compound_day:'--')+'</td>'
+        +'<td>$'+parseFloat(d.start_balance||0).toFixed(2)+'</td>'
+        +'<td style="color:#16a34a">$'+parseFloat(d.compound_target||0).toFixed(2)+'</td>'
+        +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+        +'<td>'+(d.trades_closed||0)+'</td>'
+        +'<td>'+parseFloat(d.compound_lot||0).toFixed(2)+'</td>'
+        +'<td>'+(d.target_hit?'&#9989;':'--')+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── HEATMAP ────────────────────────────────────────────────────── */
+function renderHeatmap(){
+  var cl=closed();
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128293;</div><div class="empty-msg">No trade data</div></div>';
+  var symData={};
+  cl.forEach(function(t){
+    if(!t.symbol) return;
+    if(!symData[t.symbol]) symData[t.symbol]={pnl:0,count:0,wins:0};
+    symData[t.symbol].pnl+=parseFloat(t.pnl||0);
+    symData[t.symbol].count++;
+    if(parseFloat(t.pnl||0)>0) symData[t.symbol].wins++;
+  });
+  var syms=Object.keys(symData).sort(function(a,b){return symData[b].pnl-symData[a].pnl;});
+  var maxAbs=Math.max.apply(null,syms.map(function(s){return Math.abs(symData[s].pnl);}));
+  var cells=syms.map(function(s){
+    var d=symData[s],intensity=maxAbs>0?Math.abs(d.pnl)/maxAbs:0;
+    var bg=d.pnl>=0?'rgba(16,185,129,'+(0.15+intensity*0.7)+')':'rgba(239,68,68,'+(0.15+intensity*0.7)+')';
+    var wr=d.count?(d.wins/d.count*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'
+      +'<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
+  }).join('');
+  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
+}
+
+/* ── CURRENCIES (FIX 3: coloured intensity tiles) ──────────────── */
+function renderCurrencies(){
+  var cl=closed().filter(function(t){return t.strong_cur&&t.weak_cur;});
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128177;</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
+  var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
+  var sPnl={},wPnl={},sWr={},wWr={};
+  curs.forEach(function(c){sPnl[c]=0;wPnl[c]=0;sWr[c]=[0,0];wWr[c]=[0,0];});
+  cl.forEach(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    if(curs.indexOf(t.strong_cur)>=0){sPnl[t.strong_cur]+=pnl;sWr[t.strong_cur][1]++;if(pnl>0)sWr[t.strong_cur][0]++;}
+    if(curs.indexOf(t.weak_cur)>=0){wPnl[t.weak_cur]+=pnl;wWr[t.weak_cur][1]++;if(pnl>0)wWr[t.weak_cur][0]++;}
+  });
+  /* combined total P&L per currency for tile intensity */
+  var totPnl={};
+  curs.forEach(function(c){totPnl[c]=sPnl[c]+wPnl[c];});
+  var maxAbs=Math.max.apply(null,curs.map(function(c){return Math.abs(totPnl[c]);}));
+  var tiles=curs.map(function(c){
+    var tot=totPnl[c];
+    var intensity=maxAbs>0?Math.abs(tot)/maxAbs:0;
+    var bg=tot>=0?'rgba(16,185,129,'+(0.2+intensity*0.65)+')':'rgba(239,68,68,'+(0.2+intensity*0.65)+')';
+    var tc=tot>=0?'#064e3b':'#7f1d1d';
+    var totalTrades=sWr[c][1]+wWr[c][1];
+    var totalWins=sWr[c][0]+wWr[c][0];
+    var wr=totalTrades>0?(totalWins/totalTrades*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'
+      +'<div style="font-size:14px;font-weight:800">'+c+'</div>'
+      +'<div style="font-size:15px;font-weight:700;margin:4px 0">$'+tot.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:500">'+totalTrades+' trades</div>'
+      +'<div style="font-size:10px;font-weight:400">'+wr+'% WR</div>'
+      +'</div>';
+  }).join('');
+  var spv=curs.map(function(c){return+sPnl[c].toFixed(2);});
+  var wpv=curs.map(function(c){return+wPnl[c].toFixed(2);});
+  return'<div class="heatmap-header"><b>Currency Performance</b> &mdash; '+cl.length+' trades &middot; combined P&L per currency</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(8,1fr);margin-bottom:20px">'+tiles+'</div>'
+    +'<div class="cur-grid">'
+    +'<div class="chart-card"><div class="chart-title">P&L as Strong Currency</div><div class="chart-wrap"><canvas id="curStrongChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(spv))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">P&L as Weak Currency</div><div class="chart-wrap"><canvas id="curWeakChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(wpv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Currency Breakdown</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Currency</th><th>P&L Strong</th><th>WR Strong</th><th>Trades Strong</th><th>P&L Weak</th><th>WR Weak</th><th>Trades Weak</th></tr></thead><tbody>'
+    +curs.map(function(c){
+      return'<tr><td style="font-weight:700">'+c+'</td>'
+        +'<td style="color:'+(sPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(sWr[c][1]>0?(sWr[c][0]/sWr[c][1]*100).toFixed(0):0)+'%</td><td>'+sWr[c][1]+'</td>'
+        +'<td style="color:'+(wPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(wWr[c][1]>0?(wWr[c][0]/wWr[c][1]*100).toFixed(0):0)+'%</td><td>'+wWr[c][1]+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────── */
+function renderPortOverview(){
+  var cl=closed();
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var winRate=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var avgWin=wins.length?(wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/wins.length).toFixed(2):0;
+  var avgLoss=losses.length?(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/losses.length).toFixed(2):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'--')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div>'
+    +'<div class="equity-wrap"><canvas id="portEquityChart"></canvas></div></div>'
+    +'<div class="charts-row-2">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyBarChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+/* ── PERFORMANCE ─────────────────────────────────────────────────── */
+function renderPerformance(){
+  var cl=closed();
+  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wkm={};
+  allClosed.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wkm[w]=(wkm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wkm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wkm[k].toFixed(2);});
+  var mMap={};
+  allClosed.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mMap[m]=(mMap[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mMap).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mMap[k].toFixed(2);});
+  var hVals=new Array(24).fill(0);
+  allClosed.forEach(function(t){if(t.ts){var h=parseInt(t.ts.slice(11,13));hVals[h]+=parseFloat(t.pnl||0);}});
+  hVals=hVals.map(function(v){return+v.toFixed(2);});
+  var dMap={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  allClosed.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
+  var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
+  var dayMap={};
+  allClosed.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5keys=Object.keys(dayMap).sort().slice(-5);
+  var d5labels=d5keys.map(function(d){return d.slice(5);});
+  var d5vals=d5keys.map(function(d){return+dayMap[d].toFixed(2);});
+  var perfTable=buildMonthlyGrid(allClosed);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-labels="'+encodeURIComponent(JSON.stringify(d5labels))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L (Hour)</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
+    +perfTable+'</div>';
+}
+
+/* ── COMPARE (FIX 4: mini equity curves) ─────────────────────────── */
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  var cards=allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?((wins/cl.length)*100).toFixed(1):0;
+    var bal=[],run=0;
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal.push(+run.toFixed(2));});
+    return'<div class="compare-card">'
+      +'<div class="compare-title">'+(a.label||a.name||a.account_number)+'</div>'
+      +'<div class="compare-sub">'+(a.account_type||'--')+' &middot; '+(a.broker||'--')+'</div>'
+      +'<div class="compare-kpis">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'--')+'</div></div>'
+      +'</div>'
+      +'<div class="eq-mini"><canvas id="eq_'+a.id+'" data-labels="'+encodeURIComponent(JSON.stringify(bal.map(function(_,i){return String(i);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div>'
+      +'</div>';
+  }).join('');
+  return'<div class="compare-grid">'+cards+'</div>';
+}
+
+/* ── INSPECTOR ──────────────────────────────────────────────────── */
+function openInspector(id){
+  var t=rawDb.trades.find(function(x){return x.id===id;});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return x.ticket===t.ticket&&x.event==='OPEN';});
+  var pnl=parseFloat(t.pnl||0);
+  var dur=oe?Math.round((new Date(t.ts)-new Date(oe.ts))/60000):null;
+  var rows=[
+    ['Symbol',t.symbol||'--'],['Direction',t.direction||'--'],['Event',t.event||'--'],
+    ['Entry',parseFloat(t.entry||0).toFixed(5)],['Lot',parseFloat(t.lot||0).toFixed(2)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--'],
+    ['Compound Day',t.compound_day||'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+/* ── CHARTS ─────────────────────────────────────────────────────── */
+function renderCharts(){
+  var cd={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}
+  };
+  var cl=closed();
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+
+  /* FIX 1: all bar backgroundColor uses solid #22c55e / #ef4444 — no rgba opacity */
+
+  /* Strategy overview — equity curve */
+  var eq=document.getElementById('equityChart');
+  if(eq){
+    var el=JSON.parse(decodeURIComponent(eq.dataset.labels||'[]'));
+    var ev=JSON.parse(decodeURIComponent(eq.dataset.values||'[]'));
+    charts.eq=new Chart(eq,{type:'line',data:{labels:el,datasets:[{data:ev,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Portfolio overview — equity curve */
+  var peq=document.getElementById('portEquityChart');
+  if(peq){
+    var run=0,bal2=[];
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal2.push(+run.toFixed(2));});
+    charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Strategy overview — monthly (allCl — full history) */
+  var mc=document.getElementById('monthlyChart');
+  if(mc){
+    var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+    var mk=Object.keys(mm).sort().slice(-12),mv=mk.map(function(k){return+mm[k].toFixed(2);});
+    charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — weekly (allCl) */
+  var wc=document.getElementById('weeklyChart');
+  if(wc){
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);var w=mon.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wk=Object.keys(wm).sort().slice(-4),wv=wk.map(function(k){return+wm[k].toFixed(2);});
+    charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — duration */
+  var dc=document.getElementById('durationChart');
+  if(dc){
+    var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+    cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dm['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+    var ddk=Object.keys(dm),ddv=Object.values(dm).map(function(v){return+v.toFixed(2);});
+    charts.dc=new Chart(dc,{type:'bar',data:{labels:ddk,datasets:[{data:ddv,backgroundColor:ddv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — weekly */
+  var wdc=document.getElementById('weeklyDailyChart');
+  if(wdc){
+    var wk2=JSON.parse(decodeURIComponent(wdc.dataset.wkeys||'[]'));
+    var wv2=JSON.parse(decodeURIComponent(wdc.dataset.wvals||'[]'));
+    charts.wdc=new Chart(wdc,{type:'bar',data:{labels:wk2.map(function(w){return w.slice(5);}),datasets:[{data:wv2,backgroundColor:wv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — monthly */
+  var mdc=document.getElementById('monthlyDailyChart');
+  if(mdc){
+    var mk2=JSON.parse(decodeURIComponent(mdc.dataset.mkeys||'[]'));
+    var mv2=JSON.parse(decodeURIComponent(mdc.dataset.mvals||'[]'));
+    charts.mdc=new Chart(mdc,{type:'bar',data:{labels:mk2.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv2,backgroundColor:mv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Currency — strong */
+  var csc=document.getElementById('curStrongChart');
+  if(csc){
+    var cc=JSON.parse(decodeURIComponent(csc.dataset.curs||'[]')),sv=JSON.parse(decodeURIComponent(csc.dataset.vals||'[]'));
+    charts.csc=new Chart(csc,{type:'bar',data:{labels:cc,datasets:[{data:sv,backgroundColor:sv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Currency — weak */
+  var cwc=document.getElementById('curWeakChart');
+  if(cwc){
+    var cc2=JSON.parse(decodeURIComponent(cwc.dataset.curs||'[]')),wv3=JSON.parse(decodeURIComponent(cwc.dataset.vals||'[]'));
+    charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Performance — daily 5 */
+  var pd5=document.getElementById('perfDaily5');
+  if(pd5){
+    var pd5l=JSON.parse(decodeURIComponent(pd5.dataset.labels||'[]'));
+    var pd5v=JSON.parse(decodeURIComponent(pd5.dataset.vals||'[]'));
+    charts.pd5=new Chart(pd5,{type:'bar',data:{labels:pd5l,datasets:[{data:pd5v,backgroundColor:pd5v.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — weekly */
+  var pw=document.getElementById('perfWeekly');
+  if(pw){
+    var pwl=JSON.parse(decodeURIComponent(pw.dataset.labels||'[]')),pwv=JSON.parse(decodeURIComponent(pw.dataset.vals||'[]'));
+    charts.pw=new Chart(pw,{type:'bar',data:{labels:pwl.map(function(w){return w.slice(5);}),datasets:[{data:pwv,backgroundColor:pwv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — monthly */
+  var pm=document.getElementById('perfMonthly');
+  if(pm){
+    var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
+    charts.pm=new Chart(pm,{type:'bar',data:{labels:pml.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:pmv,backgroundColor:pmv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — time of day */
+  var ptod=document.getElementById('perfTod');
+  if(ptod){
+    var ptv=JSON.parse(decodeURIComponent(ptod.dataset.vals||'[]'));
+    charts.ptod=new Chart(ptod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:ptv,backgroundColor:ptv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — duration */
+  var pdur=document.getElementById('perfDuration');
+  if(pdur){
+    var pdk=JSON.parse(decodeURIComponent(pdur.dataset.keys||'[]')),pdv=JSON.parse(decodeURIComponent(pdur.dataset.vals||'[]'));
+    charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Portfolio — monthly bar (allCl) */
+  var mb=document.getElementById('monthlyBarChart');
+  if(mb){
+    var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
+    var mbk=Object.keys(mbm).sort().slice(-12),mbv=mbk.map(function(k){return+mbm[k].toFixed(2);});
+    charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* FIX 4: Compare mini equity curves — colour = green if net positive, red if not */
+  document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
+    try{
+      var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
+      var vv=JSON.parse(decodeURIComponent(canvas.dataset.values||'[]'));
+      if(!vv.length) return;
+      var netPos=vv[vv.length-1]>=0;
+      charts[canvas.id]=new Chart(canvas,{type:'line',data:{labels:ll,datasets:[{data:vv,
+        borderColor:netPos?'#22c55e':'#ef4444',
+        backgroundColor:netPos?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)',
+        fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }catch(e){}
+  });
+}
+
+setInterval(function(){if(document.visibilityState==='visible') loadData();},60000);
+init();
+</script>
+</body>
+</html>
++avgLoss+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Recent Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+/* ── POSITIONS ─────────────────────────────────────────────────── */
+function renderPositions(){
+  var pos=db.positions;
+  var floatPnl=pos.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  var html='<div class="float-bar">'
+    +'<div><div class="float-label">Float P&L</div><div class="float-val '+(floatPnl>=0?'pos':'neg')+'">$'+fmtPnl(floatPnl)+'</div></div>'
+    +'<div class="pos-count">'+pos.length+' Open Positions</div>'
+    +'<button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button>'
+    +'<div><div class="refresh-label" id="posRefreshLabel">Auto-refresh 60s</div></div>'
+    +'</div>';
+  if(!pos.length) return html+'<div class="empty-state"><div class="empty-icon">&#128205;</div><div class="empty-msg">No open positions</div></div>';
+  html+='<div class="table-card"><div class="table-header"><span class="table-title">Open Positions</span><span class="count-badge">'+pos.length+'</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Opened</th><th>Symbol</th><th>Dir</th><th>Lot</th><th>Entry</th><th>SL</th><th>TP</th><th>Time Open</th></tr></thead><tbody>';
+  pos.forEach(function(p){
+    var mins=Math.round((Date.now()-new Date(p.ts).getTime())/60000);
+    var to=mins<60?(mins+'m'):mins<1440?(Math.floor(mins/60)+'h '+(mins%60)+'m'):Math.floor(mins/1440)+'d';
+    html+='<tr><td style="color:#94a3b8">'+(p.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+p.symbol+'</td>'
+      +'<td><span class="badge-'+((p.direction||'').toLowerCase())+'">'+p.direction+'</span></td>'
+      +'<td>'+parseFloat(p.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(p.entry||0).toFixed(5)+'</td>'
+      +'<td>'+(p.sl?parseFloat(p.sl).toFixed(5):'--')+'</td>'
+      +'<td>'+(p.tp?parseFloat(p.tp).toFixed(5):'--')+'</td>'
+      +'<td style="color:#64748b">'+to+'</td></tr>';
+  });
+  html+='</tbody></table></div></div>';
+  return html;
+}
+
+/* ── TRADES ────────────────────────────────────────────────────── */
+function renderTrades(){
+  var cl=closed();
+  var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
+  return'<div class="table-card"><div class="table-header">'
+    +'<span class="table-title">Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="dirF" onchange="filterTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>'
+    +'<button class="csv-btn" onclick="exportCSV()">&#8595; CSV</button>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>Symbol</th><th>Dir</th>'
+    +(mode==='strategy'?'<th>Strong</th><th>Weak</th><th>Gap</th>':'')
+    +'<th>Lot</th><th>Entry</th><th>P&L</th><th>Balance</th></tr></thead>'
+    +'<tbody id="trdBody">'+renderTradeRows(cl)+'</tbody></table></div></div>';
+}
+
+function renderTradeRows(rows){
+  var openMap={};
+  rawDb.trades.filter(function(t){return t.event==='OPEN';}).forEach(function(t){openMap[t.ticket]=t;});
+  return rows.slice().reverse().map(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    var oe=openMap[t.ticket];
+    return'<tr onclick="openInspector(\''+t.id+'\')">'
+      +'<td style="color:#94a3b8">'+(oe?(oe.ts||'').slice(0,16):'--')+'</td>'
+      +'<td style="color:#94a3b8">'+(t.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(t.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((t.direction||'').toLowerCase())+'">'+(t.direction||'--')+'</span></td>'
+      +(mode==='strategy'?('<td style="color:#16a34a">'+(t.strong_cur||'--')+'</td><td style="color:#dc2626">'+(t.weak_cur||'--')+'</td><td>'+parseFloat(t.gap||0).toFixed(3)+'</td>'):'')
+      +'<td>'+parseFloat(t.lot||0).toFixed(2)+'</td>'
+      +'<td>'+parseFloat(t.entry||0).toFixed(5)+'</td>'
+      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+      +'<td>$'+parseFloat(t.balance||0).toFixed(2)+'</td></tr>';
+  }).join('');
+}
+
+function filterTrades(){
+  var sym=(document.getElementById('symF')||{}).value||'';
+  var dir=(document.getElementById('dirF')||{}).value||'';
+  var rows=closed();
+  if(sym) rows=rows.filter(function(t){return t.symbol===sym;});
+  if(dir) rows=rows.filter(function(t){return t.direction===dir;});
+  var body=document.getElementById('trdBody');
+  if(body) body.innerHTML=renderTradeRows(rows);
+  var cnt=document.getElementById('trdCount');
+  if(cnt) cnt.textContent=rows.length;
+}
+
+function exportCSV(){
+  var cl=closed();
+  var hdr=['ts','symbol','direction','lot','entry','pnl','balance','strong_cur','weak_cur','gap'];
+  var csv=[hdr.join(',')].concat(cl.map(function(t){return hdr.map(function(k){return t[k]||'';}).join(',');})).join('\n');
+  var a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='csea_trades_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+/* ── SIGNALS ───────────────────────────────────────────────────── */
+function renderSignals(){
+  var opened=db.signals.filter(function(s){return s.result==='OPENED';}).length;
+  var blocked=db.signals.filter(function(s){return s.result==='BLOCKED';}).length;
+  var reasons={};
+  db.signals.filter(function(s){return s.result==='BLOCKED';}).forEach(function(s){
+    var r=s.block_reason||'Unknown';reasons[r]=(reasons[r]||0)+1;
+  });
+  var rKeys=Object.keys(reasons).sort(function(a,b){return reasons[b]-reasons[a];});
+  var syms=Array.from(new Set(db.signals.map(function(s){return s.symbol;}).filter(Boolean))).sort();
+  return'<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">'
+    +'<div class="kpi"><div class="kpi-label">Total Signals</div><div class="kpi-val">'+db.signals.length+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Opened</div><div class="kpi-val pos">'+opened+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Blocked</div><div class="kpi-val neg">'+blocked+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Open Rate</div><div class="kpi-val">'+(db.signals.length?(opened/db.signals.length*100).toFixed(1):0)+'%</div></div>'
+    +'</div>'
+    +(rKeys.length?'<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Block Reasons</span></div><div class="tbl-wrap"><table><thead><tr><th>Reason</th><th>Count</th></tr></thead><tbody>'
+      +rKeys.map(function(r){return'<tr><td>'+r+'</td><td style="font-weight:700">'+reasons[r]+'</td></tr>';}).join('')
+      +'</tbody></table></div></div>':'')
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Signal Log</span><span class="count-badge">'+db.signals.length+'</span>'
+    +'<div class="filters">'
+    +'<select id="sigSymF" onchange="filterSignals()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>'
+    +'<select id="sigResF" onchange="filterSignals()"><option value="">All Results</option><option>OPENED</option><option>BLOCKED</option></select>'
+    +'</div></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Strong</th><th>Weak</th><th>Gap</th><th>Result</th><th>Reason</th></tr></thead>'
+    +'<tbody id="sigBody">'+renderSignalRows(db.signals)+'</tbody></table></div></div>';
+}
+
+function renderSignalRows(rows){
+  return rows.slice().reverse().map(function(s){
+    return'<tr>'
+      +'<td style="color:#94a3b8">'+(s.ts||'').slice(0,16)+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>'
+      +'<td><span class="badge-'+((s.direction||'').toLowerCase())+'">'+(s.direction||'--')+'</span></td>'
+      +'<td style="color:#16a34a">'+(s.strong_cur||'--')+'</td>'
+      +'<td style="color:#dc2626">'+(s.weak_cur||'--')+'</td>'
+      +'<td>'+parseFloat(s.gap||0).toFixed(3)+'</td>'
+      +'<td><span class="'+(s.result==='OPENED'?'badge-opened':'badge-blocked')+'">'+(s.result||'--')+'</span></td>'
+      +'<td style="color:#64748b">'+(s.block_reason||'--')+'</td></tr>';
+  }).join('');
+}
+
+function filterSignals(){
+  var sym=(document.getElementById('sigSymF')||{}).value||'';
+  var res=(document.getElementById('sigResF')||{}).value||'';
+  var rows=db.signals;
+  if(sym) rows=rows.filter(function(s){return s.symbol===sym;});
+  if(res) rows=rows.filter(function(s){return s.result===res;});
+  var body=document.getElementById('sigBody');
+  if(body) body.innerHTML=renderSignalRows(rows);
+}
+
+/* ── DAILY ─────────────────────────────────────────────────────── */
+function renderDaily(){
+  if(!rawDb.daily.length) return'<div class="empty-state"><div class="empty-icon">&#128197;</div><div class="empty-msg">No daily data</div></div>';
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wm={};
+  allCl.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wm[k].toFixed(2);});
+  var mm={};
+  allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mm).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mm[k].toFixed(2);});
+  var sorted=rawDb.daily.slice().reverse();
+  return'<div class="charts-row-2" style="margin-bottom:20px">'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyDailyChart" data-wkeys="'+encodeURIComponent(JSON.stringify(wks))+'" data-wvals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyDailyChart" data-mkeys="'+encodeURIComponent(JSON.stringify(mons))+'" data-mvals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Daily Summary</span><span class="count-badge">'+rawDb.daily.length+' days</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>Target</th><th>P&L</th><th>Closed</th><th>Lot</th><th>Hit</th></tr></thead><tbody>'
+    +sorted.map(function(d){
+      var pnl=parseFloat(d.daily_pnl||0);
+      return'<tr>'
+        +'<td style="color:#94a3b8">'+d.date+'</td>'
+        +'<td style="color:#d97706">'+(d.compound_day?'Day '+d.compound_day:'--')+'</td>'
+        +'<td>$'+parseFloat(d.start_balance||0).toFixed(2)+'</td>'
+        +'<td style="color:#16a34a">$'+parseFloat(d.compound_target||0).toFixed(2)+'</td>'
+        +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+        +'<td>'+(d.trades_closed||0)+'</td>'
+        +'<td>'+parseFloat(d.compound_lot||0).toFixed(2)+'</td>'
+        +'<td>'+(d.target_hit?'&#9989;':'--')+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── HEATMAP ────────────────────────────────────────────────────── */
+function renderHeatmap(){
+  var cl=closed();
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128293;</div><div class="empty-msg">No trade data</div></div>';
+  var symData={};
+  cl.forEach(function(t){
+    if(!t.symbol) return;
+    if(!symData[t.symbol]) symData[t.symbol]={pnl:0,count:0,wins:0};
+    symData[t.symbol].pnl+=parseFloat(t.pnl||0);
+    symData[t.symbol].count++;
+    if(parseFloat(t.pnl||0)>0) symData[t.symbol].wins++;
+  });
+  var syms=Object.keys(symData).sort(function(a,b){return symData[b].pnl-symData[a].pnl;});
+  var maxAbs=Math.max.apply(null,syms.map(function(s){return Math.abs(symData[s].pnl);}));
+  var cells=syms.map(function(s){
+    var d=symData[s],intensity=maxAbs>0?Math.abs(d.pnl)/maxAbs:0;
+    var bg=d.pnl>=0?'rgba(16,185,129,'+(0.15+intensity*0.7)+')':'rgba(239,68,68,'+(0.15+intensity*0.7)+')';
+    var wr=d.count?(d.wins/d.count*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'
+      +'<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
+  }).join('');
+  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
+}
+
+/* ── CURRENCIES (FIX 3: coloured intensity tiles) ──────────────── */
+function renderCurrencies(){
+  var cl=closed().filter(function(t){return t.strong_cur&&t.weak_cur;});
+  if(!cl.length) return'<div class="empty-state"><div class="empty-icon">&#128177;</div><div class="empty-msg">No currency data</div><div class="empty-sub">Only available for main CSEA EA accounts</div></div>';
+  var curs=['EUR','GBP','AUD','NZD','USD','CAD','CHF','JPY'];
+  var sPnl={},wPnl={},sWr={},wWr={};
+  curs.forEach(function(c){sPnl[c]=0;wPnl[c]=0;sWr[c]=[0,0];wWr[c]=[0,0];});
+  cl.forEach(function(t){
+    var pnl=parseFloat(t.pnl||0);
+    if(curs.indexOf(t.strong_cur)>=0){sPnl[t.strong_cur]+=pnl;sWr[t.strong_cur][1]++;if(pnl>0)sWr[t.strong_cur][0]++;}
+    if(curs.indexOf(t.weak_cur)>=0){wPnl[t.weak_cur]+=pnl;wWr[t.weak_cur][1]++;if(pnl>0)wWr[t.weak_cur][0]++;}
+  });
+  /* combined total P&L per currency for tile intensity */
+  var totPnl={};
+  curs.forEach(function(c){totPnl[c]=sPnl[c]+wPnl[c];});
+  var maxAbs=Math.max.apply(null,curs.map(function(c){return Math.abs(totPnl[c]);}));
+  var tiles=curs.map(function(c){
+    var tot=totPnl[c];
+    var intensity=maxAbs>0?Math.abs(tot)/maxAbs:0;
+    var bg=tot>=0?'rgba(16,185,129,'+(0.2+intensity*0.65)+')':'rgba(239,68,68,'+(0.2+intensity*0.65)+')';
+    var tc=tot>=0?'#064e3b':'#7f1d1d';
+    var totalTrades=sWr[c][1]+wWr[c][1];
+    var totalWins=sWr[c][0]+wWr[c][0];
+    var wr=totalTrades>0?(totalWins/totalTrades*100).toFixed(0):0;
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'
+      +'<div style="font-size:14px;font-weight:800">'+c+'</div>'
+      +'<div style="font-size:15px;font-weight:700;margin:4px 0">$'+tot.toFixed(0)+'</div>'
+      +'<div style="font-size:10px;font-weight:500">'+totalTrades+' trades</div>'
+      +'<div style="font-size:10px;font-weight:400">'+wr+'% WR</div>'
+      +'</div>';
+  }).join('');
+  var spv=curs.map(function(c){return+sPnl[c].toFixed(2);});
+  var wpv=curs.map(function(c){return+wPnl[c].toFixed(2);});
+  return'<div class="heatmap-header"><b>Currency Performance</b> &mdash; '+cl.length+' trades &middot; combined P&L per currency</div>'
+    +'<div class="heatmap-grid" style="grid-template-columns:repeat(8,1fr);margin-bottom:20px">'+tiles+'</div>'
+    +'<div class="cur-grid">'
+    +'<div class="chart-card"><div class="chart-title">P&L as Strong Currency</div><div class="chart-wrap"><canvas id="curStrongChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(spv))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">P&L as Weak Currency</div><div class="chart-wrap"><canvas id="curWeakChart" data-curs="'+encodeURIComponent(JSON.stringify(curs))+'" data-vals="'+encodeURIComponent(JSON.stringify(wpv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Currency Breakdown</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Currency</th><th>P&L Strong</th><th>WR Strong</th><th>Trades Strong</th><th>P&L Weak</th><th>WR Weak</th><th>Trades Weak</th></tr></thead><tbody>'
+    +curs.map(function(c){
+      return'<tr><td style="font-weight:700">'+c+'</td>'
+        +'<td style="color:'+(sPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(sWr[c][1]>0?(sWr[c][0]/sWr[c][1]*100).toFixed(0):0)+'%</td><td>'+sWr[c][1]+'</td>'
+        +'<td style="color:'+(wPnl[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wPnl[c].toFixed(2)+'</td>'
+        +'<td>'+(wWr[c][1]>0?(wWr[c][0]/wWr[c][1]*100).toFixed(0):0)+'%</td><td>'+wWr[c][1]+'</td></tr>';
+    }).join('')+'</tbody></table></div></div>';
+}
+
+/* ── PORTFOLIO OVERVIEW ─────────────────────────────────────────── */
+function renderPortOverview(){
+  var cl=closed();
+  var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;});
+  var losses=cl.filter(function(t){return parseFloat(t.pnl||0)<0;});
+  var totalPnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var winRate=cl.length?((wins.length/cl.length)*100).toFixed(1):0;
+  var avgWin=wins.length?(wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/wins.length).toFixed(2):0;
+  var avgLoss=losses.length?(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0)/losses.length).toFixed(2):0;
+  var gw=wins.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
+  var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
+  var openPnl=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
+  return'<div class="kpi-grid">'
+    +'<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(cl.length?winRate:'--')+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div><div class="kpi-sub">Gross W/L ratio</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
+    +'</div>'
+    +'<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div>'
+    +'<div class="equity-wrap"><canvas id="portEquityChart"></canvas></div></div>'
+    +'<div class="charts-row-2">'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyBarChart"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>'
+    +'</div>';
+}
+
+/* ── PERFORMANCE ─────────────────────────────────────────────────── */
+function renderPerformance(){
+  var cl=closed();
+  var allClosed=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+  var wkm={};
+  allClosed.forEach(function(t){
+    if(!t.ts) return;
+    var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);
+    var w=mon.toISOString().slice(0,10);
+    wkm[w]=(wkm[w]||0)+parseFloat(t.pnl||0);
+  });
+  var wks=Object.keys(wkm).sort().slice(-4);
+  var wvs=wks.map(function(k){return+wkm[k].toFixed(2);});
+  var mMap={};
+  allClosed.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mMap[m]=(mMap[m]||0)+parseFloat(t.pnl||0);}});
+  var mons=Object.keys(mMap).sort().slice(-12);
+  var mvs=mons.map(function(k){return+mMap[k].toFixed(2);});
+  var hVals=new Array(24).fill(0);
+  allClosed.forEach(function(t){if(t.ts){var h=parseInt(t.ts.slice(11,13));hVals[h]+=parseFloat(t.pnl||0);}});
+  hVals=hVals.map(function(v){return+v.toFixed(2);});
+  var dMap={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+  allClosed.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dMap['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dMap['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dMap['4-24h']+=parseFloat(t.pnl||0);else dMap['>24h']+=parseFloat(t.pnl||0);});
+  var dk=Object.keys(dMap),dv=Object.values(dMap).map(function(v){return+v.toFixed(2);});
+  var dayMap={};
+  allClosed.forEach(function(t){if(!t.ts)return;var day=t.ts.slice(0,10);dayMap[day]=(dayMap[day]||0)+parseFloat(t.pnl||0);});
+  var d5keys=Object.keys(dayMap).sort().slice(-5);
+  var d5labels=d5keys.map(function(d){return d.slice(5);});
+  var d5vals=d5keys.map(function(d){return+dayMap[d].toFixed(2);});
+  var perfTable=buildMonthlyGrid(allClosed);
+  return'<div class="perf-grid">'
+    +'<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="perfDaily5" data-labels="'+encodeURIComponent(JSON.stringify(d5labels))+'" data-vals="'+encodeURIComponent(JSON.stringify(d5vals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="perfWeekly" data-labels="'+encodeURIComponent(JSON.stringify(wks))+'" data-vals="'+encodeURIComponent(JSON.stringify(wvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="perfMonthly" data-labels="'+encodeURIComponent(JSON.stringify(mons))+'" data-vals="'+encodeURIComponent(JSON.stringify(mvs))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Time of Day P&L (Hour)</div><div class="chart-wrap"><canvas id="perfTod" data-vals="'+encodeURIComponent(JSON.stringify(hVals))+'"></canvas></div></div>'
+    +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="perfDuration" data-keys="'+encodeURIComponent(JSON.stringify(dk))+'" data-vals="'+encodeURIComponent(JSON.stringify(dv))+'"></canvas></div></div>'
+    +'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'
+    +perfTable+'</div>';
+}
+
+/* ── COMPARE (FIX 4: mini equity curves) ─────────────────────────── */
+function renderCompare(){
+  if(allAccounts.length<2) return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
+  var cards=allAccounts.map(function(a){
+    var cl=(allAccountsData[a.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
+    var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+    var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
+    var wr=cl.length?((wins/cl.length)*100).toFixed(1):0;
+    var bal=[],run=0;
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal.push(+run.toFixed(2));});
+    return'<div class="compare-card">'
+      +'<div class="compare-title">'+(a.label||a.name||a.account_number)+'</div>'
+      +'<div class="compare-sub">'+(a.account_type||'--')+' &middot; '+(a.broker||'--')+'</div>'
+      +'<div class="compare-kpis">'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>'
+      +'<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'--')+'</div></div>'
+      +'</div>'
+      +'<div class="eq-mini"><canvas id="eq_'+a.id+'" data-labels="'+encodeURIComponent(JSON.stringify(bal.map(function(_,i){return String(i);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div>'
+      +'</div>';
+  }).join('');
+  return'<div class="compare-grid">'+cards+'</div>';
+}
+
+/* ── INSPECTOR ──────────────────────────────────────────────────── */
+function openInspector(id){
+  var t=rawDb.trades.find(function(x){return x.id===id;});
+  if(!t) return;
+  var oe=rawDb.trades.find(function(x){return x.ticket===t.ticket&&x.event==='OPEN';});
+  var pnl=parseFloat(t.pnl||0);
+  var dur=oe?Math.round((new Date(t.ts)-new Date(oe.ts))/60000):null;
+  var rows=[
+    ['Symbol',t.symbol||'--'],['Direction',t.direction||'--'],['Event',t.event||'--'],
+    ['Entry',parseFloat(t.entry||0).toFixed(5)],['Lot',parseFloat(t.lot||0).toFixed(2)],
+    ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
+    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
+    ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
+    ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--'],
+    ['Compound Day',t.compound_day||'--']
+  ];
+  document.getElementById('inspBody').innerHTML='<h3 style="margin-bottom:16px;font-size:16px">Trade Details</h3>'
+    +rows.map(function(r){return'<div class="insp-row"><span class="insp-label">'+r[0]+'</span><span class="insp-val">'+r[1]+'</span></div>';}).join('');
+  document.getElementById('inspector').classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closeInspector(){
+  document.getElementById('inspector').classList.remove('open');
+  document.getElementById('overlay').classList.remove('open');
+}
+
+/* ── CHARTS ─────────────────────────────────────────────────────── */
+function renderCharts(){
+  var cd={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}
+  };
+  var cl=closed();
+  var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+
+  /* FIX 1: all bar backgroundColor uses solid #22c55e / #ef4444 — no rgba opacity */
+
+  /* Strategy overview — equity curve */
+  var eq=document.getElementById('equityChart');
+  if(eq){
+    var el=JSON.parse(decodeURIComponent(eq.dataset.labels||'[]'));
+    var ev=JSON.parse(decodeURIComponent(eq.dataset.values||'[]'));
+    charts.eq=new Chart(eq,{type:'line',data:{labels:el,datasets:[{data:ev,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Portfolio overview — equity curve */
+  var peq=document.getElementById('portEquityChart');
+  if(peq){
+    var run=0,bal2=[];
+    cl.slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);bal2.push(+run.toFixed(2));});
+    charts.peq=new Chart(peq,{type:'line',data:{labels:bal2.map(function(_,i){return String(i);}),datasets:[{data:bal2,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
+  }
+
+  /* Strategy overview — monthly (allCl — full history) */
+  var mc=document.getElementById('monthlyChart');
+  if(mc){
+    var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
+    var mk=Object.keys(mm).sort().slice(-12),mv=mk.map(function(k){return+mm[k].toFixed(2);});
+    charts.mc=new Chart(mc,{type:'bar',data:{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv,backgroundColor:mv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — weekly (allCl) */
+  var wc=document.getElementById('weeklyChart');
+  if(wc){
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts);var mon=new Date(d);mon.setDate(d.getDate()-d.getDay()+1);var w=mon.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wk=Object.keys(wm).sort().slice(-4),wv=wk.map(function(k){return+wm[k].toFixed(2);});
+    charts.wc=new Chart(wc,{type:'bar',data:{labels:wk.map(function(w){return w.slice(5);}),datasets:[{data:wv,backgroundColor:wv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Strategy overview — duration */
+  var dc=document.getElementById('durationChart');
+  if(dc){
+    var dm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+    cl.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)dm['<1h']+=parseFloat(t.pnl||0);else if(dur<240)dm['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)dm['4-24h']+=parseFloat(t.pnl||0);else dm['>24h']+=parseFloat(t.pnl||0);});
+    var ddk=Object.keys(dm),ddv=Object.values(dm).map(function(v){return+v.toFixed(2);});
+    charts.dc=new Chart(dc,{type:'bar',data:{labels:ddk,datasets:[{data:ddv,backgroundColor:ddv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — weekly */
+  var wdc=document.getElementById('weeklyDailyChart');
+  if(wdc){
+    var wk2=JSON.parse(decodeURIComponent(wdc.dataset.wkeys||'[]'));
+    var wv2=JSON.parse(decodeURIComponent(wdc.dataset.wvals||'[]'));
+    charts.wdc=new Chart(wdc,{type:'bar',data:{labels:wk2.map(function(w){return w.slice(5);}),datasets:[{data:wv2,backgroundColor:wv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Daily tab — monthly */
+  var mdc=document.getElementById('monthlyDailyChart');
+  if(mdc){
+    var mk2=JSON.parse(decodeURIComponent(mdc.dataset.mkeys||'[]'));
+    var mv2=JSON.parse(decodeURIComponent(mdc.dataset.mvals||'[]'));
+    charts.mdc=new Chart(mdc,{type:'bar',data:{labels:mk2.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mv2,backgroundColor:mv2.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Currency — strong */
+  var csc=document.getElementById('curStrongChart');
+  if(csc){
+    var cc=JSON.parse(decodeURIComponent(csc.dataset.curs||'[]')),sv=JSON.parse(decodeURIComponent(csc.dataset.vals||'[]'));
+    charts.csc=new Chart(csc,{type:'bar',data:{labels:cc,datasets:[{data:sv,backgroundColor:sv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Currency — weak */
+  var cwc=document.getElementById('curWeakChart');
+  if(cwc){
+    var cc2=JSON.parse(decodeURIComponent(cwc.dataset.curs||'[]')),wv3=JSON.parse(decodeURIComponent(cwc.dataset.vals||'[]'));
+    charts.cwc=new Chart(cwc,{type:'bar',data:{labels:cc2,datasets:[{data:wv3,backgroundColor:wv3.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Performance — daily 5 */
+  var pd5=document.getElementById('perfDaily5');
+  if(pd5){
+    var pd5l=JSON.parse(decodeURIComponent(pd5.dataset.labels||'[]'));
+    var pd5v=JSON.parse(decodeURIComponent(pd5.dataset.vals||'[]'));
+    charts.pd5=new Chart(pd5,{type:'bar',data:{labels:pd5l,datasets:[{data:pd5v,backgroundColor:pd5v.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — weekly */
+  var pw=document.getElementById('perfWeekly');
+  if(pw){
+    var pwl=JSON.parse(decodeURIComponent(pw.dataset.labels||'[]')),pwv=JSON.parse(decodeURIComponent(pw.dataset.vals||'[]'));
+    charts.pw=new Chart(pw,{type:'bar',data:{labels:pwl.map(function(w){return w.slice(5);}),datasets:[{data:pwv,backgroundColor:pwv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — monthly */
+  var pm=document.getElementById('perfMonthly');
+  if(pm){
+    var pml=JSON.parse(decodeURIComponent(pm.dataset.labels||'[]')),pmv=JSON.parse(decodeURIComponent(pm.dataset.vals||'[]'));
+    charts.pm=new Chart(pm,{type:'bar',data:{labels:pml.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:pmv,backgroundColor:pmv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — time of day */
+  var ptod=document.getElementById('perfTod');
+  if(ptod){
+    var ptv=JSON.parse(decodeURIComponent(ptod.dataset.vals||'[]'));
+    charts.ptod=new Chart(ptod,{type:'bar',data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:ptv,backgroundColor:ptv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+  /* Performance — duration */
+  var pdur=document.getElementById('perfDuration');
+  if(pdur){
+    var pdk=JSON.parse(decodeURIComponent(pdur.dataset.keys||'[]')),pdv=JSON.parse(decodeURIComponent(pdur.dataset.vals||'[]'));
+    charts.pdur=new Chart(pdur,{type:'bar',data:{labels:pdk,datasets:[{data:pdv,backgroundColor:pdv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* Portfolio — monthly bar (allCl) */
+  var mb=document.getElementById('monthlyBarChart');
+  if(mb){
+    var mbm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mbm[m]=(mbm[m]||0)+parseFloat(t.pnl||0);}});
+    var mbk=Object.keys(mbm).sort().slice(-12),mbv=mbk.map(function(k){return+mbm[k].toFixed(2);});
+    charts.mb=new Chart(mb,{type:'bar',data:{labels:mbk.map(function(m){return MON[parseInt(m.slice(5))-1];}),datasets:[{data:mbv,backgroundColor:mbv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+  }
+
+  /* FIX 4: Compare mini equity curves — colour = green if net positive, red if not */
+  document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
+    try{
+      var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
+      var vv=JSON.parse(decodeURIComponent(canvas.dataset.values||'[]'));
+      if(!vv.length) return;
+      var netPos=vv[vv.length-1]>=0;
+      charts[canvas.id]=new Chart(canvas,{type:'line',data:{labels:ll,datasets:[{data:vv,
+        borderColor:netPos?'#22c55e':'#ef4444',
+        backgroundColor:netPos?'rgba(34,197,94,.1)':'rgba(239,68,68,.1)',
+        fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }catch(e){}
+  });
+}
+
+setInterval(function(){if(document.visibilityState==='visible') loadData();},60000);
+init();
+</script>
+</body>
+</html>
++maxDD.toFixed(2)+'</div></div>'
     +'<div class="kpi"><div class="kpi-label">Avg Duration</div><div class="kpi-val">'+avgDur+'h</div></div>'
     +'</div>'
     +'<div class="equity-card"><div class="chart-title">Equity Curve</div>'
     +'<div class="equity-wrap"><canvas id="equityChart" data-labels="'+encodeURIComponent(JSON.stringify(sorted.map(function(t){return(t.ts||'').slice(0,10);})))+'" data-values="'+encodeURIComponent(JSON.stringify(bal))+'"></canvas></div></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">'
+    +'<div style="display:grid;grid-template-columns:1fr;gap:16px;margin-bottom:20px">'
     +'<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="monthlyChart"></canvas></div></div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">'
     +'<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="weeklyChart"></canvas></div></div>'
     +'<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="durationChart"></canvas></div></div>'
     +'</div>'
