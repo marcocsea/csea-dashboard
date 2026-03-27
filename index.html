@@ -204,6 +204,7 @@ var allAccounts=[],allAccountsData={},charts={};
 var rawDb={trades:[],signals:[],daily:[],positions:[]};
 var db={trades:[],signals:[],daily:[],positions:[]};
 var dateFrom='',dateTo='',activePreset='all';
+var gtmoSessions=[],gtmoAccounts=[];
 var GTABS=['gtmo_overview','gtmo_sessions','gtmo_equity'];
 var GTLABELS={gtmo_overview:'Overview',gtmo_sessions:'Sessions',gtmo_equity:'Equity Curve'};
 var STABS=['overview','positions','trades','signals','daily','heatmap','currencies','compare'];
@@ -239,7 +240,7 @@ async function init(){
     sel.appendChild(o);
   });
   if(saved){sel.value=saved;acctId=saved;}
-  await loadData();
+  if(sm==='gtmo')loadGtmoData();else await loadData();
 }
 
 async function loadData(){
@@ -266,6 +267,15 @@ async function loadData(){
   destroyCharts();renderTabs();renderContent();
 }
 
+/* ── FIX: renderTabs — clean, correct implementation ────────────── */
+function renderTabs(){
+  var tabs=mode==='gtmo'?GTABS:(mode==='strategy'?STABS:PTABS);
+  var allLabels=Object.assign({},TLABELS,GTLABELS);
+  document.getElementById('tabBar').innerHTML=tabs.map(function(t){
+    return'<button class="tab'+(activeTab===t?' active':'').toString()+'" onclick="setTab(\''+t+'\')">'+allLabels[t]+'</button>';
+  }).join('');
+}
+
 function setMode(m,reload){
   if(reload===undefined)reload=true;
   mode=m;
@@ -275,12 +285,8 @@ function setMode(m,reload){
   document.getElementById('btnGtmo').className='mode-btn'+(m==='gtmo'?' active':'');
   activeTab=m==='gtmo'?'gtmo_overview':'overview';
   if(reload){
-    destroyCharts();renderTabs();
-    if(m==='gtmo'){
-      loadGtmoData().then(function(){renderContent();});
-    } else {
-      renderContent();
-    }
+    if(m==='gtmo')loadGtmoData();
+    else{destroyCharts();renderTabs();renderContent();}
   }
 }
 function onAcctChange(){
@@ -376,13 +382,6 @@ function buildMonthlyGrid(cl){
 function barOpts(b){return Object.assign({},b,{layout:{padding:{top:20}},plugins:Object.assign({},b.plugins,{datalabels:DL_BAR})});}
 function lineOpts(b){return Object.assign({},b,{plugins:Object.assign({},b.plugins,{datalabels:DL_OFF})});}
 
-function renderTabs(){
-  var tabs=mode==='gtmo'?GTABS:(mode==='strategy'?STABS:PTABS);
-  var allLabels=Object.assign({},TLABELS,GTLABELS);
-  document.getElementById('tabBar').innerHTML=tabs.map(function(t){
-    return '<button class="tab'+(activeTab===t?' active':'')+'" onclick="setTab(''+t+'')">'+allLabels[t]+'</button>';
-  }).join('');
-}
 function setTab(t){activeTab=t;destroyCharts();renderTabs();renderContent();}
 function destroyCharts(){Object.values(charts).forEach(function(c){try{c.destroy();}catch(e){}});charts={};}
 function renderContent(){
@@ -397,7 +396,7 @@ function renderContent(){
     else if(activeTab==='currencies') el.innerHTML=renderCurrencies();
     else if(activeTab==='compare')    el.innerHTML=renderCompare();
   } else if(mode==='gtmo'){
-    if(activeTab==='gtmo_overview')  el.innerHTML=renderGtmoOverview();
+    if(activeTab==='gtmo_overview')      el.innerHTML=renderGtmoOverview();
     else if(activeTab==='gtmo_sessions') el.innerHTML=renderGtmoSessions();
     else if(activeTab==='gtmo_equity')   el.innerHTML=renderGtmoEquity();
   } else {
@@ -434,22 +433,18 @@ function renderStratOverview(){
   out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+(pf)+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+aw+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+al+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">$'+mdd.toFixed(2)+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Duration</div><div class="kpi-val">'+ad+'h</div></div>';
   out+='</div>';
-  /* equity curve */
   out+='<div class="equity-card"><div class="chart-title">Equity Curve</div><div class="equity-wrap"><canvas id="eqChart" data-labels="'+eqLabels+'" data-values="'+eqVals+'"></canvas></div></div>';
-  /* monthly full width */
   out+='<div style="margin-bottom:20px"><div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="ovMonthlyChart"></canvas></div></div></div>';
-  /* weekly + duration side by side */
   out+='<div class="charts-row-2">';
   out+='<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="ovWeeklyChart"></canvas></div></div>';
   out+='<div class="chart-card"><div class="chart-title">Duration P&L</div><div class="chart-wrap"><canvas id="ovDurationChart"></canvas></div></div>';
   out+='</div>';
-  /* trades table */
   out+='<div class="table-card"><div class="table-header"><span class="table-title">Recent Closed Trades</span><span class="count-badge" id="trdCount">'+cl.length+'</span>';
   out+='<div class="filters">';
   out+='<select id="symF" onchange="filterTrades()"><option value="">All Pairs</option>'+syms.map(function(s){return'<option>'+s+'</option>';}).join('')+'</select>';
@@ -602,13 +597,11 @@ function filterSignals(){
 function renderDaily(){
   if(!rawDb.daily.length)return'<div class="empty-state"><div class="empty-icon">&#128197;</div><div class="empty-msg">No daily data</div></div>';
   var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
-  /* last-5-days map */
   var dayMap={};
   allCl.forEach(function(t){if(!t.ts)return;var d=t.ts.slice(0,10);dayMap[d]=(dayMap[d]||0)+parseFloat(t.pnl||0);});
   var d5k=Object.keys(dayMap).sort().slice(-5);
   var d5l=d5k.map(function(d){return d.slice(5);});
   var d5v=d5k.map(function(d){return+dayMap[d].toFixed(2);});
-  /* weekly */
   var wm={};
   allCl.forEach(function(t){
     if(!t.ts)return;
@@ -618,26 +611,19 @@ function renderDaily(){
   });
   var wks=Object.keys(wm).sort().slice(-4);
   var wvs=wks.map(function(k){return+wm[k].toFixed(2);});
-  /* monthly */
   var mm={};
   allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
   var mons=Object.keys(mm).sort().slice(-12);
   var mvs=mons.map(function(k){return+mm[k].toFixed(2);});
   var monthlyTable=buildMonthlyGrid(allCl);
-  /* daily rows */
   var sorted=rawDb.daily.slice().reverse();
-
   var out='';
-  /* top row: daily 5 + weekly 4W side by side */
   out+='<div class="charts-row-2">';
   out+='<div class="chart-card"><div class="chart-title">Daily P&L (Last 5 Days)</div><div class="chart-wrap"><canvas id="dlDaily5Chart" data-labels="'+enc(d5l)+'" data-vals="'+enc(d5v)+'"></canvas></div></div>';
   out+='<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="dlWeeklyChart" data-labels="'+enc(wks)+'" data-vals="'+enc(wvs)+'"></canvas></div></div>';
   out+='</div>';
-  /* monthly full width */
   out+='<div style="margin-bottom:20px"><div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="dlMonthlyChart" data-labels="'+enc(mons)+'" data-vals="'+enc(mvs)+'"></canvas></div></div></div>';
-  /* monthly performance table */
   out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">&#128197; Monthly Performance ($)</span></div>'+monthlyTable+'</div>';
-  /* daily summary table */
   out+='<div class="table-card"><div class="table-header"><span class="table-title">Daily Summary</span><span class="count-badge">'+rawDb.daily.length+' days</span></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Day</th><th>Start Bal</th><th>Target</th><th>P&L</th><th>Closed</th><th>Lot</th><th>Hit</th></tr></thead><tbody>';
   sorted.forEach(function(d){
@@ -673,12 +659,12 @@ function renderHeatmap(){
     var d=sd[s],it=mx>0?Math.abs(d.pnl)/mx:0;
     var bg=d.pnl>=0?'rgba(16,185,129,'+(0.15+it*0.7)+')':'rgba(239,68,68,'+(0.15+it*0.7)+')';
     var wr=d.count?(d.wins/d.count*100).toFixed(0):0;
-    return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'
-      +'<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'
-      +'<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'+
+      '<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'+
+      '<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
   }).join('');
-  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'
-    +'<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
+  return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'+
+    '<div class="heatmap-grid" style="grid-template-columns:repeat(auto-fill,minmax(100px,1fr))">'+cells+'</div>';
 }
 
 /* ── CURRENCIES ─────────────────────────────────────────────────── */
@@ -701,11 +687,11 @@ function renderCurrencies(){
     var tc=v>=0?'#064e3b':'#7f1d1d';
     var tt=sw[c][1]+ww[c][1],tw=sw[c][0]+ww[c][0];
     var wr=tt>0?(tw/tt*100).toFixed(0):0;
-    return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'
-      +'<div style="font-size:14px;font-weight:800">'+c+'</div>'
-      +'<div style="font-size:15px;font-weight:700;margin:4px 0">$'+v.toFixed(0)+'</div>'
-      +'<div style="font-size:10px;font-weight:500">'+tt+' trades</div>'
-      +'<div style="font-size:10px;font-weight:400">'+wr+'% WR</div></div>';
+    return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'+
+      '<div style="font-size:14px;font-weight:800">'+c+'</div>'+
+      '<div style="font-size:15px;font-weight:700;margin:4px 0">$'+v.toFixed(0)+'</div>'+
+      '<div style="font-size:10px;font-weight:500">'+tt+' trades</div>'+
+      '<div style="font-size:10px;font-weight:400">'+wr+'% WR</div></div>';
   }).join('');
   var spv=curs.map(function(c){return+sp[c].toFixed(2);});
   var wpv=curs.map(function(c){return+wp[c].toFixed(2);});
@@ -718,11 +704,11 @@ function renderCurrencies(){
   out+='<div class="table-card"><div class="table-header"><span class="table-title">Currency Breakdown</span></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Currency</th><th>P&L Strong</th><th>WR Strong</th><th>Trades Strong</th><th>P&L Weak</th><th>WR Weak</th><th>Trades Weak</th></tr></thead><tbody>';
   out+=curs.map(function(c){
-    return'<tr><td style="font-weight:700">'+c+'</td>'
-      +'<td style="color:'+(sp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sp[c].toFixed(2)+'</td>'
-      +'<td>'+(sw[c][1]>0?(sw[c][0]/sw[c][1]*100).toFixed(0):0)+'%</td><td>'+sw[c][1]+'</td>'
-      +'<td style="color:'+(wp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wp[c].toFixed(2)+'</td>'
-      +'<td>'+(ww[c][1]>0?(ww[c][0]/ww[c][1]*100).toFixed(0):0)+'%</td><td>'+ww[c][1]+'</td></tr>';
+    return'<tr><td style="font-weight:700">'+c+'</td>'+
+      '<td style="color:'+(sp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sp[c].toFixed(2)+'</td>'+
+      '<td>'+(sw[c][1]>0?(sw[c][0]/sw[c][1]*100).toFixed(0):0)+'%</td><td>'+sw[c][1]+'</td>'+
+      '<td style="color:'+(wp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wp[c].toFixed(2)+'</td>'+
+      '<td>'+(ww[c][1]>0?(ww[c][0]/ww[c][1]*100).toFixed(0):0)+'%</td><td>'+ww[c][1]+'</td></tr>';
   }).join('');
   out+='</tbody></table></div></div>';
   return out;
@@ -814,6 +800,142 @@ function renderCompare(){
   return'<div class="compare-grid">'+cards+'</div>';
 }
 
+/* ── GTMO DATA LOAD ─────────────────────────────────────────────── */
+async function loadGtmoData(){
+  var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
+  dot.className='status-dot off';txt.textContent='Loading...';
+  gtmoSessions=await sb('gtmo_sessions','select=*&order=session_date.desc,session_open.desc');
+  gtmoAccounts=allAccounts.filter(function(a){return a.strategy==='GTMO'||a.strategy==='GTS';});
+  dot.className='status-dot';txt.textContent='Live';
+  document.getElementById('lastSync').textContent='Synced '+new Date().toLocaleTimeString();
+  destroyCharts();renderTabs();renderContent();
+}
+
+/* ── GTMO OVERVIEW ─────────────────────────────────────────────── */
+function renderGtmoOverview(){
+  var COLORS=['#3b82f6','#f59e0b','#10b981'];
+  var total=gtmoSessions.length;
+  var wins=gtmoSessions.filter(function(s){return s.result==='WIN';}).length;
+  var losses=gtmoSessions.filter(function(s){return s.result==='LOSS';}).length;
+  var totalPnl=gtmoSessions.reduce(function(s,x){return s+parseFloat(x.net_pnl||0);},0);
+  var wr=total?(wins/total*100).toFixed(1):0;
+  var out='<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">';
+  out+='<div class="kpi"><div class="kpi-label">Total Sessions</div><div class="kpi-val">'+total+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(total?wr+'%':'--')+'</div><div class="kpi-sub">'+wins+'W / '+losses+'L</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Total Net P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Avg Net P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">'+(total?'$'+(totalPnl/total).toFixed(2):'--')+'</div></div>';
+  out+='</div>';
+  out+='<div class="compare-grid">';
+  gtmoAccounts.forEach(function(a,idx){
+    var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;});
+    var aw=ss.filter(function(s){return s.result==='WIN';}).length;
+    var al=ss.filter(function(s){return s.result==='LOSS';}).length;
+    var ap=ss.reduce(function(sum,s){return sum+parseFloat(s.net_pnl||0);},0);
+    var awr=ss.length?(aw/ss.length*100).toFixed(1):0;
+    var lastBal=ss.length?parseFloat(ss[0].balance_close||0):0;
+    var col=COLORS[idx%COLORS.length];
+    out+='<div class="compare-card" style="border-left:4px solid '+col+'">';
+    out+='<div class="compare-title">'+a.label+'</div>';
+    out+='<div class="compare-sub">'+(a.strategy||'--')+' &middot; '+(a.account_type||'--')+'</div>';
+    out+='<div class="compare-kpis">';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Net P&L</div><div class="compare-kpi-val" style="color:'+(ap>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(ap)+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+awr+'%</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Sessions</div><div class="compare-kpi-val">'+ss.length+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Balance</div><div class="compare-kpi-val">$'+lastBal.toFixed(2)+'</div></div>';
+    out+='</div></div>';
+  });
+  out+='</div>';
+  var recent=gtmoSessions.slice(0,20);
+  out+='<div class="table-card"><div class="table-header"><span class="table-title">Recent Sessions</span><span class="count-badge">'+total+'</span></div>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Symbol</th><th>Dir</th><th>Orders</th><th>Net P&L</th><th>Exit</th><th>Result</th></tr></thead><tbody>';
+  out+=recent.map(function(s){
+    var acct=allAccounts.find(function(a){return a.id===s.account_id;})||{};
+    var pnl=parseFloat(s.net_pnl||0);
+    var snap=s.state_snapshot;try{if(typeof snap==='string')snap=JSON.parse(snap);}catch(e){snap={};}
+    snap=snap||{};
+    var exit=snap.exit_type||'--';
+    var row='<tr>';
+    row+='<td style="color:#94a3b8">'+(s.session_date||'--')+'</td>';
+    row+='<td style="font-weight:600">'+(acct.label||'--')+'</td>';
+    row+='<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>';
+    row+='<td>'+(s.signal_direction?('<span class="badge-'+(s.signal_direction.toLowerCase())+'">'+s.signal_direction+'</span>'):'--')+'</td>';
+    row+='<td>'+(s.orders_closed||0)+'</td>';
+    row+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>';
+    row+='<td style="color:#64748b">'+exit+'</td>';
+    row+='<td><span class="'+(s.result==='WIN'?'badge-opened':'badge-blocked')+'">'+s.result+'</span></td>';
+    row+='</tr>';
+    return row;
+  }).join('');
+  out+='</tbody></table></div></div>';
+  return out;
+}
+
+/* ── GTMO SESSIONS ─────────────────────────────────────────────── */
+function renderGtmoSessions(){
+  var acctOpts=gtmoAccounts.map(function(a){return'<option value="'+a.id+'">'+a.label+'</option>';}).join('');
+  var out='<div class="table-card"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge">'+gtmoSessions.length+'</span>';
+  out+='<div class="filters">';
+  out+='<select id="gsAcctF" onchange="filterGtmoSessions()"><option value="">All Accounts</option>'+acctOpts+'</select>';
+  out+='<select id="gsResF" onchange="filterGtmoSessions()"><option value="">All Results</option><option>WIN</option><option>LOSS</option></select>';
+  out+='</div></div>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Symbol</th><th>Dir</th><th>Opened</th><th>Closed</th><th>Orders</th><th>Gross P&L</th><th>Net P&L</th><th>Exit</th><th>Result</th><th>Notes</th></tr></thead>';
+  out+='<tbody id="gsBody">'+renderGtmoSessionRows(gtmoSessions)+'</tbody></table></div></div>';
+  return out;
+}
+function renderGtmoSessionRows(rows){
+  return rows.map(function(s){
+    var acct=allAccounts.find(function(a){return a.id===s.account_id;})||{};
+    var pnl=parseFloat(s.net_pnl||0);
+    var snap=s.state_snapshot;try{if(typeof snap==='string')snap=JSON.parse(snap);}catch(e){snap={};}
+    snap=snap||{};
+    var exit=snap.exit_type||'--';
+    var row='<tr>';
+    row+='<td style="color:#94a3b8">'+(s.session_date||'--')+'</td>';
+    row+='<td style="font-weight:600">'+(acct.label||'--')+'</td>';
+    row+='<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>';
+    row+='<td>'+(s.signal_direction?('<span class="badge-'+(s.signal_direction.toLowerCase())+'">'+s.signal_direction+'</span>'):'--')+'</td>';
+    row+='<td style="color:#94a3b8">'+(s.session_open||'--').toString().slice(0,16)+'</td>';
+    row+='<td style="color:#94a3b8">'+(s.session_close||'--').toString().slice(0,16)+'</td>';
+    row+='<td>'+(s.orders_closed||0)+'</td>';
+    row+='<td style="color:'+(parseFloat(s.gross_pnl||0)>=0?'#16a34a':'#dc2626')+'">$'+parseFloat(s.gross_pnl||0).toFixed(2)+'</td>';
+    row+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>';
+    row+='<td style="color:#64748b">'+exit+'</td>';
+    row+='<td><span class="'+(s.result==='WIN'?'badge-opened':'badge-blocked')+'">'+s.result+'</span></td>';
+    row+='<td style="color:#94a3b8;font-size:11px">'+(s.notes||'--')+'</td>';
+    row+='</tr>';
+    return row;
+  }).join('');
+}
+function filterGtmoSessions(){
+  var acct=(document.getElementById('gsAcctF')||{}).value||'';
+  var res=(document.getElementById('gsResF')||{}).value||'';
+  var rows=gtmoSessions;
+  if(acct)rows=rows.filter(function(s){return s.account_id===acct;});
+  if(res)rows=rows.filter(function(s){return s.result===res;});
+  var body=document.getElementById('gsBody');if(body)body.innerHTML=renderGtmoSessionRows(rows);
+}
+
+/* ── GTMO EQUITY ───────────────────────────────────────────────── */
+function renderGtmoEquity(){
+  var COLORS=['#3b82f6','#f59e0b','#10b981'];
+  var datasets=[];
+  gtmoAccounts.forEach(function(a,idx){
+    var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;}).slice().reverse();
+    var run=0,pts=[];
+    ss.forEach(function(s){
+      run+=parseFloat(s.net_pnl||0);
+      pts.push({x:s.session_date||s.created_at.toString().slice(0,10),y:+run.toFixed(2)});
+    });
+    if(pts.length)datasets.push({label:a.label,color:COLORS[idx%COLORS.length],pts:pts});
+  });
+  if(!datasets.length)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">No session data yet</div><div class="empty-sub">Sessions will appear here once bot.py syncs results</div></div>';
+  var out='<div class="equity-card">';
+  out+='<div class="chart-title">GTMO &middot; GTS Cumulative P&L by Account</div>';
+  out+='<div class="equity-wrap"><canvas id="gtmoEquityChart" data-sets="'+encodeURIComponent(JSON.stringify(datasets))+'"></canvas></div>';
+  out+='</div>';
+  return out;
+}
+
 /* ── INSPECTOR ──────────────────────────────────────────────────── */
 function openInspector(id){
   var t=rawDb.trades.find(function(x){return x.id===id;});
@@ -853,7 +975,6 @@ function renderCharts(){
 
   var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
 
-  /* helper to get monthly data from allCl */
   function monthData(){
     var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
     var mk=Object.keys(mm).sort().slice(-12);
@@ -865,71 +986,55 @@ function renderCharts(){
     return{labels:wk.map(function(w){return w.slice(5);}),vals:wk.map(function(k){return+wm[k].toFixed(2);})};
   }
 
-  /* strategy overview — equity */
   var eqc=document.getElementById('eqChart');
   if(eqc){
     var el=JSON.parse(decodeURIComponent(eqc.dataset.labels||'[]'));
     var ev=JSON.parse(decodeURIComponent(eqc.dataset.values||'[]'));
     charts.eqc=new Chart(eqc,{type:'line',data:{labels:el,datasets:[{data:ev,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
   }
-  /* strategy overview — monthly */
   var ovm=document.getElementById('ovMonthlyChart');
   if(ovm){var md=monthData();mkBar(ovm,md.labels,md.vals,cd);}
-  /* strategy overview — weekly */
   var ovw=document.getElementById('ovWeeklyChart');
   if(ovw){var wd=weekData();mkBar(ovw,wd.labels,wd.vals,cd);}
-  /* strategy overview — duration */
   var ovd=document.getElementById('ovDurationChart');
   if(ovd){
     var cl2=closed();
-    var drm={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
-    cl2.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)drm['<1h']+=parseFloat(t.pnl||0);else if(dur<240)drm['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)drm['4-24h']+=parseFloat(t.pnl||0);else drm['>24h']+=parseFloat(t.pnl||0);});
-    mkBar(ovd,Object.keys(drm),Object.values(drm).map(function(v){return+v.toFixed(2);}),cd);
+    var drm2={'<1h':0,'1-4h':0,'4-24h':0,'>24h':0};
+    cl2.forEach(function(t){var dur=parseFloat(t.duration_min||0);if(dur<60)drm2['<1h']+=parseFloat(t.pnl||0);else if(dur<240)drm2['1-4h']+=parseFloat(t.pnl||0);else if(dur<1440)drm2['4-24h']+=parseFloat(t.pnl||0);else drm2['>24h']+=parseFloat(t.pnl||0);});
+    mkBar(ovd,Object.keys(drm2),Object.values(drm2).map(function(v){return+v.toFixed(2);}),cd);
   }
-
-  /* daily tab — daily 5 */
   var dl5=document.getElementById('dlDaily5Chart');
   if(dl5){
     var l5=JSON.parse(decodeURIComponent(dl5.dataset.labels||'[]'));
     var v5=JSON.parse(decodeURIComponent(dl5.dataset.vals||'[]'));
     mkBar(dl5,l5,v5,cd);
   }
-  /* daily tab — weekly */
   var dlw=document.getElementById('dlWeeklyChart');
   if(dlw){
     var lwl=JSON.parse(decodeURIComponent(dlw.dataset.labels||'[]'));
     var lwv=JSON.parse(decodeURIComponent(dlw.dataset.vals||'[]'));
     mkBar(dlw,lwl.map(function(w){return w.slice(5);}),lwv,cd);
   }
-  /* daily tab — monthly */
   var dlm=document.getElementById('dlMonthlyChart');
   if(dlm){
     var lml=JSON.parse(decodeURIComponent(dlm.dataset.labels||'[]'));
     var lmv=JSON.parse(decodeURIComponent(dlm.dataset.vals||'[]'));
     mkBar(dlm,lml.map(function(m){return MON[parseInt(m.slice(5))-1];}),lmv,cd);
   }
-
-  /* currency charts */
   var csc=document.getElementById('curStrongChart');
   if(csc){var cc=JSON.parse(decodeURIComponent(csc.dataset.curs||'[]')),sv=JSON.parse(decodeURIComponent(csc.dataset.vals||'[]'));mkBar(csc,cc,sv,cd);}
   var cwc=document.getElementById('curWeakChart');
   if(cwc){var cc2=JSON.parse(decodeURIComponent(cwc.dataset.curs||'[]')),wv=JSON.parse(decodeURIComponent(cwc.dataset.vals||'[]'));mkBar(cwc,cc2,wv,cd);}
-
-  /* portfolio — equity */
   var peq=document.getElementById('portEqChart');
   if(peq){
     var run=0,pb=[];
     closed().slice().sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){run+=parseFloat(t.pnl||0);pb.push(+run.toFixed(2));});
     charts.peq=new Chart(peq,{type:'line',data:{labels:pb.map(function(_,i){return String(i);}),datasets:[{data:pb,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.3,pointRadius:0,borderWidth:2}]},options:lineOpts(cd)});
   }
-  /* portfolio — monthly */
   var pmc=document.getElementById('portMonthlyChart');
   if(pmc){var md2=monthData();mkBar(pmc,md2.labels,md2.vals,cd);}
-  /* portfolio — weekly */
   var pwc=document.getElementById('portWeeklyChart');
   if(pwc){var wd2=weekData();mkBar(pwc,wd2.labels,wd2.vals,cd);}
-
-  /* performance charts */
   var pf5=document.getElementById('pfDaily5');
   if(pf5){mkBar(pf5,JSON.parse(decodeURIComponent(pf5.dataset.labels||'[]')),JSON.parse(decodeURIComponent(pf5.dataset.vals||'[]')),cd);}
   var pfw=document.getElementById('pfWeekly');
@@ -940,8 +1045,6 @@ function renderCharts(){
   if(pft){mkBar(pft,Array.from({length:24},function(_,i){return i+'h';}),JSON.parse(decodeURIComponent(pft.dataset.vals||'[]')),cd);}
   var pfd=document.getElementById('pfDuration');
   if(pfd){mkBar(pfd,JSON.parse(decodeURIComponent(pfd.dataset.keys||'[]')),JSON.parse(decodeURIComponent(pfd.dataset.vals||'[]')),cd);}
-
-  /* GTMO equity chart */
   var gtmoEq=document.getElementById('gtmoEquityChart');
   if(gtmoEq){
     try{
@@ -963,8 +1066,6 @@ function renderCharts(){
                   y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
     }catch(e){console.warn('GTMO equity chart:',e);}
   }
-
-  /* compare mini equity curves */
   document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
     try{
       var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
@@ -980,134 +1081,7 @@ function renderCharts(){
   });
 }
 
-/* ── GTMO · GTS ──────────────────────────────────────────────────────────────*/
-var gtmoDb={sessions:[]};
-var gtmoLoaded=false;
-var GTMO_ACCOUNTS={
-  'c6596cb8-760f-480b-97b5-f4a3954c1b90':{label:'GTMO Demo',      color:'#3b82f6'},
-  'a1e93eec-db3e-4d72-baa3-cf0cd33d2dc6':{label:'4xHub MO Gold',  color:'#d97706'},
-  '75fb14d6-0f3a-4196-86fc-c93d78f3d1b2':{label:'GTS Vantage Demo',color:'#7c3aed'}
-};
-
-async function loadGtmoData(){
-  if(gtmoLoaded) return;
-  try{
-    var r=await fetch(SB_URL+'/rest/v1/gtmo_sessions?select=*&order=session_date.desc&limit=1000',{headers:HDR});
-    gtmoDb.sessions=r.ok?await r.json():[];
-  }catch(e){gtmoDb.sessions=[];}
-  gtmoLoaded=true;
-  document.getElementById('lastSync').textContent='GTMO updated '+new Date().toLocaleTimeString();
-}
-
-function renderGtmoOverview(){
-  var s=gtmoDb.sessions;
-  if(!s.length) return '<div class="empty-state"><div class="empty-icon">&#9889;</div><div class="empty-msg">No GTMO sessions yet</div><div class="empty-sub">Sessions appear here after the first trade closes and bot.py syncs to Supabase</div></div>';
-  var totalPnl=s.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0);
-  var wins=s.filter(function(r){return r.result==='WIN';}).length;
-  var losses=s.filter(function(r){return r.result==='LOSS';}).length;
-  var wr=s.length?((wins/s.length)*100).toFixed(1):0;
-  var winSessions=s.filter(function(r){return r.result==='WIN';});
-  var lossSessions=s.filter(function(r){return r.result==='LOSS';});
-  var avgWin=winSessions.length?(winSessions.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0)/winSessions.length).toFixed(2):0;
-  var avgLoss=lossSessions.length?(lossSessions.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0)/lossSessions.length).toFixed(2):0;
-  var best=s.reduce(function(b,r){return parseFloat(r.net_pnl||0)>parseFloat(b.net_pnl||0)?r:b;},s[0]);
-  var worst=s.reduce(function(w,r){return parseFloat(r.net_pnl||0)<parseFloat(w.net_pnl||0)?r:w;},s[0]);
-
-  var acctCards=Object.keys(GTMO_ACCOUNTS).map(function(id){
-    var info=GTMO_ACCOUNTS[id];
-    var as=s.filter(function(r){return r.account_id===id;});
-    var ap=as.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0);
-    var aw=as.filter(function(r){return r.result==='WIN';}).length;
-    var awr=as.length?((aw/as.length)*100).toFixed(1):0;
-    return '<div class="kpi" style="border-left:3px solid '+info.color+';padding-left:14px">'
-      +'<div class="kpi-label" style="color:'+info.color+'">'+info.label+'</div>'
-      +'<div class="kpi-val '+(ap>=0?'pos':'neg')+'">$'+fmtPnl(ap)+'</div>'
-      +'<div class="kpi-sub">'+as.length+' sessions &middot; '+awr+'% WR</div></div>';
-  }).join('');
-
-  var rows=s.slice(0,20).map(function(r){
-    var pnl=parseFloat(r.net_pnl||0);
-    var info=GTMO_ACCOUNTS[r.account_id]||{label:'Unknown',color:'#64748b'};
-    var badge=r.result==='WIN'?'<span class="badge-opened">WIN</span>':r.result==='LOSS'?'<span class="badge-blocked">LOSS</span>':'<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">'+(r.result||'--')+'</span>';
-    return '<tr>'
-      +'<td style="color:#64748b">'+(r.session_date||'--')+'</td>'
-      +'<td style="color:'+info.color+';font-weight:700;font-size:11px">'+info.label+'</td>'
-      +'<td>'+(r.signal_direction?'<span class="badge-'+(r.signal_direction.toLowerCase())+'">'+r.signal_direction+'</span>':'--')+'</td>'
-      +'<td style="color:#1e40af;font-weight:700">'+(r.symbol||'XAUUSD')+'</td>'
-      +'<td style="text-align:center">'+(r.orders_opened||0)+'</td>'
-      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
-      +'<td>'+badge+'</td>'
-      +'<td style="color:#64748b;font-size:11px">'+(r.notes||'--')+'</td>'
-      +'</tr>';
-  }).join('');
-
-  return '<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'
-    +'<div class="kpi"><div class="kpi-label">Total P&amp;L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+s.length+' sessions</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div><div class="kpi-sub">'+wins+'W / '+losses+'L</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Best Session</div><div class="kpi-val pos">$'+fmtPnl(parseFloat(best.net_pnl||0))+'</div><div class="kpi-sub">'+(best.session_date||'')+'</div></div>'
-    +'<div class="kpi"><div class="kpi-label">Worst Session</div><div class="kpi-val neg">$'+fmtPnl(parseFloat(worst.net_pnl||0))+'</div><div class="kpi-sub">'+(worst.session_date||'')+'</div></div>'
-    +'</div>'
-    +'<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">'+acctCards+'</div>'
-    +'<div class="table-card"><div class="table-header"><span class="table-title">Recent Sessions</span><span class="count-badge">'+s.length+' total</span></div>'
-    +'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Symbol</th><th>Orders</th><th>P&amp;L</th><th>Result</th><th>Notes</th></tr></thead>'
-    +'<tbody>'+rows+'</tbody></table></div></div>';
-}
-
-function renderGtmoSessions(){
-  var s=gtmoDb.sessions;
-  if(!s.length) return '<div class="empty-state"><div class="empty-icon">&#128203;</div><div class="empty-msg">No sessions yet</div></div>';
-  var rows=s.map(function(r){
-    var pnl=parseFloat(r.net_pnl||0);
-    var info=GTMO_ACCOUNTS[r.account_id]||{label:'Unknown',color:'#64748b'};
-    var badge=r.result==='WIN'?'<span class="badge-opened">WIN</span>':r.result==='LOSS'?'<span class="badge-blocked">LOSS</span>':'<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">'+(r.result||'--')+'</span>';
-    return '<tr>'
-      +'<td style="color:#64748b">'+(r.session_date||'--')+'</td>'
-      +'<td style="color:'+info.color+';font-weight:700;font-size:11px">'+info.label+'</td>'
-      +'<td>'+(r.signal_direction?'<span class="badge-'+(r.signal_direction.toLowerCase())+'">'+r.signal_direction+'</span>':'--')+'</td>'
-      +'<td style="color:#1e40af;font-weight:700">'+(r.symbol||'XAUUSD')+'</td>'
-      +'<td style="text-align:center">'+(r.orders_opened||0)+'</td>'
-      +'<td style="text-align:center">'+(r.orders_closed||0)+'</td>'
-      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
-      +'<td>'+(r.balance_close?'$'+parseFloat(r.balance_close).toFixed(2):'--')+'</td>'
-      +'<td>'+badge+'</td>'
-      +'<td style="color:#64748b;font-size:11px">'+(r.notes||'--')+'</td>'
-      +'</tr>';
-  }).join('');
-  return '<div class="table-card"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge">'+s.length+'</span></div>'
-    +'<div class="tbl-wrap"><table><thead><tr>'
-    +'<th>Date</th><th>Account</th><th>Dir</th><th>Symbol</th><th>Orders In</th><th>Orders Out</th><th>P&amp;L</th><th>Balance After</th><th>Result</th><th>Notes</th>'
-    +'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
-}
-
-function renderGtmoEquity(){
-  var s=gtmoDb.sessions.slice().reverse();
-  if(!s.length) return '<div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-msg">No session data for equity curve</div></div>';
-  var pts={};
-  Object.keys(GTMO_ACCOUNTS).forEach(function(id){pts[id]=[];});
-  s.forEach(function(r){
-    if(!pts[r.account_id]) pts[r.account_id]=[];
-    var prev=pts[r.account_id].slice(-1)[0]||{y:0};
-    pts[r.account_id].push({x:r.session_date,y:parseFloat((prev.y+parseFloat(r.net_pnl||0)).toFixed(2))});
-  });
-  var datasets=Object.keys(GTMO_ACCOUNTS).filter(function(id){return pts[id].length>0;}).map(function(id){
-    var info=GTMO_ACCOUNTS[id];
-    return{label:info.label,color:info.color,pts:pts[id]};
-  });
-  var canvasData=encodeURIComponent(JSON.stringify(datasets));
-  var legend=Object.keys(GTMO_ACCOUNTS).map(function(id){
-    var info=GTMO_ACCOUNTS[id];
-    return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b">'
-      +'<span style="width:10px;height:10px;border-radius:50%;background:'+info.color+';display:inline-block"></span>'+info.label+'</div>';
-  }).join('');
-  return '<div class="equity-card">'
-    +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">'
-    +'<div class="chart-title" style="margin:0">Cumulative P&amp;L by Account</div>'+legend+'</div>'
-    +'<div class="equity-wrap"><canvas id="gtmoEquityChart" data-sets="'+canvasData+'"></canvas></div></div>';
-}
-
-setInterval(function(){if(document.visibilityState==='visible')loadData();},60000);
+setInterval(function(){if(document.visibilityState==='visible'){if(mode==='gtmo')loadGtmoData();else loadData();}},60000);
 init();
 </script>
 </body>
