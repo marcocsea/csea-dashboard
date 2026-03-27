@@ -378,13 +378,10 @@ function lineOpts(b){return Object.assign({},b,{plugins:Object.assign({},b.plugi
 
 function renderTabs(){
   var tabs=mode==='gtmo'?GTABS:(mode==='strategy'?STABS:PTABS);
-  document.getElementById('tabBar').innerHTML=tabs.map(function(t){
-    return'<button class="tab'+(activeTab===t?' active':'')+'" onclick="setTab(\''+t+'\')">'+TLABELS[t]+'</button>';
   var allLabels=Object.assign({},TLABELS,GTLABELS);
   document.getElementById('tabBar').innerHTML=tabs.map(function(t){
-    return'<button class="tab'+(activeTab===t?' active':'')+'" onclick="setTab(\''+t+'\')">'+allLabels[t]+'</button>';
+    return '<button class="tab'+(activeTab===t?' active':'')+'" onclick="setTab(''+t+'')">'+allLabels[t]+'</button>';
   }).join('');
-  return;
 }
 function setTab(t){activeTab=t;destroyCharts();renderTabs();renderContent();}
 function destroyCharts(){Object.values(charts).forEach(function(c){try{c.destroy();}catch(e){}});charts={};}
