@@ -131,6 +131,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
   <div class="mode-toggle">
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">&#128202; Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">&#128188; Portfolio</button>
+    <button class="mode-btn" id="btnGtmo" onclick="setMode('gtmo')">&#9889; GTMO&#183;GTS</button>
   </div>
   <div class="hdr-right">
     <div class="acct-label">Account:</div>
@@ -203,6 +204,8 @@ var allAccounts=[],allAccountsData={},charts={};
 var rawDb={trades:[],signals:[],daily:[],positions:[]};
 var db={trades:[],signals:[],daily:[],positions:[]};
 var dateFrom='',dateTo='',activePreset='all';
+var GTABS=['gtmo_overview','gtmo_sessions','gtmo_equity'];
+var GTLABELS={gtmo_overview:'Overview',gtmo_sessions:'Sessions',gtmo_equity:'Equity Curve'};
 var STABS=['overview','positions','trades','signals','daily','heatmap','currencies','compare'];
 var PTABS=['overview','trades','performance','compare'];
 var TLABELS={overview:'Overview',positions:'Positions',trades:'Trades',signals:'Signals',daily:'Daily',heatmap:'Pair Heatmap',currencies:'Currencies',performance:'Performance',compare:'Compare'};
@@ -269,8 +272,12 @@ function setMode(m,reload){
   localStorage.setItem('csea_mode',m);
   document.getElementById('btnStrategy').className='mode-btn'+(m==='strategy'?' active':'');
   document.getElementById('btnPortfolio').className='mode-btn'+(m==='portfolio'?' active':'');
-  activeTab='overview';
-  if(reload){destroyCharts();renderTabs();renderContent();}
+  document.getElementById('btnGtmo').className='mode-btn'+(m==='gtmo'?' active':'');
+  activeTab=m==='gtmo'?'gtmo_overview':'overview';
+  if(reload){
+    if(m==='gtmo')loadGtmoData();
+    destroyCharts();renderTabs();renderContent();
+  }
 }
 function onAcctChange(){
   acctId=document.getElementById('acctSelect').value;
@@ -366,10 +373,14 @@ function barOpts(b){return Object.assign({},b,{layout:{padding:{top:20}},plugins
 function lineOpts(b){return Object.assign({},b,{plugins:Object.assign({},b.plugins,{datalabels:DL_OFF})});}
 
 function renderTabs(){
-  var tabs=mode==='strategy'?STABS:PTABS;
+  var tabs=mode==='gtmo'?GTABS:(mode==='strategy'?STABS:PTABS);
   document.getElementById('tabBar').innerHTML=tabs.map(function(t){
     return'<button class="tab'+(activeTab===t?' active':'')+'" onclick="setTab(\''+t+'\')">'+TLABELS[t]+'</button>';
+  var allLabels=Object.assign({},TLABELS,GTLABELS);
+  document.getElementById('tabBar').innerHTML=tabs.map(function(t){
+    return'<button class="tab'+(activeTab===t?' active':'')+'" onclick="setTab(\''+t+'\')">'+allLabels[t]+'</button>';
   }).join('');
+  return;
 }
 function setTab(t){activeTab=t;destroyCharts();renderTabs();renderContent();}
 function destroyCharts(){Object.values(charts).forEach(function(c){try{c.destroy();}catch(e){}});charts={};}
@@ -384,6 +395,10 @@ function renderContent(){
     else if(activeTab==='heatmap')    el.innerHTML=renderHeatmap();
     else if(activeTab==='currencies') el.innerHTML=renderCurrencies();
     else if(activeTab==='compare')    el.innerHTML=renderCompare();
+  } else if(mode==='gtmo'){
+    if(activeTab==='gtmo_overview')  el.innerHTML=renderGtmoOverview();
+    else if(activeTab==='gtmo_sessions') el.innerHTML=renderGtmoSessions();
+    else if(activeTab==='gtmo_equity')   el.innerHTML=renderGtmoEquity();
   } else {
     if(activeTab==='overview')         el.innerHTML=renderPortOverview();
     else if(activeTab==='trades')      el.innerHTML=renderTrades();
@@ -924,6 +939,29 @@ function renderCharts(){
   if(pft){mkBar(pft,Array.from({length:24},function(_,i){return i+'h';}),JSON.parse(decodeURIComponent(pft.dataset.vals||'[]')),cd);}
   var pfd=document.getElementById('pfDuration');
   if(pfd){mkBar(pfd,JSON.parse(decodeURIComponent(pfd.dataset.keys||'[]')),JSON.parse(decodeURIComponent(pfd.dataset.vals||'[]')),cd);}
+
+  /* GTMO equity chart */
+  var gtmoEq=document.getElementById('gtmoEquityChart');
+  if(gtmoEq){
+    try{
+      var ds=JSON.parse(decodeURIComponent(gtmoEq.dataset.sets||'[]'));
+      var allDates=[];
+      ds.forEach(function(d){d.pts.forEach(function(p){if(allDates.indexOf(p.x)<0)allDates.push(p.x);});});
+      allDates.sort();
+      var gDatasets=ds.map(function(d){
+        var map={};d.pts.forEach(function(p){map[p.x]=p.y;});
+        var vals=allDates.map(function(date){return map[date]!==undefined?map[date]:null;});
+        return{label:d.label,data:vals,borderColor:d.color,backgroundColor:d.color+'22',fill:false,tension:.3,pointRadius:2,borderWidth:2,spanGaps:true};
+      });
+      charts.gtmoEq=new Chart(gtmoEq,{type:'line',
+        data:{labels:allDates,datasets:gDatasets},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11}}},datalabels:{display:false},
+            tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+ctx.raw.toFixed(2);}}}},
+          scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:10},grid:{display:false}},
+                  y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
+    }catch(e){console.warn('GTMO equity chart:',e);}
+  }
 
   /* compare mini equity curves */
   document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
