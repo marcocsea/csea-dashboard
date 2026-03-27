@@ -275,8 +275,12 @@ function setMode(m,reload){
   document.getElementById('btnGtmo').className='mode-btn'+(m==='gtmo'?' active':'');
   activeTab=m==='gtmo'?'gtmo_overview':'overview';
   if(reload){
-    if(m==='gtmo')loadGtmoData();
-    destroyCharts();renderTabs();renderContent();
+    destroyCharts();renderTabs();
+    if(m==='gtmo'){
+      loadGtmoData().then(function(){renderContent();});
+    } else {
+      renderContent();
+    }
   }
 }
 function onAcctChange(){
@@ -977,6 +981,133 @@ function renderCharts(){
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
     }catch(e){}
   });
+}
+
+/* ── GTMO · GTS ──────────────────────────────────────────────────────────────*/
+var gtmoDb={sessions:[]};
+var gtmoLoaded=false;
+var GTMO_ACCOUNTS={
+  'c6596cb8-760f-480b-97b5-f4a3954c1b90':{label:'GTMO Demo',      color:'#3b82f6'},
+  'a1e93eec-db3e-4d72-baa3-cf0cd33d2dc6':{label:'4xHub MO Gold',  color:'#d97706'},
+  '75fb14d6-0f3a-4196-86fc-c93d78f3d1b2':{label:'GTS Vantage Demo',color:'#7c3aed'}
+};
+
+async function loadGtmoData(){
+  if(gtmoLoaded) return;
+  try{
+    var r=await fetch(SB_URL+'/rest/v1/gtmo_sessions?select=*&order=session_date.desc&limit=1000',{headers:HDR});
+    gtmoDb.sessions=r.ok?await r.json():[];
+  }catch(e){gtmoDb.sessions=[];}
+  gtmoLoaded=true;
+  document.getElementById('lastSync').textContent='GTMO updated '+new Date().toLocaleTimeString();
+}
+
+function renderGtmoOverview(){
+  var s=gtmoDb.sessions;
+  if(!s.length) return '<div class="empty-state"><div class="empty-icon">&#9889;</div><div class="empty-msg">No GTMO sessions yet</div><div class="empty-sub">Sessions appear here after the first trade closes and bot.py syncs to Supabase</div></div>';
+  var totalPnl=s.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0);
+  var wins=s.filter(function(r){return r.result==='WIN';}).length;
+  var losses=s.filter(function(r){return r.result==='LOSS';}).length;
+  var wr=s.length?((wins/s.length)*100).toFixed(1):0;
+  var winSessions=s.filter(function(r){return r.result==='WIN';});
+  var lossSessions=s.filter(function(r){return r.result==='LOSS';});
+  var avgWin=winSessions.length?(winSessions.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0)/winSessions.length).toFixed(2):0;
+  var avgLoss=lossSessions.length?(lossSessions.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0)/lossSessions.length).toFixed(2):0;
+  var best=s.reduce(function(b,r){return parseFloat(r.net_pnl||0)>parseFloat(b.net_pnl||0)?r:b;},s[0]);
+  var worst=s.reduce(function(w,r){return parseFloat(r.net_pnl||0)<parseFloat(w.net_pnl||0)?r:w;},s[0]);
+
+  var acctCards=Object.keys(GTMO_ACCOUNTS).map(function(id){
+    var info=GTMO_ACCOUNTS[id];
+    var as=s.filter(function(r){return r.account_id===id;});
+    var ap=as.reduce(function(a,r){return a+parseFloat(r.net_pnl||0);},0);
+    var aw=as.filter(function(r){return r.result==='WIN';}).length;
+    var awr=as.length?((aw/as.length)*100).toFixed(1):0;
+    return '<div class="kpi" style="border-left:3px solid '+info.color+';padding-left:14px">'
+      +'<div class="kpi-label" style="color:'+info.color+'">'+info.label+'</div>'
+      +'<div class="kpi-val '+(ap>=0?'pos':'neg')+'">$'+fmtPnl(ap)+'</div>'
+      +'<div class="kpi-sub">'+as.length+' sessions &middot; '+awr+'% WR</div></div>';
+  }).join('');
+
+  var rows=s.slice(0,20).map(function(r){
+    var pnl=parseFloat(r.net_pnl||0);
+    var info=GTMO_ACCOUNTS[r.account_id]||{label:'Unknown',color:'#64748b'};
+    var badge=r.result==='WIN'?'<span class="badge-opened">WIN</span>':r.result==='LOSS'?'<span class="badge-blocked">LOSS</span>':'<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">'+(r.result||'--')+'</span>';
+    return '<tr>'
+      +'<td style="color:#64748b">'+(r.session_date||'--')+'</td>'
+      +'<td style="color:'+info.color+';font-weight:700;font-size:11px">'+info.label+'</td>'
+      +'<td>'+(r.signal_direction?'<span class="badge-'+(r.signal_direction.toLowerCase())+'">'+r.signal_direction+'</span>':'--')+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(r.symbol||'XAUUSD')+'</td>'
+      +'<td style="text-align:center">'+(r.orders_opened||0)+'</td>'
+      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td style="color:#64748b;font-size:11px">'+(r.notes||'--')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  return '<div class="kpi-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">'
+    +'<div class="kpi"><div class="kpi-label">Total P&amp;L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+s.length+' sessions</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div><div class="kpi-sub">'+wins+'W / '+losses+'L</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+avgWin+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+avgLoss+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Best Session</div><div class="kpi-val pos">$'+fmtPnl(parseFloat(best.net_pnl||0))+'</div><div class="kpi-sub">'+(best.session_date||'')+'</div></div>'
+    +'<div class="kpi"><div class="kpi-label">Worst Session</div><div class="kpi-val neg">$'+fmtPnl(parseFloat(worst.net_pnl||0))+'</div><div class="kpi-sub">'+(worst.session_date||'')+'</div></div>'
+    +'</div>'
+    +'<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">'+acctCards+'</div>'
+    +'<div class="table-card"><div class="table-header"><span class="table-title">Recent Sessions</span><span class="count-badge">'+s.length+' total</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Symbol</th><th>Orders</th><th>P&amp;L</th><th>Result</th><th>Notes</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div></div>';
+}
+
+function renderGtmoSessions(){
+  var s=gtmoDb.sessions;
+  if(!s.length) return '<div class="empty-state"><div class="empty-icon">&#128203;</div><div class="empty-msg">No sessions yet</div></div>';
+  var rows=s.map(function(r){
+    var pnl=parseFloat(r.net_pnl||0);
+    var info=GTMO_ACCOUNTS[r.account_id]||{label:'Unknown',color:'#64748b'};
+    var badge=r.result==='WIN'?'<span class="badge-opened">WIN</span>':r.result==='LOSS'?'<span class="badge-blocked">LOSS</span>':'<span style="background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">'+(r.result||'--')+'</span>';
+    return '<tr>'
+      +'<td style="color:#64748b">'+(r.session_date||'--')+'</td>'
+      +'<td style="color:'+info.color+';font-weight:700;font-size:11px">'+info.label+'</td>'
+      +'<td>'+(r.signal_direction?'<span class="badge-'+(r.signal_direction.toLowerCase())+'">'+r.signal_direction+'</span>':'--')+'</td>'
+      +'<td style="color:#1e40af;font-weight:700">'+(r.symbol||'XAUUSD')+'</td>'
+      +'<td style="text-align:center">'+(r.orders_opened||0)+'</td>'
+      +'<td style="text-align:center">'+(r.orders_closed||0)+'</td>'
+      +'<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>'
+      +'<td>'+(r.balance_close?'$'+parseFloat(r.balance_close).toFixed(2):'--')+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td style="color:#64748b;font-size:11px">'+(r.notes||'--')+'</td>'
+      +'</tr>';
+  }).join('');
+  return '<div class="table-card"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge">'+s.length+'</span></div>'
+    +'<div class="tbl-wrap"><table><thead><tr>'
+    +'<th>Date</th><th>Account</th><th>Dir</th><th>Symbol</th><th>Orders In</th><th>Orders Out</th><th>P&amp;L</th><th>Balance After</th><th>Result</th><th>Notes</th>'
+    +'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+}
+
+function renderGtmoEquity(){
+  var s=gtmoDb.sessions.slice().reverse();
+  if(!s.length) return '<div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-msg">No session data for equity curve</div></div>';
+  var pts={};
+  Object.keys(GTMO_ACCOUNTS).forEach(function(id){pts[id]=[];});
+  s.forEach(function(r){
+    if(!pts[r.account_id]) pts[r.account_id]=[];
+    var prev=pts[r.account_id].slice(-1)[0]||{y:0};
+    pts[r.account_id].push({x:r.session_date,y:parseFloat((prev.y+parseFloat(r.net_pnl||0)).toFixed(2))});
+  });
+  var datasets=Object.keys(GTMO_ACCOUNTS).filter(function(id){return pts[id].length>0;}).map(function(id){
+    var info=GTMO_ACCOUNTS[id];
+    return{label:info.label,color:info.color,pts:pts[id]};
+  });
+  var canvasData=encodeURIComponent(JSON.stringify(datasets));
+  var legend=Object.keys(GTMO_ACCOUNTS).map(function(id){
+    var info=GTMO_ACCOUNTS[id];
+    return '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#64748b">'
+      +'<span style="width:10px;height:10px;border-radius:50%;background:'+info.color+';display:inline-block"></span>'+info.label+'</div>';
+  }).join('');
+  return '<div class="equity-card">'
+    +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">'
+    +'<div class="chart-title" style="margin:0">Cumulative P&amp;L by Account</div>'+legend+'</div>'
+    +'<div class="equity-wrap"><canvas id="gtmoEquityChart" data-sets="'+canvasData+'"></canvas></div></div>';
 }
 
 setInterval(function(){if(document.visibilityState==='visible')loadData();},60000);
