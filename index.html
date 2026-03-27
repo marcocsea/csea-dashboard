@@ -204,7 +204,7 @@ var allAccounts=[],allAccountsData={},charts={};
 var rawDb={trades:[],signals:[],daily:[],positions:[]};
 var db={trades:[],signals:[],daily:[],positions:[]};
 var dateFrom='',dateTo='',activePreset='all';
-var gtmoSessions=[],gtmoAccounts=[];
+var gtmoSessions=[],gtmoAccounts=[],liveAccounts=[];
 var GTABS=['gtmo_overview','gtmo_sessions','gtmo_equity'];
 var GTLABELS={gtmo_overview:'Overview',gtmo_sessions:'Sessions',gtmo_equity:'Equity Curve'};
 var STABS=['overview','positions','trades','signals','daily','heatmap','currencies','compare'];
@@ -232,21 +232,41 @@ async function init(){
   var sm=localStorage.getItem('csea_mode')||'strategy';
   setMode(sm,false);
   allAccounts=await sb('accounts','select=*&order=created_at');
+  liveAccounts=allAccounts.filter(function(a){return a.account_type==='live';});
+  rebuildAccountDropdown();
   var sel=document.getElementById('acctSelect');
-  sel.innerHTML='<option value="">All Accounts</option>';
-  allAccounts.forEach(function(a){
+  if(saved){sel.value=saved;acctId=saved;}
+  if(sm==='gtmo')loadGtmoData();else await loadData();
+}
+
+/* Rebuild account dropdown based on current mode */
+function rebuildAccountDropdown(){
+  var sel=document.getElementById('acctSelect');
+  var accounts=mode==='portfolio'?liveAccounts:allAccounts;
+  var label=mode==='portfolio'?'All Live Accounts':'All Accounts';
+  sel.innerHTML='<option value="">'+label+'</option>';
+  accounts.forEach(function(a){
     var o=document.createElement('option');
     o.value=a.id;o.textContent=a.label||a.name||a.account_number;
     sel.appendChild(o);
   });
-  if(saved){sel.value=saved;acctId=saved;}
-  if(sm==='gtmo')loadGtmoData();else await loadData();
+  /* if current acctId is not in new list, reset it */
+  var ids=accounts.map(function(a){return a.id;});
+  if(acctId&&ids.indexOf(acctId)<0){acctId='';sel.value='';}
+  else if(acctId){sel.value=acctId;}
 }
 
 async function loadData(){
   var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
   dot.className='status-dot off';txt.textContent='Loading...';
-  var f=acctId?('&account_id=eq.'+acctId):'';
+  var f='';
+  if(acctId){
+    f='&account_id=eq.'+acctId;
+  } else if(mode==='portfolio'){
+    /* portfolio with no specific account = all live accounts only */
+    var liveIds=liveAccounts.map(function(a){return a.id;});
+    if(liveIds.length)f='&account_id=in.('+liveIds.join(',')+')';
+  }
   var res=await Promise.all([
     sb('trades','select=*&order=ts'+f),
     sb('signals','select=*&order=ts'+f),
@@ -254,11 +274,13 @@ async function loadData(){
     sb('trades','select=*&event=eq.OPEN'+f)
   ]);
   rawDb={trades:res[0]||[],signals:res[1]||[],daily:res[2]||[],positions:res[3]||[]};
-  if(allAccounts.length>1){
-    var pa=await Promise.all(allAccounts.map(function(a){
+  /* per-account data — portfolio uses live only, strategy uses all */
+  var acctList=mode==='portfolio'?liveAccounts:allAccounts;
+  if(acctList.length>1){
+    var pa=await Promise.all(acctList.map(function(a){
       return sb('trades','select=*&order=ts&account_id=eq.'+a.id);
     }));
-    allAccounts.forEach(function(a,i){allAccountsData[a.id]=pa[i]||[];});
+    acctList.forEach(function(a,i){allAccountsData[a.id]=pa[i]||[];});
   }
   applyDateFilter();
   updateDayStrip();
@@ -285,8 +307,9 @@ function setMode(m,reload){
   document.getElementById('btnGtmo').className='mode-btn'+(m==='gtmo'?' active':'');
   activeTab=m==='gtmo'?'gtmo_overview':'overview';
   if(reload){
+    rebuildAccountDropdown();
     if(m==='gtmo')loadGtmoData();
-    else{destroyCharts();renderTabs();renderContent();}
+    else loadData();
   }
 }
 function onAcctChange(){
@@ -775,8 +798,8 @@ function renderPerformance(){
 
 /* ── COMPARE ─────────────────────────────────────────────────────── */
 function renderCompare(){
-  if(allAccounts.length<2)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ accounts to compare</div></div>';
-  var cards=allAccounts.map(function(a){
+  if(liveAccounts.length<2)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ live accounts to compare</div></div>';
+  var cards=liveAccounts.map(function(a){
     var cl=(allAccountsData[a.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
     var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
     var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
