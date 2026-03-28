@@ -132,6 +132,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">&#128202; Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">&#128188; Portfolio</button>
     <button class="mode-btn" id="btnGtmo" onclick="setMode('gtmo')">&#9889; GTMO&#183;GTS</button>
+    <button class="mode-btn" id="btnFgi" onclick="setMode('fgi')">&#128200; FGI</button>
   </div>
   <div class="hdr-right">
     <div class="acct-label">Account:</div>
@@ -211,6 +212,10 @@ var STABS=['overview','positions','trades','signals','daily','heatmap','currenci
 var PTABS=['overview','trades','performance','compare'];
 var TLABELS={overview:'Overview',positions:'Positions',trades:'Trades',signals:'Signals',daily:'Daily',heatmap:'Pair Heatmap',currencies:'Currencies',performance:'Performance',compare:'Compare'};
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var fgiTrades=[];
+var FTABS=['fgi_overview','fgi_trades','fgi_roadmap','fgi_settings'];
+var FLABELS={fgi_overview:'Overview',fgi_trades:'Trades',fgi_roadmap:'Roadmap',fgi_settings:'EA Settings'};
+var FGI_ACCT_ID='1e0c12dd-6c28-410e-9eb9-bda7b26d4d2e';
 
 async function sb(tbl,p){
   p=p||'';
@@ -236,7 +241,7 @@ async function init(){
   rebuildAccountDropdown();
   var sel=document.getElementById('acctSelect');
   if(saved){sel.value=saved;acctId=saved;}
-  if(sm==='gtmo')loadGtmoData();else await loadData();
+  if(sm==='gtmo')loadGtmoData();else if(sm==='fgi')loadFgiData();else await loadData();
 }
 
 /* Rebuild account dropdown based on current mode */
@@ -256,6 +261,14 @@ function rebuildAccountDropdown(){
   else if(acctId){sel.value=acctId;}
 }
 
+async function loadFgiData(){
+  var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
+  dot.className='status-dot off';txt.textContent='Loading...';
+  fgiTrades=await sb('fgi_trades','select=*&account_id=eq.1e0c12dd-6c28-410e-9eb9-bda7b26d4d2e&order=close_time');
+  dot.className='status-dot';txt.textContent='Live';
+  document.getElementById('lastSync').textContent='Synced '+new Date().toLocaleTimeString();
+  destroyCharts();renderTabs();renderContent();
+}
 async function loadData(){
   var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
   dot.className='status-dot off';txt.textContent='Loading...';
@@ -291,8 +304,8 @@ async function loadData(){
 
 /* ── FIX: renderTabs — clean, correct implementation ────────────── */
 function renderTabs(){
-  var tabs=mode==='gtmo'?GTABS:(mode==='strategy'?STABS:PTABS);
-  var allLabels=Object.assign({},TLABELS,GTLABELS);
+  var tabs=mode==='gtmo'?GTABS:mode==='fgi'?FTABS:(mode==='strategy'?STABS:PTABS);
+  var allLabels=Object.assign({},TLABELS,GTLABELS,FLABELS);
   document.getElementById('tabBar').innerHTML=tabs.map(function(t){
     return'<button class="tab'+(activeTab===t?' active':'').toString()+'" onclick="setTab(\''+t+'\')">'+allLabels[t]+'</button>';
   }).join('');
@@ -305,10 +318,12 @@ function setMode(m,reload){
   document.getElementById('btnStrategy').className='mode-btn'+(m==='strategy'?' active':'');
   document.getElementById('btnPortfolio').className='mode-btn'+(m==='portfolio'?' active':'');
   document.getElementById('btnGtmo').className='mode-btn'+(m==='gtmo'?' active':'');
-  activeTab=m==='gtmo'?'gtmo_overview':'overview';
+  document.getElementById('btnFgi').className='mode-btn'+(m==='fgi'?' active':'');
+  activeTab=m==='gtmo'?'gtmo_overview':m==='fgi'?'fgi_overview':'overview';
   if(reload){
     rebuildAccountDropdown();
     if(m==='gtmo')loadGtmoData();
+    else if(m==='fgi')loadFgiData();
     else loadData();
   }
 }
@@ -418,6 +433,11 @@ function renderContent(){
     else if(activeTab==='heatmap')    el.innerHTML=renderHeatmap();
     else if(activeTab==='currencies') el.innerHTML=renderCurrencies();
     else if(activeTab==='compare')    el.innerHTML=renderCompare();
+  } else if(mode==='fgi'){
+    if(activeTab==='fgi_overview')el.innerHTML=renderFgiOverview();
+    else if(activeTab==='fgi_trades')el.innerHTML=renderFgiTrades();
+    else if(activeTab==='fgi_roadmap')el.innerHTML=renderFgiRoadmap();
+    else if(activeTab==='fgi_settings')el.innerHTML=renderFgiSettings();
   } else if(mode==='gtmo'){
     if(activeTab==='gtmo_overview')      el.innerHTML=renderGtmoOverview();
     else if(activeTab==='gtmo_sessions') el.innerHTML=renderGtmoSessions();
@@ -1102,9 +1122,226 @@ function renderCharts(){
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
     }catch(e){}
   });
+  renderFgiCharts();
 }
 
-setInterval(function(){if(document.visibilityState==='visible'){if(mode==='gtmo')loadGtmoData();else loadData();}},60000);
+/* ═══════════════════════════════════════════════════════════════
+   FGI — Forex Gold Investor EA Testing Dashboard
+   Account: IC Markets Demo #31323667 | EA: ForexGoldInvestor v2.2
+   ═══════════════════════════════════════════════════════════════ */
+
+var FGI_JOURNEY=[
+  {period:'Month 1 (Jan 5-30)',config:'S1+S2 H1',result:139.36,notes:'UTS discovered'},
+  {period:'Week 5 (Feb 2-6)',config:'S1+S2 H1',result:37.74,notes:'UTS fixed (TurboMode2=FALSE)'},
+  {period:'Week 6 (Feb 9-13)',config:'S1+S2 H1',result:-24.81,notes:'S2 caused all losses'},
+  {period:'Week 7 (Feb 16-20)',config:'S1 H1',result:26.92,notes:'S1 viability proven'},
+  {period:'Week 8 (Feb 23-27)',config:'S1 M15',result:0.00,notes:'Capital preservation, choppy market'},
+  {period:'Week 9 (Mar 2-6)',config:'S1 M15',result:4.25,notes:'2 trades, 100% win rate'},
+  {period:'Week 10 (Mar 9-13)',config:'S2 M15',result:50.79,notes:'Good Monday, protection 2x'},
+  {period:'Weeks 11-12 (Mar 16-28)',config:'S2 M15',result:-77.00,notes:'Sustained downtrend, protection daily'}
+];
+
+var FGI_ROADMAP=[
+  {num:1,label:'S1 alone',status:'done'},
+  {num:2,label:'S2 alone',status:'done'},
+  {num:3,label:'S3 alone',status:'next'},
+  {num:4,label:'S1 + S2',status:'pending'},
+  {num:5,label:'S1 + S3',status:'pending'},
+  {num:6,label:'S2 + S3',status:'pending'},
+  {num:7,label:'S1 + S2 + S3',status:'pending'}
+];
+
+function fgiPnl(v){return(v>=0?'+':'')+v.toFixed(2);}
+
+/* ── FGI OVERVIEW ───────────────────────────────────────────────── */
+function renderFgiOverview(){
+  var bal=1156.63;
+  var totalPnl=156.63;
+  var pct=15.66;
+
+  /* Equity curve from journey data */
+  var run=1000.00,eqPts=[{x:'2026-01-05',y:1000}];
+  FGI_JOURNEY.forEach(function(w){run+=w.result;eqPts.push({x:w.period.slice(w.period.indexOf('(')+1,w.period.indexOf(')')),y:+run.toFixed(2)});});
+  var eqL=eqPts.map(function(p){return p.x;});
+  var eqV=eqPts.map(function(p){return p.y;});
+
+  /* Phase bar */
+  var wLabels=FGI_JOURNEY.map(function(w){return w.config;});
+  var wVals=FGI_JOURNEY.map(function(w){return w.result;});
+
+  var out='';
+
+  /* KPI bar */
+  out+='<div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">';
+  out+='<div class="kpi"><div class="kpi-label">Balance</div><div class="kpi-val gold">&#163;'+bal.toFixed(2)+'</div><div class="kpi-sub">IC Markets Demo</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val pos">&#163;+'+totalPnl.toFixed(2)+'</div><div class="kpi-sub">From &#163;1,000.00 start</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Return</div><div class="kpi-val pos">+'+pct.toFixed(2)+'%</div><div class="kpi-sub">Since Jan 5 2026</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Active Phase</div><div class="kpi-val" style="font-size:15px">S3 Testing</div><div class="kpi-sub">Starts Mon Mar 30</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Phases Done</div><div class="kpi-val">2 / 7</div><div class="kpi-sub">S1 &#10003; S2 &#10003;</div></div>';
+  out+='</div>';
+
+  /* Charts row */
+  out+='<div class="charts-row-2" style="margin-bottom:20px">';
+  out+='<div class="equity-card" style="margin-bottom:0"><div class="chart-title">Account Journey — Equity</div><div class="equity-wrap"><canvas id="fgiEqChart" data-labels="'+encodeURIComponent(JSON.stringify(eqL))+'" data-vals="'+encodeURIComponent(JSON.stringify(eqV))+'"></canvas></div></div>';
+  out+='<div class="equity-card" style="margin-bottom:0"><div class="chart-title">P&L by Phase</div><div class="equity-wrap"><canvas id="fgiPhaseChart" data-labels="'+encodeURIComponent(JSON.stringify(wLabels))+'" data-vals="'+encodeURIComponent(JSON.stringify(wVals))+'"></canvas></div></div>';
+  out+='</div>';
+
+  /* Account journey table */
+  out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Account Journey</span><span class="count-badge">'+FGI_JOURNEY.length+' phases</span></div>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>Period</th><th>Config</th><th>Result</th><th>Notes</th></tr></thead><tbody>';
+  FGI_JOURNEY.forEach(function(w){
+    out+='<tr>';
+    out+='<td style="color:#94a3b8">'+w.period+'</td>';
+    out+='<td style="color:#1e40af;font-weight:700">'+w.config+'</td>';
+    out+='<td style="color:'+(w.result>=0?'#16a34a':'#dc2626')+';font-weight:700">&#163;'+fgiPnl(w.result)+'</td>';
+    out+='<td style="color:#64748b">'+w.notes+'</td>';
+    out+='</tr>';
+  });
+  out+='</tbody></table></div></div>';
+
+  /* Live trades from DB (if any) */
+  if(fgiTrades.length){
+    var wins=fgiTrades.filter(function(t){return parseFloat(t.net_profit||0)>0;}).length;
+    var losses=fgiTrades.filter(function(t){return parseFloat(t.net_profit||0)<0;}).length;
+    var livePnl=fgiTrades.reduce(function(s,t){return s+parseFloat(t.net_profit||0);},0);
+    out+='<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">';
+    out+='<div class="kpi"><div class="kpi-label">Logged Trades</div><div class="kpi-val">'+fgiTrades.length+'</div></div>';
+    out+='<div class="kpi"><div class="kpi-label">Win / Loss</div><div class="kpi-val">'+wins+'W / '+losses+'L</div></div>';
+    out+='<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(fgiTrades.length?((wins/fgiTrades.length)*100).toFixed(1):0)+'%</div></div>';
+    out+='<div class="kpi"><div class="kpi-label">Net P&L (logged)</div><div class="kpi-val '+(livePnl>=0?'pos':'neg')+'">&#163;'+fgiPnl(livePnl)+'</div></div>';
+    out+='</div>';
+  }
+  return out;
+}
+
+/* ── FGI TRADES ─────────────────────────────────────────────────── */
+function renderFgiTrades(){
+  if(!fgiTrades.length){
+    return '<div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-msg">No trades logged yet</div><div class="empty-sub">Trades from S3 testing will appear here once synced</div></div>';
+  }
+  var sysOpts='<option value="">All Systems</option><option value="1">S1</option><option value="2">S2</option><option value="3">S3</option>';
+  var weekNums=Array.from(new Set(fgiTrades.map(function(t){return t.week_number;}).filter(Boolean))).sort(function(a,b){return a-b;});
+  var weekOpts='<option value="">All Weeks</option>'+weekNums.map(function(w){return'<option value="'+w+'">Week '+w+'</option>';}).join('');
+  var out='<div class="table-card"><div class="table-header"><span class="table-title">FGI Trade Log</span><span class="count-badge" id="fgiTrdCount">'+fgiTrades.length+'</span>';
+  out+='<div class="filters">';
+  out+='<select id="fgiSysF" onchange="filterFgiTrades()">'+sysOpts+'</select>';
+  out+='<select id="fgiWkF" onchange="filterFgiTrades()">'+weekOpts+'</select>';
+  out+='<select id="fgiDirF" onchange="filterFgiTrades()"><option value="">Both</option><option>BUY</option><option>SELL</option></select>';
+  out+='</div></div>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>Open</th><th>Close</th><th>System</th><th>Dir</th><th>Lots</th><th>Entry</th><th>Exit</th><th>Profit</th><th>Comm</th><th>Net</th><th>Week</th><th>Config</th></tr></thead>';
+  out+='<tbody id="fgiTrdBody">'+renderFgiTradeRows(fgiTrades)+'</tbody></table></div></div>';
+  return out;
+}
+function renderFgiTradeRows(rows){
+  return rows.slice().reverse().map(function(t){
+    var net=parseFloat(t.net_profit||0);
+    var row='<tr>';
+    row+='<td style="color:#94a3b8">'+(t.open_time||'--').toString().slice(0,16)+'</td>';
+    row+='<td style="color:#94a3b8">'+(t.close_time||'--').toString().slice(0,16)+'</td>';
+    row+='<td style="color:#1e40af;font-weight:700">'+(t.system?'S'+t.system:'--')+'</td>';
+    row+='<td>'+(t.direction?('<span class="badge-'+(t.direction.toLowerCase())+'">'+t.direction+'</span>'):'--')+'</td>';
+    row+='<td>'+parseFloat(t.lots||0).toFixed(2)+'</td>';
+    row+='<td>'+parseFloat(t.open_price||0).toFixed(2)+'</td>';
+    row+='<td>'+parseFloat(t.close_price||0).toFixed(2)+'</td>';
+    row+='<td style="color:'+(parseFloat(t.profit||0)>=0?'#16a34a':'#dc2626')+'">&#163;'+parseFloat(t.profit||0).toFixed(2)+'</td>';
+    row+='<td style="color:#64748b">&#163;'+parseFloat(t.commission||0).toFixed(2)+'</td>';
+    row+='<td style="color:'+(net>=0?'#16a34a':'#dc2626')+';font-weight:700">&#163;'+fgiPnl(net)+'</td>';
+    row+='<td>'+(t.week_number?'W'+t.week_number:'--')+'</td>';
+    row+='<td style="color:#94a3b8">'+(t.config||'--')+'</td>';
+    row+='</tr>';
+    return row;
+  }).join('');
+}
+function filterFgiTrades(){
+  var sys=(document.getElementById('fgiSysF')||{}).value||'';
+  var wk=(document.getElementById('fgiWkF')||{}).value||'';
+  var dir=(document.getElementById('fgiDirF')||{}).value||'';
+  var rows=fgiTrades;
+  if(sys)rows=rows.filter(function(t){return String(t.system)===sys;});
+  if(wk)rows=rows.filter(function(t){return String(t.week_number)===wk;});
+  if(dir)rows=rows.filter(function(t){return t.direction===dir;});
+  var body=document.getElementById('fgiTrdBody');if(body)body.innerHTML=renderFgiTradeRows(rows);
+  var cnt=document.getElementById('fgiTrdCount');if(cnt)cnt.textContent=rows.length;
+}
+
+/* ── FGI ROADMAP ────────────────────────────────────────────────── */
+function renderFgiRoadmap(){
+  var S1_VERDICT='Long-only, momentum-triggered. Profitable in uptrends only. Buys tops in downtrend — structural limitation. TurboMode2=FALSE confirmed. Testing complete.';
+  var S2_VERDICT='Bi-directional, ultra-patient sniper. 83.3% win rate over 12 trades (Weeks 7-9). Trailing stops, waits 24-72h+ for quality setup. Testing complete.';
+  var out='<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">';
+  out+='<div class="kpi"><div class="kpi-label">Phases Complete</div><div class="kpi-val pos">2 / 7</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Current Phase</div><div class="kpi-val gold" style="font-size:15px">S3 Alone</div><div class="kpi-sub">Starts Mon Mar 30</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Live Trading Gate</div><div class="kpi-val" style="font-size:15px">Phase 7</div><div class="kpi-sub">S1+S2+S3 required</div></div>';
+  out+='</div>';
+  out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Testing Roadmap — All 7 Combinations</span></div>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>#</th><th>Combination</th><th>Status</th><th>Notes</th></tr></thead><tbody>';
+  var statusMap={done:'&#9989; Complete',next:'&#9203; NEXT',pending:'&#9744; Pending'};
+  var statusColor={done:'#16a34a',next:'#d97706',pending:'#94a3b8'};
+  var notesMap={1:'S1 viability proven. 83.3% win rate. Bi-directional, patient.',2:'Long-only limitation confirmed. Profitable in uptrends only.',3:'Starts Mon Mar 30. Behaviour completely unknown — AutoMM_Max3=1.0.',4:'Pending S3 test',5:'Pending S3 test',6:'Pending S3 test',7:'Prerequisite for live trading consideration'};
+  FGI_ROADMAP.forEach(function(r){
+    out+='<tr>';
+    out+='<td style="font-weight:700;color:#1e40af">'+r.num+'</td>';
+    out+='<td style="font-weight:700">'+r.label+(r.num===7?' &#9733;':'')+'</td>';
+    out+='<td style="color:'+statusColor[r.status]+';font-weight:700">'+statusMap[r.status]+'</td>';
+    out+='<td style="color:#64748b;font-size:11px">'+(notesMap[r.num]||'')+'</td>';
+    out+='</tr>';
+  });
+  out+='</tbody></table></div></div>';
+  out+='<div class="charts-row-2">';
+  out+='<div class="compare-card" style="border-left:4px solid #16a34a"><div class="compare-title">&#10003; S1 — Ultra-Patient Sniper</div><div class="compare-sub">Weeks 7-9 (H1 then M15) | Testing complete</div><div style="font-size:12px;color:#334155;line-height:1.6;margin-top:8px">'+S2_VERDICT+'</div></div>';
+  out+='<div class="compare-card" style="border-left:4px solid #16a34a"><div class="compare-title">&#10003; S2 — Momentum Machine</div><div class="compare-sub">Weeks 10-12 (M15) | Testing complete</div><div style="font-size:12px;color:#334155;line-height:1.6;margin-top:8px">'+S1_VERDICT+'</div></div>';
+  out+='</div>';
+  out+='<div class="compare-card" style="border-left:4px solid #d97706;margin-bottom:20px"><div class="compare-title">&#9203; S3 — Unknown</div><div class="compare-sub">Starts Mon Mar 30 | Behaviour completely unknown</div><div style="font-size:12px;color:#334155;line-height:1.6;margin-top:8px">Settings now balanced with S1/S2. AutoMM_Max3 corrected to 1.0 (was 10.0 by default). AutoMM3=0.1. Approach with caution and patience. Full MT4 restart required before start.</div></div>';
+  return out;
+}
+
+/* ── FGI SETTINGS ───────────────────────────────────────────────── */
+function renderFgiSettings(){
+  function row(label,val,warn){
+    return '<div class="insp-row"><span class="insp-label">'+label+'</span><span class="insp-val" style="color:'+(warn?'#dc2626':'#1e293b')+'">'+val+'</span></div>';
+  }
+  var out='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">';
+  out+='<div class="compare-card" style="border-left:4px solid #dc2626"><div class="compare-title" style="color:#dc2626">&#128274; Locked EA Settings</div><div class="compare-sub">NEVER change without explicit discussion</div>';
+  out+=row('TurboMode2','FALSE — SACRED (UTS fix)',true);
+  out+=row('AutoMM_Max1','1.0',false);out+=row('AutoMM_Max2','1.0',false);out+=row('AutoMM_Max3','1.0 (corrected from 10.0)',false);
+  out+=row('AutoMM1','0.1',false);out+=row('AutoMM2','0.1',false);out+=row('AutoMM3','0.1 (corrected from 0.0)',false);
+  out+=row('FixedLots1/2/3','0.01',false);
+  out+='</div>';
+  out+='<div class="compare-card" style="border-left:4px solid #f59e0b"><div class="compare-title" style="color:#d97706">&#128737; Protection Panel</div><div class="compare-sub">Always ON — never disable</div>';
+  out+=row('Max daily loss','&#163;30.00',false);out+=row('Max daily drawdown %','2.00%',false);out+=row('Max losing trades/day','2',false);out+=row('Min Equity','&#163;400.00',false);out+=row('Max Equity drawdown %','10.00%',false);
+  out+='</div></div>';
+  out+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">';
+  out+='<div class="compare-card" style="border-left:4px solid #3b82f6"><div class="compare-title" style="color:#1e40af">&#128336; Time Filters</div><div class="compare-sub">Broker time GMT+3 (post-DST)</div>';
+  out+=row('All days active','10,11,12,13,14,15,16,17,18,19,20,21,22',false);out+=row('UK equivalent','08:00-20:00 (verify first trade)',false);out+=row('DST caution','May need 11-23 if shifted',false);
+  out+='</div>';
+  out+='<div class="compare-card" style="border-left:4px solid #10b981"><div class="compare-title" style="color:#059669">&#9654; S3 Setup (Sunday Mar 30 eve)</div><div class="compare-sub">Full MT4 restart required after changes</div>';
+  out+=row('UseSystem1','false',false);out+=row('UseSystem2','false',false);out+=row('UseSystem3','true - enabling for first time',false);
+  out+='</div></div>';
+  out+='<div class="compare-card" style="border-left:4px solid #7c3aed;margin-bottom:20px"><div class="compare-title" style="color:#7c3aed">&#9888; Critical Rules</div><div class="compare-sub">Partnership protocol — nothing changes without explicit agreement</div>';
+  var rules=['AutoMM_Max = 1.0 on ALL systems — life insurance','TurboMode2 = FALSE always','Protection Panel always ON','Never restart EA for silence — patience is the strategy','No setting changes without discussion and agreement','Time filters = broker time, not UK time','UTS self-resets after 30 min — check lots first, do not panic','S3 AutoMM_Max3 must stay 1.0 — was 10.0 by default'];
+  rules.forEach(function(r,i){out+='<div style="padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:12px;color:#334155"><b>'+(i+1)+'.</b> '+r+'</div>';});
+  out+='</div>';
+  return out;
+}
+
+/* ── FGI CHARTS ─────────────────────────────────────────────────── */
+function renderFgiCharts(){
+  var cd={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}};
+  var fgiEq=document.getElementById('fgiEqChart');
+  if(fgiEq){try{
+    var el=JSON.parse(decodeURIComponent(fgiEq.dataset.labels||'[]'));
+    var ev=JSON.parse(decodeURIComponent(fgiEq.dataset.vals||'[]'));
+    charts.fgiEq=new Chart(fgiEq,{type:'line',data:{labels:el,datasets:[{data:ev,borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.1)',fill:true,tension:.3,pointRadius:3,borderWidth:2}]},options:Object.assign({},cd,{plugins:Object.assign({},cd.plugins,{datalabels:{display:false}})})});
+  }catch(e){console.warn('FGI eq:',e);}}
+  var fgiPh=document.getElementById('fgiPhaseChart');
+  if(fgiPh){try{
+    var pl=JSON.parse(decodeURIComponent(fgiPh.dataset.labels||'[]'));
+    var pv=JSON.parse(decodeURIComponent(fgiPh.dataset.vals||'[]'));
+    charts.fgiPh=new Chart(fgiPh,{type:'bar',data:{labels:pl,datasets:[{data:pv,backgroundColor:pv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:Object.assign({},cd,{layout:{padding:{top:20}},plugins:Object.assign({},cd.plugins,{datalabels:{display:true,anchor:'end',align:'end',offset:2,font:{size:8,weight:'700'},formatter:function(v){return(v>=0?'+':'')+v.toFixed(0);},color:function(ctx){return ctx.dataset.data[ctx.dataIndex]>=0?'#166534':'#991b1b';}}})})});
+  }catch(e){console.warn('FGI phase:',e);}}
+}
+
+setInterval(function(){if(document.visibilityState==='visible'){if(mode==='gtmo')loadGtmoData();else if(mode==='fgi')loadFgiData();else loadData();}},60000);
 init();
 </script>
 </body>
