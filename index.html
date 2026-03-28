@@ -247,8 +247,11 @@ async function init(){
 /* Rebuild account dropdown based on current mode */
 function rebuildAccountDropdown(){
   var sel=document.getElementById('acctSelect');
-  var accounts=mode==='portfolio'?liveAccounts:allAccounts;
-  var label=mode==='portfolio'?'All Live Accounts':'All Accounts';
+  var accounts,label;
+  if(mode==='portfolio'){accounts=liveAccounts;label='All Live Accounts';}
+  else if(mode==='gtmo'){accounts=allAccounts.filter(function(a){return a.strategy==='GTMO'||a.strategy==='GTS';});label='All GTMO\u00b7GTS';}
+  else if(mode==='fgi'){accounts=allAccounts.filter(function(a){return a.strategy==='FGI';});label='FGI Account';}
+  else{accounts=allAccounts.filter(function(a){return a.strategy==='CSEA';});label='All CSEA';}
   sel.innerHTML='<option value="">'+label+'</option>';
   accounts.forEach(function(a){
     var o=document.createElement('option');
