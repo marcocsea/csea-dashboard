@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CSEA Trading Intelligence v5.6.0</title>
+<title>CSEA Trading Intelligence v5.6.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -161,7 +161,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 
 <div class="header">
   <div class="logo">&#9889; <span>CSEA</span> Intelligence</div>
-  <div class="badge">v5.6.0</div>
+  <div class="badge">v5.6.1</div>
   <div class="mode-toggle">
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">&#128202; Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">&#128188; Portfolio</button>
@@ -239,7 +239,7 @@ var allAccounts=[],allAccountsData={},charts={};
 var rawDb={trades:[],signals:[],daily:[],positions:[]};
 var db={trades:[],signals:[],daily:[],positions:[]};
 var dateFrom='',dateTo='',activePreset='all';
-var gtmoSessions=[],gtmoAccounts=[],liveAccounts=[];
+var gtmoSessions=[],gtmoAccounts=[],liveAccounts=[],cseaAccounts=[];
 var GTABS=['gtmo_overview','gtmo_sessions','gtmo_equity'];
 var GTLABELS={gtmo_overview:'Overview',gtmo_sessions:'Sessions',gtmo_equity:'Equity & Risk'};
 var STABS=['overview','positions','trades','signals','daily','heatmap','currencies','compare'];
@@ -271,7 +271,7 @@ async function init(){
   var sm=localStorage.getItem('csea_mode')||'strategy';
   setMode(sm,false);
   allAccounts=await sb('accounts','select=*&order=created_at');
-  liveAccounts=allAccounts.filter(function(a){return a.account_type==='live';});
+  liveAccounts=allAccounts.filter(function(a){return a.account_type==='live';});cseaAccounts=allAccounts.filter(function(a){return a.strategy==='CSEA';});
   rebuildAccountDropdown();
   var sel=document.getElementById('acctSelect');
   if(saved){sel.value=saved;acctId=saved;}
@@ -321,7 +321,7 @@ async function loadData(){
     sb('trades','select=*&event=eq.OPEN'+f)
   ]);
   rawDb={trades:res[0]||[],signals:res[1]||[],daily:res[2]||[],positions:res[3]||[]};
-  var acctList=mode==='portfolio'?liveAccounts:allAccounts;
+  var acctList=mode==='portfolio'?liveAccounts:mode==='strategy'?cseaAccounts:allAccounts;
   if(acctList.length>1){
     var pa=await Promise.all(acctList.map(function(a){
       return sb('trades','select=*&order=ts&account_id=eq.'+a.id);
@@ -514,7 +514,7 @@ function renderStratOverview(){
   out+='<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">$'+mdd.toFixed(2)+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Duration</div><div class="kpi-val">'+ad+'h</div></div>';
   out+='</div>';
-  out+='<div class="equity-card"><div class="chart-title">Equity Curve</div><div class="equity-wrap"><canvas id="eqChart" data-labels="'+eqLabels+'" data-values="'+eqVals+'"></canvas></div></div>';
+  var orphanOPENs=rawDb.trades.filter(function(t){if(t.event!=='OPEN')return false;return!rawDb.trades.some(function(c){return c.ticket===t.ticket&&(c.event==='CLOSE'||c.event==='COMPOUND_CLOSE');});}).length;out+='<div style="background:'+(orphanOPENs===0?'#f0fdf4':'#fef2f2')+';border-left:3px solid '+(orphanOPENs===0?'#16a34a':'#dc2626')+';padding:8px 14px;border-radius:0 6px 6px 0;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-size:11px"><span style="font-weight:600">'+(orphanOPENs===0?'&#10003; Data health OK &mdash; '+rawDb.positions.length+' open, no orphaned records':'&#9888; '+orphanOPENs+' orphaned OPEN records detected &mdash; check Supabase')+'</span><span style="margin-left:auto;color:#94a3b8">Clean start: 23 Mar 2026 &middot; EA v3.67</span></div>';out+='<div class="equity-card"><div class="chart-title">Equity Curve</div><div class="equity-wrap"><canvas id="eqChart" data-labels="'+eqLabels+'" data-values="'+eqVals+'"></canvas></div></div>';
   out+='<div style="margin-bottom:20px"><div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="ovMonthlyChart"></canvas></div></div></div>';
   out+='<div class="charts-row-2">';
   out+='<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="ovWeeklyChart"></canvas></div></div>';
@@ -850,8 +850,9 @@ function renderPerformance(){
 
 /* ── COMPARE ─────────────────────────────────────────────────────── */
 function renderCompare(){
-  if(liveAccounts.length<2)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ live accounts to compare</div></div>';
-  var cards=liveAccounts.map(function(a){
+  var compareList=mode==='strategy'?cseaAccounts:liveAccounts;
+  if(compareList.length<2)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">Need 2+ CSEA accounts to compare</div></div>';
+  var cards=compareList.map(function(a){
     var cl=(allAccountsData[a.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
     var pnl=cl.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
     var wins=cl.filter(function(t){return parseFloat(t.pnl||0)>0;}).length;
