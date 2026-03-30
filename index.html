@@ -1693,7 +1693,7 @@ function renderFgiCharts(){
   }catch(e){console.warn('FGI phase:',e);}}
 }
 
-setInterval(function(){if(document.visibilityState==='visible'){if(mode==='gtmo')loadGtmoData();else if(mode==='fgi')loadFgiData();else loadData();}},60000);
+setInterval(function(){if(document.visibilityState==='visible'){if(mode==='gtmo')loadGtmoData();else if(mode==='fgi')loadFgiData();else loadData();}},3600000);
 init();
 </script>
 </body>
