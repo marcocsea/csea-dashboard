@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CSEA Trading Intelligence v5.5.3</title>
+<title>CSEA Trading Intelligence v5.6.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
@@ -59,6 +59,7 @@ body{background:#f1f5f9;color:#1e293b;font-family:'Segoe UI',system-ui,sans-seri
 .chart-title{font-size:12px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px}
 .chart-wrap{position:relative;height:190px}
 .charts-row-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.charts-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
 .equity-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
 .equity-wrap{position:relative;height:220px}
 .table-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
@@ -120,14 +121,47 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 .empty-sub{font-size:12px;margin-top:6px}
 .csv-btn{background:#22c55e;border:none;color:#fff;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer}
 .csv-btn:hover{background:#16a34a}
-@media(max-width:768px){.charts-row-2,.compare-grid,.cur-grid,.perf-grid{grid-template-columns:1fr}.day-strip{gap:8px}}
+/* GTMO-specific */
+.dir-panel{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.dir-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.dir-card.buy{border-top:3px solid #16a34a}
+.dir-card.sell{border-top:3px solid #dc2626}
+.dir-title{font-size:13px;font-weight:700;margin-bottom:12px}
+.dir-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.dir-stat{background:var(--bg3);border-radius:6px;padding:8px;text-align:center}
+.dir-stat-label{font-size:10px;color:var(--sub);font-weight:600;margin-bottom:3px}
+.dir-stat-val{font-size:15px;font-weight:700}
+.risk-ok{color:#16a34a;font-weight:700}
+.risk-warn{color:#d97706;font-weight:700}
+.risk-danger{color:#dc2626;font-weight:700}
+.acct-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.acct-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.acct-name{font-size:14px;font-weight:700;color:#1e293b}
+.acct-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.acct-kpi{background:var(--bg3);border-radius:6px;padding:8px}
+.acct-kpi-label{font-size:10px;color:var(--sub);font-weight:600;margin-bottom:2px}
+.acct-kpi-val{font-size:14px;font-weight:700}
+.streak-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.streak-pos{background:#dcfce7;color:#16a34a}
+.streak-neg{background:#fee2e2;color:#dc2626}
+.streak-zero{background:#f1f5f9;color:#64748b}
+.monthly-grid-wrap{overflow-x:auto;margin-bottom:20px}
+.monthly-grid-tbl{border-collapse:collapse;font-size:12px;min-width:600px}
+.monthly-grid-tbl th{background:var(--bg3);padding:8px 10px;font-size:11px;font-weight:600;color:var(--sub);border:1px solid var(--border);text-align:center}
+.monthly-grid-tbl td{padding:8px 10px;border:1px solid var(--border);text-align:center;font-weight:600;min-width:52px}
+.dow-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px}
+.dow-cell{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.dow-label{font-size:11px;color:var(--sub);font-weight:600;margin-bottom:6px}
+.dow-val{font-size:18px;font-weight:700;margin-bottom:3px}
+.dow-sub{font-size:10px;color:var(--sub)}
+@media(max-width:768px){.charts-row-2,.charts-row-3,.compare-grid,.cur-grid,.perf-grid,.dir-panel{grid-template-columns:1fr}.day-strip{gap:8px}}
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="logo">&#9889; <span>CSEA</span> Intelligence</div>
-  <div class="badge">v5.5.3</div>
+  <div class="badge">v5.6.0</div>
   <div class="mode-toggle">
     <button class="mode-btn active" id="btnStrategy" onclick="setMode('strategy')">&#128202; Strategy</button>
     <button class="mode-btn" id="btnPortfolio" onclick="setMode('portfolio')">&#128188; Portfolio</button>
@@ -207,7 +241,7 @@ var db={trades:[],signals:[],daily:[],positions:[]};
 var dateFrom='',dateTo='',activePreset='all';
 var gtmoSessions=[],gtmoAccounts=[],liveAccounts=[];
 var GTABS=['gtmo_overview','gtmo_sessions','gtmo_equity'];
-var GTLABELS={gtmo_overview:'Overview',gtmo_sessions:'Sessions',gtmo_equity:'Equity Curve'};
+var GTLABELS={gtmo_overview:'Overview',gtmo_sessions:'Sessions',gtmo_equity:'Equity & Risk'};
 var STABS=['overview','positions','trades','signals','daily','heatmap','currencies','compare'];
 var PTABS=['overview','trades','performance','compare'];
 var TLABELS={overview:'Overview',positions:'Positions',trades:'Trades',signals:'Signals',daily:'Daily',heatmap:'Pair Heatmap',currencies:'Currencies',performance:'Performance',compare:'Compare'};
@@ -244,7 +278,6 @@ async function init(){
   if(sm==='gtmo')loadGtmoData();else if(sm==='fgi')loadFgiData();else await loadData();
 }
 
-/* Rebuild account dropdown based on current mode */
 function rebuildAccountDropdown(){
   var sel=document.getElementById('acctSelect');
   var accounts,label;
@@ -258,7 +291,6 @@ function rebuildAccountDropdown(){
     o.value=a.id;o.textContent=a.label||a.name||a.account_number;
     sel.appendChild(o);
   });
-  /* if current acctId is not in new list, reset it */
   var ids=accounts.map(function(a){return a.id;});
   if(acctId&&ids.indexOf(acctId)<0){acctId='';sel.value='';}
   else if(acctId){sel.value=acctId;}
@@ -279,7 +311,6 @@ async function loadData(){
   if(acctId){
     f='&account_id=eq.'+acctId;
   } else if(mode==='portfolio'){
-    /* portfolio with no specific account = all live accounts only */
     var liveIds=liveAccounts.map(function(a){return a.id;});
     if(liveIds.length)f='&account_id=in.('+liveIds.join(',')+')';
   }
@@ -290,7 +321,6 @@ async function loadData(){
     sb('trades','select=*&event=eq.OPEN'+f)
   ]);
   rawDb={trades:res[0]||[],signals:res[1]||[],daily:res[2]||[],positions:res[3]||[]};
-  /* per-account data — portfolio uses live only, strategy uses all */
   var acctList=mode==='portfolio'?liveAccounts:allAccounts;
   if(acctList.length>1){
     var pa=await Promise.all(acctList.map(function(a){
@@ -305,7 +335,6 @@ async function loadData(){
   destroyCharts();renderTabs();renderContent();
 }
 
-/* ── FIX: renderTabs — clean, correct implementation ────────────── */
 function renderTabs(){
   var tabs=mode==='gtmo'?GTABS:mode==='fgi'?FTABS:(mode==='strategy'?STABS:PTABS);
   var allLabels=Object.assign({},TLABELS,GTLABELS,FLABELS);
@@ -479,7 +508,7 @@ function renderStratOverview(){
   out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+(pf)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+aw+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+al+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">$'+mdd.toFixed(2)+'</div></div>';
@@ -846,6 +875,10 @@ function renderCompare(){
   return'<div class="compare-grid">'+cards+'</div>';
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   GTMO · GTS — REBUILT DASHBOARD v2.0
+   ══════════════════════════════════════════════════════════════════ */
+
 /* ── GTMO DATA LOAD ─────────────────────────────────────────────── */
 async function loadGtmoData(){
   var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
@@ -857,6 +890,85 @@ async function loadGtmoData(){
   destroyCharts();renderTabs();renderContent();
 }
 
+/* ── GTMO HELPERS ───────────────────────────────────────────────── */
+function gtmoSnap(s){
+  var snap=s.state_snapshot;
+  try{if(typeof snap==='string')snap=JSON.parse(snap);}catch(e){snap={};}
+  return snap||{};
+}
+function gtmoStreak(ss){
+  /* ss must be sorted newest-first */
+  if(!ss.length)return 0;
+  var dir=ss[0].result==='WIN'?1:-1,count=0;
+  for(var i=0;i<ss.length;i++){
+    if((ss[i].result==='WIN'?1:-1)===dir)count++;
+    else break;
+  }
+  return dir*count;
+}
+function gtmoMiniEqData(ss){
+  /* ss newest-first → reverse to oldest-first for cumulative */
+  var pts=ss.slice().reverse();
+  var run=0,ys=[];
+  pts.forEach(function(s){run+=parseFloat(s.net_pnl||0);ys.push(+run.toFixed(2));});
+  return ys;
+}
+function gtmoWeeklyPnl(ss,nWeeks){
+  var buckets={};
+  ss.forEach(function(s){
+    if(!s.session_date)return;
+    var d=new Date(s.session_date+'T12:00:00Z');
+    var day=d.getDay();
+    var mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));
+    var wk=mon.toISOString().slice(0,10);
+    buckets[wk]=(buckets[wk]||0)+parseFloat(s.net_pnl||0);
+  });
+  var keys=Object.keys(buckets).sort().slice(-(nWeeks||8));
+  return{labels:keys.map(function(k){return k.slice(5);}),vals:keys.map(function(k){return+buckets[k].toFixed(2);})};
+}
+function gtmoDirStats(ss,dir){
+  var rows=dir?ss.filter(function(s){return s.signal_direction===dir;}):ss;
+  var wins=rows.filter(function(s){return s.result==='WIN';});
+  var losses=rows.filter(function(s){return s.result==='LOSS';});
+  var totalPnl=rows.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0);
+  var gw=wins.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0);
+  var gl=Math.abs(losses.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0));
+  var aw=wins.length?gw/wins.length:0;
+  var al=losses.length?gl/losses.length:0;
+  var pf=gl>0?(gw/gl):null;
+  var wr=rows.length?(wins.length/rows.length*100):0;
+  return{total:rows.length,wins:wins.length,losses:losses.length,totalPnl:totalPnl,wr:wr,aw:aw,al:al,pf:pf,gw:gw,gl:gl};
+}
+function gtmoMonthlyGrid(ss){
+  var ym={};
+  ss.forEach(function(s){
+    if(!s.session_date)return;
+    var yr=s.session_date.slice(0,4),mo=parseInt(s.session_date.slice(5,7))-1;
+    if(!ym[yr])ym[yr]=new Array(12).fill(null);
+    ym[yr][mo]=(ym[yr][mo]||0)+parseFloat(s.net_pnl||0);
+  });
+  var years=Object.keys(ym).sort();
+  if(!years.length)return'';
+  var MNAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var head='<tr><th style="text-align:left;background:var(--bg3);padding:8px 10px;font-size:11px;color:var(--sub);border:1px solid var(--border)">Year</th>';
+  MNAMES.forEach(function(m){head+='<th style="background:var(--bg3);padding:8px 10px;font-size:11px;color:var(--sub);border:1px solid var(--border)">'+m+'</th>';});
+  head+='<th style="background:var(--bg3);padding:8px 10px;font-size:11px;color:var(--sub);border:1px solid var(--border);border-left:2px solid #cbd5e1">Total</th></tr>';
+  var body=years.map(function(yr){
+    var row=ym[yr];
+    var ytd=row.reduce(function(s,v){return s+(v||0);},0);
+    var cells=row.map(function(v){
+      if(v===null)return'<td style="padding:8px 10px;border:1px solid var(--border);text-align:center;color:#94a3b8;font-size:12px">--</td>';
+      var col=v>0?'#16a34a':'#dc2626';
+      var bg=v>0?'#f0fdf4':'#fef2f2';
+      return'<td style="padding:8px 10px;border:1px solid var(--border);text-align:center;font-weight:600;font-size:12px;color:'+col+';background:'+bg+'">&#163;'+fmtPnl(v)+'</td>';
+    }).join('');
+    var ytdCol=ytd>=0?'#16a34a':'#dc2626';
+    var ytdBg=ytd>=0?'#f0fdf4':'#fef2f2';
+    return'<tr><td style="padding:8px 10px;border:1px solid var(--border);font-weight:700;color:#1e293b;font-size:12px">'+yr+'</td>'+cells+'<td style="padding:8px 10px;border:1px solid var(--border);border-left:2px solid #cbd5e1;text-align:center;font-weight:800;font-size:12px;color:'+ytdCol+';background:'+ytdBg+'">&#163;'+fmtPnl(ytd)+'</td></tr>';
+  }).join('');
+  return'<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:700px"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
+}
+
 /* ── GTMO OVERVIEW ─────────────────────────────────────────────── */
 function renderGtmoOverview(){
   var COLORS=['#3b82f6','#f59e0b','#10b981'];
@@ -865,48 +977,117 @@ function renderGtmoOverview(){
   var losses=gtmoSessions.filter(function(s){return s.result==='LOSS';}).length;
   var totalPnl=gtmoSessions.reduce(function(s,x){return s+parseFloat(x.net_pnl||0);},0);
   var wr=total?(wins/total*100).toFixed(1):0;
-  var out='<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">';
-  out+='<div class="kpi"><div class="kpi-label">Total Sessions</div><div class="kpi-val">'+total+'</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+(total?wr+'%':'--')+'</div><div class="kpi-sub">'+wins+'W / '+losses+'L</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Total Net P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Avg Net P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">'+(total?'$'+(totalPnl/total).toFixed(2):'--')+'</div></div>';
+  var allWins=gtmoSessions.filter(function(s){return s.result==='WIN';});
+  var allLosses=gtmoSessions.filter(function(s){return s.result==='LOSS';});
+  var avgWin=allWins.length?(allWins.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0)/allWins.length):0;
+  var avgLoss=allLosses.length?(Math.abs(allLosses.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0))/allLosses.length):0;
+  var grossW=allWins.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0);
+  var grossL=Math.abs(allLosses.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0));
+  var pf=grossL>0?(grossW/grossL).toFixed(2):'&infin;';
+  var streak=gtmoStreak(gtmoSessions);
+
+  /* Week P&L for this month */
+  var now=new Date();
+  var thisMonth=now.getFullYear()+'-'+(now.getMonth()<9?'0':'')+(now.getMonth()+1);
+  var monthSessions=gtmoSessions.filter(function(s){return(s.session_date||'').slice(0,7)===thisMonth;});
+  var monthPnl=monthSessions.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0);
+
+  /* Best / worst single session */
+  var allPnls=gtmoSessions.map(function(s){return parseFloat(s.net_pnl||0);});
+  var bestDay=allPnls.length?Math.max.apply(null,allPnls):0;
+  var worstDay=allPnls.length?Math.min.apply(null,allPnls):0;
+
+  /* KPI row 1 */
+  var out='<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">';
+  out+='<div class="kpi"><div class="kpi-label">Total Sessions</div><div class="kpi-val">'+total+'</div><div class="kpi-sub">'+wins+'W &middot; '+losses+'L</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Combined Net P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">&#163;'+fmtPnl(totalPnl)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Overall Win Rate</div><div class="kpi-val">'+(total?wr+'%':'--')+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Active Streak</div>';
+  if(streak===0){out+='<div class="kpi-val">--</div>';}
+  else{var sLabel=streak>0?'+'+streak+'W':Math.abs(streak)+'L';out+='<div class="kpi-val '+(streak>0?'pos':'neg')+'">'+sLabel+'</div>';}
+  out+='</div></div>';
+
+  /* KPI row 2 */
+  out+='<div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-top:-8px">';
+  out+='<div class="kpi"><div class="kpi-label">This Month</div><div class="kpi-val '+(monthPnl>=0?'pos':'neg')+'">&#163;'+fmtPnl(monthPnl)+'</div><div class="kpi-sub">'+monthSessions.length+' sessions</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Best Session</div><div class="kpi-val pos">&#163;'+fmtPnl(bestDay)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Worst Session</div><div class="kpi-val neg">&#163;'+fmtPnl(worstDay)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">&#163;'+avgWin.toFixed(2)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">&#163;'+avgLoss.toFixed(2)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div></div>';
   out+='</div>';
+
+  /* Direction breakdown — BUY vs SELL */
+  var buyStats=gtmoDirStats(gtmoSessions,'BUY');
+  var sellStats=gtmoDirStats(gtmoSessions,'SELL');
+  var nullStats=gtmoDirStats(gtmoSessions.filter(function(s){return!s.signal_direction;}));
+
+  out+='<div class="dir-panel">';
+  out+=renderDirCard('BUY','#16a34a',buyStats);
+  out+=renderDirCard('SELL','#dc2626',sellStats);
+  out+='</div>';
+  if(nullStats.total>0){
+    out+='<div style="font-size:11px;color:#94a3b8;margin:-12px 0 16px;padding:0 2px">&#9432; '+nullStats.total+' sessions have no direction recorded (early bot.py before direction tracking was added) — excluded from BUY/SELL breakdown above.</div>';
+  }
+
+  /* Per-account cards with mini equity curves */
   out+='<div class="compare-grid">';
   gtmoAccounts.forEach(function(a,idx){
     var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;});
-    var aw=ss.filter(function(s){return s.result==='WIN';}).length;
-    var al=ss.filter(function(s){return s.result==='LOSS';}).length;
+    var aw2=ss.filter(function(s){return s.result==='WIN';}).length;
+    var al2=ss.filter(function(s){return s.result==='LOSS';}).length;
     var ap=ss.reduce(function(sum,s){return sum+parseFloat(s.net_pnl||0);},0);
-    var awr=ss.length?(aw/ss.length*100).toFixed(1):0;
-    var lastBal=ss.length?parseFloat(ss[0].balance_close||0):0;
+    var awr=ss.length?(aw2/ss.length*100).toFixed(1):0;
     var col=COLORS[idx%COLORS.length];
-    out+='<div class="compare-card" style="border-left:4px solid '+col+'">';
-    out+='<div class="compare-title">'+a.label+'</div>';
-    out+='<div class="compare-sub">'+(a.strategy||'--')+' &middot; '+(a.account_type||'--')+'</div>';
-    out+='<div class="compare-kpis">';
-    out+='<div class="compare-kpi"><div class="compare-kpi-label">Net P&L</div><div class="compare-kpi-val" style="color:'+(ap>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(ap)+'</div></div>';
-    out+='<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+awr+'%</div></div>';
-    out+='<div class="compare-kpi"><div class="compare-kpi-label">Sessions</div><div class="compare-kpi-val">'+ss.length+'</div></div>';
-    out+='<div class="compare-kpi"><div class="compare-kpi-label">Balance</div><div class="compare-kpi-val">$'+lastBal.toFixed(2)+'</div></div>';
-    out+='</div></div>';
+    var miniYs=gtmoMiniEqData(ss);
+    var miniEnc=enc(miniYs);
+    var miniLabEnc=enc(miniYs.map(function(_,i){return String(i);}));
+    var streak2=gtmoStreak(ss);
+    var sLabel2=streak2===0?'--':(streak2>0?'+'+streak2+'W':Math.abs(streak2)+'L');
+    var sClass2=streak2>0?'streak-pos':streak2<0?'streak-neg':'streak-zero';
+    /* Risk status from latest session snapshot */
+    var lastSnap=ss.length?gtmoSnap(ss[0]):{};
+    var lc=parseFloat(lastSnap.loss_counter||0);
+    var fl=parseFloat(lastSnap.freeze_level||0);
+    var riskLabel=lc===0?'&#10003; OK':lc===1?'&#9888; 1 Loss':lc>=2?'&#9940; '+lc+' Losses':'--';
+    var riskClass=lc===0?'risk-ok':lc===1?'risk-warn':'risk-danger';
+    var lastTc=parseFloat(lastSnap.tc_after||0);
+
+    out+='<div class="acct-card" style="border-left:4px solid '+col+'">';
+    out+='<div class="acct-header"><span class="acct-name">'+a.label+'</span>';
+    out+='<span class="streak-badge '+sClass2+'">'+sLabel2+'</span></div>';
+    out+='<div class="acct-kpis">';
+    out+='<div class="acct-kpi"><div class="acct-kpi-label">Net P&L</div><div class="acct-kpi-val" style="color:'+(ap>=0?'#16a34a':'#dc2626')+'">&#163;'+fmtPnl(ap)+'</div></div>';
+    out+='<div class="acct-kpi"><div class="acct-kpi-label">Win Rate</div><div class="acct-kpi-val">'+awr+'%</div></div>';
+    out+='<div class="acct-kpi"><div class="acct-kpi-label">Sessions</div><div class="acct-kpi-val">'+aw2+'W / '+al2+'L</div></div>';
+    out+='<div class="acct-kpi"><div class="acct-kpi-label">Risk Status</div><div class="acct-kpi-val '+riskClass+'">'+riskLabel+'</div></div>';
+    out+='</div>';
+    if(lastTc>0){out+='<div style="font-size:11px;color:#64748b;margin-bottom:8px">TC: <b style="color:#1e293b">&#163;'+lastTc.toFixed(2)+'</b></div>';}
+    out+='<div class="eq-mini"><canvas id="gmini_'+a.id+'" data-labels="'+miniLabEnc+'" data-values="'+miniEnc+'"></canvas></div>';
+    out+='</div>';
   });
   out+='</div>';
-  var recent=gtmoSessions.slice(0,20);
-  out+='<div class="table-card"><div class="table-header"><span class="table-title">Recent Sessions</span><span class="count-badge">'+total+'</span></div>';
-  out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Symbol</th><th>Dir</th><th>Orders</th><th>Net P&L</th><th>Exit</th><th>Result</th></tr></thead><tbody>';
+
+  /* Weekly P&L bar chart */
+  var wkData=gtmoWeeklyPnl(gtmoSessions,8);
+  out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">Weekly P&L &#8212; Last 8 Weeks (All Accounts)</div><div class="chart-wrap"><canvas id="gtmoWeeklyChart" data-labels="'+enc(wkData.labels)+'" data-vals="'+enc(wkData.vals)+'"></canvas></div></div>';
+
+  /* Recent sessions table */
+  var recent=gtmoSessions.slice(0,10);
+  out+='<div class="table-card"><div class="table-header"><span class="table-title">Recent Sessions</span><span class="count-badge">last 10</span></div>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Net P&L</th><th>TC After</th><th>Exit</th><th>Result</th></tr></thead><tbody>';
   out+=recent.map(function(s){
     var acct=allAccounts.find(function(a){return a.id===s.account_id;})||{};
     var pnl=parseFloat(s.net_pnl||0);
-    var snap=s.state_snapshot;try{if(typeof snap==='string')snap=JSON.parse(snap);}catch(e){snap={};}
-    snap=snap||{};
+    var snap=gtmoSnap(s);
     var exit=snap.exit_type||'--';
+    var tc=snap.tc_after?'&#163;'+parseFloat(snap.tc_after).toFixed(2):'--';
     var row='<tr>';
     row+='<td style="color:#94a3b8">'+(s.session_date||'--')+'</td>';
     row+='<td style="font-weight:600">'+(acct.label||'--')+'</td>';
-    row+='<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>';
     row+='<td>'+(s.signal_direction?('<span class="badge-'+(s.signal_direction.toLowerCase())+'">'+s.signal_direction+'</span>'):'--')+'</td>';
-    row+='<td>'+(s.orders_closed||0)+'</td>';
-    row+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>';
+    row+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">&#163;'+fmtPnl(pnl)+'</td>';
+    row+='<td style="color:#64748b">'+tc+'</td>';
     row+='<td style="color:#64748b">'+exit+'</td>';
     row+='<td><span class="'+(s.result==='WIN'?'badge-opened':'badge-blocked')+'">'+s.result+'</span></td>';
     row+='</tr>';
@@ -916,52 +1097,114 @@ function renderGtmoOverview(){
   return out;
 }
 
+function renderDirCard(dir,col,st){
+  var pfLabel=st.pf!==null?st.pf.toFixed(2):'&infin;';
+  var pfClass=st.pf===null?'':st.pf>=1.5?'pos':st.pf<1?'neg':'';
+  var out='<div class="dir-card '+(dir==='BUY'?'buy':'sell')+'">';
+  out+='<div class="dir-title" style="color:'+col+'">'+dir+' Sessions';
+  out+='<span style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px">'+st.total+' total &middot; ';
+  out+=(st.total?(st.wr.toFixed(1)+'% WR'):'--')+'</span></div>';
+  out+='<div class="dir-stats">';
+  out+='<div class="dir-stat"><div class="dir-stat-label">Sessions</div><div class="dir-stat-val">'+st.wins+'W / '+st.losses+'L</div></div>';
+  out+='<div class="dir-stat"><div class="dir-stat-label">Total P&L</div><div class="dir-stat-val" style="color:'+(st.totalPnl>=0?'#16a34a':'#dc2626')+'">&#163;'+fmtPnl(st.totalPnl)+'</div></div>';
+  out+='<div class="dir-stat"><div class="dir-stat-label">Profit Factor</div><div class="dir-stat-val '+pfClass+'">'+pfLabel+'</div></div>';
+  out+='<div class="dir-stat"><div class="dir-stat-label">Avg Win</div><div class="dir-stat-val" style="color:#16a34a">&#163;+'+st.aw.toFixed(2)+'</div></div>';
+  out+='<div class="dir-stat"><div class="dir-stat-label">Avg Loss</div><div class="dir-stat-val" style="color:#dc2626">&#163;-'+st.al.toFixed(2)+'</div></div>';
+  out+='<div class="dir-stat"><div class="dir-stat-label">Gross W/L</div><div class="dir-stat-val" style="font-size:12px;color:#64748b">+'+st.gw.toFixed(0)+' / -'+st.gl.toFixed(0)+'</div></div>';
+  out+='</div></div>';
+  return out;
+}
+
 /* ── GTMO SESSIONS ─────────────────────────────────────────────── */
 function renderGtmoSessions(){
   var acctOpts=gtmoAccounts.map(function(a){return'<option value="'+a.id+'">'+a.label+'</option>';}).join('');
-  var out='<div class="table-card"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge">'+gtmoSessions.length+'</span>';
+  var out='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge" id="gsSessCount">'+gtmoSessions.length+'</span>';
   out+='<div class="filters">';
   out+='<select id="gsAcctF" onchange="filterGtmoSessions()"><option value="">All Accounts</option>'+acctOpts+'</select>';
+  out+='<select id="gsDirF" onchange="filterGtmoSessions()"><option value="">All Directions</option><option>BUY</option><option>SELL</option></select>';
   out+='<select id="gsResF" onchange="filterGtmoSessions()"><option value="">All Results</option><option>WIN</option><option>LOSS</option></select>';
   out+='</div></div>';
-  out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Symbol</th><th>Dir</th><th>Opened</th><th>Closed</th><th>Orders</th><th>Gross P&L</th><th>Net P&L</th><th>Exit</th><th>Result</th><th>Notes</th></tr></thead>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Orders</th><th>Gross P&L</th><th>Net P&L</th><th>TC After</th><th>Pips Est</th><th>Exit</th><th>Loss#</th><th>Result</th></tr></thead>';
   out+='<tbody id="gsBody">'+renderGtmoSessionRows(gtmoSessions)+'</tbody></table></div></div>';
+
+  /* Monthly P&L grid */
+  var monthGrid=gtmoMonthlyGrid(gtmoSessions);
+  if(monthGrid){
+    out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">&#128197; Monthly P&L (&#163;)</span></div>';
+    out+='<div style="padding:16px">'+monthGrid+'</div></div>';
+  }
+
+  /* Day of week breakdown */
+  var DOW=['Mon','Tue','Wed','Thu','Fri'];
+  var dowData=[{},{}]; /* 0=pnl,1=count */
+  DOW.forEach(function(d,i){dowData[0][i]={pnl:0,w:0,l:0};});
+  gtmoSessions.forEach(function(s){
+    if(!s.session_date)return;
+    var d=new Date(s.session_date+'T12:00:00Z');
+    var day=d.getDay();/* 0=Sun */
+    if(day===0||day===6)return;
+    var i=day-1;
+    dowData[0][i].pnl+=parseFloat(s.net_pnl||0);
+    if(s.result==='WIN')dowData[0][i].w++;
+    else if(s.result==='LOSS')dowData[0][i].l++;
+  });
+  out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">Day of Week &#8212; P&L &amp; Win Rate</div>';
+  out+='<div class="dow-grid">';
+  DOW.forEach(function(d,i){
+    var dd=dowData[0][i];
+    var total=dd.w+dd.l;
+    var wr=total?(dd.w/total*100).toFixed(0):0;
+    var col=dd.pnl>=0?'#16a34a':'#dc2626';
+    out+='<div class="dow-cell"><div class="dow-label">'+d+'</div>';
+    out+='<div class="dow-val" style="color:'+col+'">&#163;'+fmtPnl(dd.pnl)+'</div>';
+    out+='<div class="dow-sub">'+total+' sessions &middot; '+wr+'% WR</div>';
+    out+='</div>';
+  });
+  out+='</div>';
+  out+='<div class="chart-wrap"><canvas id="gtmoDowChart" data-labels="'+enc(DOW)+'" data-vals="'+enc(DOW.map(function(_,i){return+dowData[0][i].pnl.toFixed(2);}))+'"></canvas></div>';
+  out+='</div>';
+
   return out;
 }
 function renderGtmoSessionRows(rows){
   return rows.map(function(s){
     var acct=allAccounts.find(function(a){return a.id===s.account_id;})||{};
     var pnl=parseFloat(s.net_pnl||0);
-    var snap=s.state_snapshot;try{if(typeof snap==='string')snap=JSON.parse(snap);}catch(e){snap={};}
-    snap=snap||{};
+    var snap=gtmoSnap(s);
     var exit=snap.exit_type||'--';
+    var tc=snap.tc_after?parseFloat(snap.tc_after).toFixed(2):'--';
+    var pips=snap.pips_est?parseFloat(snap.pips_est).toFixed(1):'--';
+    var lc=snap.loss_counter!==undefined?parseFloat(snap.loss_counter):'--';
+    var lcStyle=lc===0?'color:#16a34a':lc>=2?'color:#dc2626':'color:#d97706';
     var row='<tr>';
     row+='<td style="color:#94a3b8">'+(s.session_date||'--')+'</td>';
     row+='<td style="font-weight:600">'+(acct.label||'--')+'</td>';
-    row+='<td style="color:#1e40af;font-weight:700">'+(s.symbol||'--')+'</td>';
     row+='<td>'+(s.signal_direction?('<span class="badge-'+(s.signal_direction.toLowerCase())+'">'+s.signal_direction+'</span>'):'--')+'</td>';
-    row+='<td style="color:#94a3b8">'+(s.session_open||'--').toString().slice(0,16)+'</td>';
-    row+='<td style="color:#94a3b8">'+(s.session_close||'--').toString().slice(0,16)+'</td>';
     row+='<td>'+(s.orders_closed||0)+'</td>';
-    row+='<td style="color:'+(parseFloat(s.gross_pnl||0)>=0?'#16a34a':'#dc2626')+'">$'+parseFloat(s.gross_pnl||0).toFixed(2)+'</td>';
-    row+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>';
+    row+='<td style="color:'+(parseFloat(s.gross_pnl||0)>=0?'#16a34a':'#dc2626')+'">&#163;'+parseFloat(s.gross_pnl||0).toFixed(2)+'</td>';
+    row+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">&#163;'+fmtPnl(pnl)+'</td>';
+    row+='<td style="color:#64748b">'+(tc!=='--'?'&#163;'+tc:tc)+'</td>';
+    row+='<td style="color:'+(parseFloat(pips||0)>=0?'#16a34a':'#dc2626')+'">'+pips+'</td>';
     row+='<td style="color:#64748b">'+exit+'</td>';
+    row+='<td style="'+lcStyle+';font-weight:700">'+lc+'</td>';
     row+='<td><span class="'+(s.result==='WIN'?'badge-opened':'badge-blocked')+'">'+s.result+'</span></td>';
-    row+='<td style="color:#94a3b8;font-size:11px">'+(s.notes||'--')+'</td>';
     row+='</tr>';
     return row;
   }).join('');
 }
 function filterGtmoSessions(){
   var acct=(document.getElementById('gsAcctF')||{}).value||'';
+  var dir=(document.getElementById('gsDirF')||{}).value||'';
   var res=(document.getElementById('gsResF')||{}).value||'';
   var rows=gtmoSessions;
   if(acct)rows=rows.filter(function(s){return s.account_id===acct;});
+  if(dir)rows=rows.filter(function(s){return s.signal_direction===dir;});
   if(res)rows=rows.filter(function(s){return s.result===res;});
   var body=document.getElementById('gsBody');if(body)body.innerHTML=renderGtmoSessionRows(rows);
+  var cnt=document.getElementById('gsSessCount');if(cnt)cnt.textContent=rows.length;
 }
 
-/* ── GTMO EQUITY ───────────────────────────────────────────────── */
+/* ── GTMO EQUITY & RISK ─────────────────────────────────────────── */
 function renderGtmoEquity(){
   var COLORS=['#3b82f6','#f59e0b','#10b981'];
   var datasets=[];
@@ -974,11 +1217,82 @@ function renderGtmoEquity(){
     });
     if(pts.length)datasets.push({label:a.label,color:COLORS[idx%COLORS.length],pts:pts});
   });
-  if(!datasets.length)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">No session data yet</div><div class="empty-sub">Sessions will appear here once bot.py syncs results</div></div>';
+  if(!datasets.length)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">No session data yet</div></div>';
+
+  /* Compute drawdown bands per account */
+  var ddBands=[];
+  datasets.forEach(function(d){
+    var peak=0,inDD=false,ddStart=null,bands=[];
+    d.pts.forEach(function(p){
+      if(p.y>peak)peak=p.y;
+      var dd=peak>0?(peak-p.y)/peak*100:0;
+      if(dd>10&&!inDD){inDD=true;ddStart=p.x;}
+      if(dd<=10&&inDD){inDD=false;bands.push({start:ddStart,end:p.x});}
+    });
+    if(inDD&&d.pts.length)bands.push({start:ddStart,end:d.pts[d.pts.length-1].x});
+    ddBands.push({label:d.label,color:d.color,bands:bands});
+  });
+
+  /* Profit factor per account panel */
   var out='<div class="equity-card">';
   out+='<div class="chart-title">GTMO &middot; GTS Cumulative P&L by Account</div>';
   out+='<div class="equity-wrap"><canvas id="gtmoEquityChart" data-sets="'+encodeURIComponent(JSON.stringify(datasets))+'"></canvas></div>';
   out+='</div>';
+
+  /* Profit factor & avg win vs loss per account */
+  out+='<div class="charts-row-3">';
+  gtmoAccounts.forEach(function(a,idx){
+    var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;});
+    var st=gtmoDirStats(ss,null);
+    var pfLabel=st.pf!==null?st.pf.toFixed(2):'&infin;';
+    var pfClass=st.pf===null?'pos':st.pf>=1.5?'pos':st.pf<1?'neg':'';
+    var col=COLORS[idx%COLORS.length];
+    out+='<div class="chart-card" style="border-top:3px solid '+col+'">';
+    out+='<div class="chart-title">'+a.label+' — Risk Analysis</div>';
+    out+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Profit Factor</div><div class="compare-kpi-val '+pfClass+'">'+pfLabel+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+(st.total?st.wr.toFixed(1)+'%':'--')+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Avg Win</div><div class="compare-kpi-val" style="color:#16a34a">&#163;+'+st.aw.toFixed(2)+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Avg Loss</div><div class="compare-kpi-val" style="color:#dc2626">&#163;-'+st.al.toFixed(2)+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Gross Wins</div><div class="compare-kpi-val" style="color:#16a34a">&#163;+'+st.gw.toFixed(2)+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Gross Losses</div><div class="compare-kpi-val" style="color:#dc2626">&#163;-'+st.gl.toFixed(2)+'</div></div>';
+    out+='</div>';
+    /* Win vs loss magnitude bar */
+    var maxV=Math.max(st.aw,st.al,1);
+    var wPct=(st.aw/maxV*100).toFixed(0);
+    var lPct=(st.al/maxV*100).toFixed(0);
+    out+='<div style="font-size:10px;color:var(--sub);font-weight:600;margin-bottom:4px">Avg Win vs Avg Loss</div>';
+    out+='<div style="display:flex;gap:4px;align-items:center;font-size:11px">';
+    out+='<span style="color:#16a34a;font-weight:600;width:48px">+'+st.aw.toFixed(0)+'</span>';
+    out+='<div style="flex:1;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden">';
+    out+='<div style="height:8px;background:#16a34a;border-radius:4px;width:'+wPct+'%"></div></div></div>';
+    out+='<div style="display:flex;gap:4px;align-items:center;font-size:11px;margin-top:4px">';
+    out+='<span style="color:#dc2626;font-weight:600;width:48px">-'+st.al.toFixed(0)+'</span>';
+    out+='<div style="flex:1;height:8px;background:#f1f5f9;border-radius:4px;overflow:hidden">';
+    out+='<div style="height:8px;background:#dc2626;border-radius:4px;width:'+lPct+'%"></div></div></div>';
+    out+='</div>';
+  });
+  out+='</div>';
+
+  /* Drawdown summary per account */
+  out+='<div class="table-card"><div class="table-header"><span class="table-title">Drawdown Periods (&gt;10% from peak)</span></div>';
+  out+='<div class="tbl-wrap"><table><thead><tr><th>Account</th><th>DD Start</th><th>DD End</th><th>Status</th></tr></thead><tbody>';
+  var anyDd=false;
+  ddBands.forEach(function(d){
+    d.bands.forEach(function(b){
+      anyDd=true;
+      var open=b.end===d.pts&&d.pts[d.pts.length-1]&&b.end===d.pts[d.pts.length-1].x;
+      out+='<tr>';
+      out+='<td style="font-weight:600">'+d.label+'</td>';
+      out+='<td style="color:#94a3b8">'+b.start+'</td>';
+      out+='<td style="color:#94a3b8">'+b.end+'</td>';
+      out+='<td><span class="badge-blocked">Active</span></td>';
+      out+='</tr>';
+    });
+  });
+  if(!anyDd){out+='<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">No drawdown periods &gt;10% detected &#10003;</td></tr>';}
+  out+='</tbody></table></div></div>';
+
   return out;
 }
 
@@ -1091,6 +1405,8 @@ function renderCharts(){
   if(pft){mkBar(pft,Array.from({length:24},function(_,i){return i+'h';}),JSON.parse(decodeURIComponent(pft.dataset.vals||'[]')),cd);}
   var pfd=document.getElementById('pfDuration');
   if(pfd){mkBar(pfd,JSON.parse(decodeURIComponent(pfd.dataset.keys||'[]')),JSON.parse(decodeURIComponent(pfd.dataset.vals||'[]')),cd);}
+
+  /* GTMO charts */
   var gtmoEq=document.getElementById('gtmoEquityChart');
   if(gtmoEq){
     try{
@@ -1107,11 +1423,49 @@ function renderCharts(){
         data:{labels:allDates,datasets:gDatasets},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11}}},datalabels:{display:false},
-            tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+ctx.raw.toFixed(2);}}}},
+            tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': \xa3'+ctx.raw.toFixed(2);}}}},
           scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:10},grid:{display:false}},
-                  y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
+                  y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'\xa3'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
     }catch(e){console.warn('GTMO equity chart:',e);}
   }
+
+  /* GTMO weekly bar */
+  var gwc=document.getElementById('gtmoWeeklyChart');
+  if(gwc){
+    try{
+      var gwl=JSON.parse(decodeURIComponent(gwc.dataset.labels||'[]'));
+      var gwv=JSON.parse(decodeURIComponent(gwc.dataset.vals||'[]'));
+      var gwcd=Object.assign({},cd,{plugins:Object.assign({},cd.plugins,{datalabels:Object.assign({},DL_BAR,{formatter:function(v){return(v>=0?'+':'')+v.toFixed(0);}})})});
+      charts.gwc=new Chart(gwc,{type:'bar',data:{labels:gwl,datasets:[{data:gwv,backgroundColor:gwv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:Object.assign({},gwcd,{layout:{padding:{top:20}}})});
+    }catch(e){console.warn('GTMO weekly:',e);}
+  }
+
+  /* GTMO DOW bar */
+  var gdow=document.getElementById('gtmoDowChart');
+  if(gdow){
+    try{
+      var gdl=JSON.parse(decodeURIComponent(gdow.dataset.labels||'[]'));
+      var gdv=JSON.parse(decodeURIComponent(gdow.dataset.vals||'[]'));
+      charts.gdow=new Chart(gdow,{type:'bar',data:{labels:gdl,datasets:[{data:gdv,backgroundColor:gdv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
+    }catch(e){console.warn('GTMO DOW:',e);}
+  }
+
+  /* GTMO mini equity curves on account cards */
+  document.querySelectorAll('[id^="gmini_"]').forEach(function(canvas){
+    try{
+      var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
+      var vv=JSON.parse(decodeURIComponent(canvas.dataset.values||'[]'));
+      if(!vv.length)return;
+      var pos=vv[vv.length-1]>=0;
+      charts[canvas.id]=new Chart(canvas,{type:'line',data:{labels:ll,datasets:[{data:vv,
+        borderColor:pos?'#22c55e':'#ef4444',
+        backgroundColor:pos?'rgba(34,197,94,.15)':'rgba(239,68,68,.15)',
+        fill:true,tension:.4,pointRadius:0,borderWidth:2}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
+    }catch(e){}
+  });
+
+  /* eq_ mini charts (compare tab) */
   document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
     try{
       var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
@@ -1162,19 +1516,16 @@ function renderFgiOverview(){
   var totalPnl=156.63;
   var pct=15.66;
 
-  /* Equity curve from journey data */
   var run=1000.00,eqPts=[{x:'2026-01-05',y:1000}];
   FGI_JOURNEY.forEach(function(w){run+=w.result;eqPts.push({x:w.period.slice(w.period.indexOf('(')+1,w.period.indexOf(')')),y:+run.toFixed(2)});});
   var eqL=eqPts.map(function(p){return p.x;});
   var eqV=eqPts.map(function(p){return p.y;});
 
-  /* Phase bar */
   var wLabels=FGI_JOURNEY.map(function(w){return w.config;});
   var wVals=FGI_JOURNEY.map(function(w){return w.result;});
 
   var out='';
 
-  /* KPI bar */
   out+='<div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">';
   out+='<div class="kpi"><div class="kpi-label">Balance</div><div class="kpi-val gold">&#163;'+bal.toFixed(2)+'</div><div class="kpi-sub">IC Markets Demo</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val pos">&#163;+'+totalPnl.toFixed(2)+'</div><div class="kpi-sub">From &#163;1,000.00 start</div></div>';
@@ -1183,13 +1534,11 @@ function renderFgiOverview(){
   out+='<div class="kpi"><div class="kpi-label">Phases Done</div><div class="kpi-val">2 / 7</div><div class="kpi-sub">S1 &#10003; S2 &#10003;</div></div>';
   out+='</div>';
 
-  /* Charts row */
   out+='<div class="charts-row-2" style="margin-bottom:20px">';
   out+='<div class="equity-card" style="margin-bottom:0"><div class="chart-title">Account Journey — Equity</div><div class="equity-wrap"><canvas id="fgiEqChart" data-labels="'+encodeURIComponent(JSON.stringify(eqL))+'" data-vals="'+encodeURIComponent(JSON.stringify(eqV))+'"></canvas></div></div>';
   out+='<div class="equity-card" style="margin-bottom:0"><div class="chart-title">P&L by Phase</div><div class="equity-wrap"><canvas id="fgiPhaseChart" data-labels="'+encodeURIComponent(JSON.stringify(wLabels))+'" data-vals="'+encodeURIComponent(JSON.stringify(wVals))+'"></canvas></div></div>';
   out+='</div>';
 
-  /* Account journey table */
   out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Account Journey</span><span class="count-badge">'+FGI_JOURNEY.length+' phases</span></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Period</th><th>Config</th><th>Result</th><th>Notes</th></tr></thead><tbody>';
   FGI_JOURNEY.forEach(function(w){
@@ -1202,7 +1551,6 @@ function renderFgiOverview(){
   });
   out+='</tbody></table></div></div>';
 
-  /* Live trades from DB (if any) */
   if(fgiTrades.length){
     var wins=fgiTrades.filter(function(t){return parseFloat(t.net_profit||0)>0;}).length;
     var losses=fgiTrades.filter(function(t){return parseFloat(t.net_profit||0)<0;}).length;
