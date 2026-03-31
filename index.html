@@ -10,7 +10,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f1f5f9;color:#1e293b;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
 :root{--blue:#3b82f6;--green:#16a34a;--red:#dc2626;--gold:#d97706;--bg1:#f1f5f9;--bg2:#ffffff;--bg3:#f8fafc;--border:#e2e8f0;--text:#1e293b;--sub:#64748b}
-.header{background:linear-gradient(135deg,#1e3a5f,#1e1b4b);padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.header{background:#1e40af;padding:0 20px;height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .logo{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.5px;white-space:nowrap}
 .logo span{color:#d97706}
 .badge{background:rgba(255,255,255,.15);color:#bfdbfe;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
@@ -24,15 +24,15 @@ body{background:#f1f5f9;color:#1e293b;font-family:'Segoe UI',system-ui,sans-seri
 .acct-label{font-size:11px;color:#93c5fd;white-space:nowrap}
 .acct-select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;outline:none;cursor:pointer;max-width:200px}
 .acct-select option{background:#1e3a5f;color:#fff}
-.day-strip{background:#0f172a;border-bottom:1px solid #1e293b;padding:6px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:56px;z-index:99}
+.day-strip{background:#1e3a8a;border-bottom:1px solid #1e40af;padding:6px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:56px;z-index:99}
 .ds-item{display:flex;flex-direction:column;gap:2px;white-space:nowrap}
-.ds-label{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-.ds-val{font-size:13px;font-weight:700;color:#e2e8f0}
+.ds-label{font-size:9px;color:#93c5fd;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.ds-val{font-size:13px;font-weight:700;color:#ffffff}
 .ds-val.pos{color:#4ade80}.ds-val.neg{color:#f87171}.ds-val.gold{color:#fbbf24}
-.ds-sep{width:1px;height:28px;background:#334155;flex-shrink:0}
+.ds-sep{width:1px;height:28px;background:#3b82f6;flex-shrink:0}
 .ds-progress{flex:1;min-width:120px;display:flex;flex-direction:column;gap:3px}
 .ds-prog-label{font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:600;display:flex;justify-content:space-between}
-.ds-prog-track{height:6px;background:#334155;border-radius:3px;overflow:hidden}
+.ds-prog-track{height:6px;background:rgba(255,255,255,.2);border-radius:3px;overflow:hidden}
 .ds-prog-fill{height:6px;background:#4ade80;border-radius:3px;transition:width .4s}
 .ds-prog-fill.gold{background:#fbbf24}
 .date-bar{background:#fff;border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -98,7 +98,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
 .insp-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
 .insp-label{color:#64748b;font-weight:600}
 .insp-val{color:#1e293b;font-weight:700}
-.float-bar{background:linear-gradient(135deg,#1e3a5f,#1e1b4b);padding:12px 20px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:20px}
+.float-bar{background:#1e40af;padding:12px 20px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:20px}
 .float-label{font-size:11px;color:#93c5fd;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 .float-val{font-size:24px;font-weight:700}
 .float-val.pos{color:#4ade80}.float-val.neg{color:#f87171}
@@ -171,8 +171,7 @@ tr:hover td{background:#f8fafc;cursor:pointer}
   <div class="hdr-right">
     <div class="acct-label">Account:</div>
     <select class="acct-select" id="acctSelect" onchange="onAcctChange()"><option value="">Loading&#8230;</option></select>
-    <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">&#8635; Refresh</button>
-    <div class="status-dot off" id="statusDot"></div>
+    <button class="refresh-btn" id="refreshBtn" onclick="manualRefresh()">&#8635; Refresh</button><div class="status-dot off" id="statusDot"></div>
     <div class="status-txt" id="statusTxt">Connecting&#8230;</div>
     <div class="last-sync" id="lastSync"></div>
   </div>
@@ -881,6 +880,7 @@ function renderCompare(){
    GTMO · GTS — REBUILT DASHBOARD v2.0
    ══════════════════════════════════════════════════════════════════ */
 
+/* ── GTMO DATA LOAD ─────────────────────────────────────────────── */
 async function loadGtmoData(){
   var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
   dot.className='status-dot off';txt.textContent='Loading...';
@@ -891,12 +891,14 @@ async function loadGtmoData(){
   destroyCharts();renderTabs();renderContent();
 }
 
+/* ── GTMO HELPERS ───────────────────────────────────────────────── */
 function gtmoSnap(s){
   var snap=s.state_snapshot;
   try{if(typeof snap==='string')snap=JSON.parse(snap);}catch(e){snap={};}
   return snap||{};
 }
 function gtmoStreak(ss){
+  /* ss must be sorted newest-first */
   if(!ss.length)return 0;
   var dir=ss[0].result==='WIN'?1:-1,count=0;
   for(var i=0;i<ss.length;i++){
@@ -906,6 +908,7 @@ function gtmoStreak(ss){
   return dir*count;
 }
 function gtmoMiniEqData(ss){
+  /* ss newest-first → reverse to oldest-first for cumulative */
   var pts=ss.slice().reverse();
   var run=0,ys=[];
   pts.forEach(function(s){run+=parseFloat(s.net_pnl||0);ys.push(+run.toFixed(2));});
@@ -967,6 +970,7 @@ function gtmoMonthlyGrid(ss){
   return'<div style="overflow-x:auto"><table style="border-collapse:collapse;min-width:700px"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div>';
 }
 
+/* ── GTMO OVERVIEW ─────────────────────────────────────────────── */
 function renderGtmoOverview(){
   var COLORS=['#3b82f6','#f59e0b','#10b981'];
   var total=gtmoSessions.length;
@@ -982,13 +986,19 @@ function renderGtmoOverview(){
   var grossL=Math.abs(allLosses.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0));
   var pf=grossL>0?(grossW/grossL).toFixed(2):'&infin;';
   var streak=gtmoStreak(gtmoSessions);
+
+  /* Week P&L for this month */
   var now=new Date();
   var thisMonth=now.getFullYear()+'-'+(now.getMonth()<9?'0':'')+(now.getMonth()+1);
   var monthSessions=gtmoSessions.filter(function(s){return(s.session_date||'').slice(0,7)===thisMonth;});
   var monthPnl=monthSessions.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0);
+
+  /* Best / worst single session */
   var allPnls=gtmoSessions.map(function(s){return parseFloat(s.net_pnl||0);});
   var bestDay=allPnls.length?Math.max.apply(null,allPnls):0;
   var worstDay=allPnls.length?Math.min.apply(null,allPnls):0;
+
+  /* KPI row 1 */
   var out='<div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">';
   out+='<div class="kpi"><div class="kpi-label">Total Sessions</div><div class="kpi-val">'+total+'</div><div class="kpi-sub">'+wins+'W &middot; '+losses+'L</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Combined Net P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">&#163;'+fmtPnl(totalPnl)+'</div></div>';
@@ -997,6 +1007,8 @@ function renderGtmoOverview(){
   if(streak===0){out+='<div class="kpi-val">--</div>';}
   else{var sLabel=streak>0?'+'+streak+'W':Math.abs(streak)+'L';out+='<div class="kpi-val '+(streak>0?'pos':'neg')+'">'+sLabel+'</div>';}
   out+='</div></div>';
+
+  /* KPI row 2 */
   out+='<div class="kpi-grid" style="grid-template-columns:repeat(6,1fr);margin-top:-8px">';
   out+='<div class="kpi"><div class="kpi-label">This Month</div><div class="kpi-val '+(monthPnl>=0?'pos':'neg')+'">&#163;'+fmtPnl(monthPnl)+'</div><div class="kpi-sub">'+monthSessions.length+' sessions</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Best Session</div><div class="kpi-val pos">&#163;'+fmtPnl(bestDay)+'</div></div>';
@@ -1005,9 +1017,12 @@ function renderGtmoOverview(){
   out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">&#163;'+avgLoss.toFixed(2)+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div></div>';
   out+='</div>';
+
+  /* Direction breakdown — BUY vs SELL */
   var buyStats=gtmoDirStats(gtmoSessions,'BUY');
   var sellStats=gtmoDirStats(gtmoSessions,'SELL');
   var nullStats=gtmoDirStats(gtmoSessions.filter(function(s){return!s.signal_direction;}));
+
   out+='<div class="dir-panel">';
   out+=renderDirCard('BUY','#16a34a',buyStats);
   out+=renderDirCard('SELL','#dc2626',sellStats);
@@ -1015,6 +1030,8 @@ function renderGtmoOverview(){
   if(nullStats.total>0){
     out+='<div style="font-size:11px;color:#94a3b8;margin:-12px 0 16px;padding:0 2px">&#9432; '+nullStats.total+' sessions have no direction recorded (early bot.py before direction tracking was added) — excluded from BUY/SELL breakdown above.</div>';
   }
+
+  /* Per-account cards with mini equity curves */
   out+='<div class="compare-grid">';
   gtmoAccounts.forEach(function(a,idx){
     var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;});
@@ -1029,11 +1046,14 @@ function renderGtmoOverview(){
     var streak2=gtmoStreak(ss);
     var sLabel2=streak2===0?'--':(streak2>0?'+'+streak2+'W':Math.abs(streak2)+'L');
     var sClass2=streak2>0?'streak-pos':streak2<0?'streak-neg':'streak-zero';
+    /* Risk status from latest session snapshot */
     var lastSnap=ss.length?gtmoSnap(ss[0]):{};
     var lc=parseFloat(lastSnap.loss_counter||0);
+    var fl=parseFloat(lastSnap.freeze_level||0);
     var riskLabel=lc===0?'&#10003; OK':lc===1?'&#9888; 1 Loss':lc>=2?'&#9940; '+lc+' Losses':'--';
     var riskClass=lc===0?'risk-ok':lc===1?'risk-warn':'risk-danger';
     var lastTc=parseFloat(lastSnap.tc_after||0);
+
     out+='<div class="acct-card" style="border-left:4px solid '+col+'">';
     out+='<div class="acct-header"><span class="acct-name">'+a.label+'</span>';
     out+='<span class="streak-badge '+sClass2+'">'+sLabel2+'</span></div>';
@@ -1048,8 +1068,12 @@ function renderGtmoOverview(){
     out+='</div>';
   });
   out+='</div>';
+
+  /* Weekly P&L bar chart */
   var wkData=gtmoWeeklyPnl(gtmoSessions,8);
   out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">Weekly P&L &#8212; Last 8 Weeks (All Accounts)</div><div class="chart-wrap"><canvas id="gtmoWeeklyChart" data-labels="'+enc(wkData.labels)+'" data-vals="'+enc(wkData.vals)+'"></canvas></div></div>';
+
+  /* Recent sessions table */
   var recent=gtmoSessions.slice(0,10);
   out+='<div class="table-card"><div class="table-header"><span class="table-title">Recent Sessions</span><span class="count-badge">last 10</span></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Net P&L</th><th>TC After</th><th>Exit</th><th>Result</th></tr></thead><tbody>';
@@ -1092,6 +1116,7 @@ function renderDirCard(dir,col,st){
   return out;
 }
 
+/* ── GTMO SESSIONS ─────────────────────────────────────────────── */
 function renderGtmoSessions(){
   var acctOpts=gtmoAccounts.map(function(a){return'<option value="'+a.id+'">'+a.label+'</option>';}).join('');
   var out='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge" id="gsSessCount">'+gtmoSessions.length+'</span>';
@@ -1102,18 +1127,22 @@ function renderGtmoSessions(){
   out+='</div></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Orders</th><th>Gross P&L</th><th>Net P&L</th><th>TC After</th><th>Pips Est</th><th>Exit</th><th>Loss#</th><th>Result</th></tr></thead>';
   out+='<tbody id="gsBody">'+renderGtmoSessionRows(gtmoSessions)+'</tbody></table></div></div>';
+
+  /* Monthly P&L grid */
   var monthGrid=gtmoMonthlyGrid(gtmoSessions);
   if(monthGrid){
     out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">&#128197; Monthly P&L (&#163;)</span></div>';
     out+='<div style="padding:16px">'+monthGrid+'</div></div>';
   }
+
+  /* Day of week breakdown */
   var DOW=['Mon','Tue','Wed','Thu','Fri'];
-  var dowData=[{},{}];
+  var dowData=[{},{}]; /* 0=pnl,1=count */
   DOW.forEach(function(d,i){dowData[0][i]={pnl:0,w:0,l:0};});
   gtmoSessions.forEach(function(s){
     if(!s.session_date)return;
     var d=new Date(s.session_date+'T12:00:00Z');
-    var day=d.getDay();
+    var day=d.getDay();/* 0=Sun */
     if(day===0||day===6)return;
     var i=day-1;
     dowData[0][i].pnl+=parseFloat(s.net_pnl||0);
@@ -1135,6 +1164,7 @@ function renderGtmoSessions(){
   out+='</div>';
   out+='<div class="chart-wrap"><canvas id="gtmoDowChart" data-labels="'+enc(DOW)+'" data-vals="'+enc(DOW.map(function(_,i){return+dowData[0][i].pnl.toFixed(2);}))+'"></canvas></div>';
   out+='</div>';
+
   return out;
 }
 function renderGtmoSessionRows(rows){
@@ -1175,6 +1205,7 @@ function filterGtmoSessions(){
   var cnt=document.getElementById('gsSessCount');if(cnt)cnt.textContent=rows.length;
 }
 
+/* ── GTMO EQUITY & RISK ─────────────────────────────────────────── */
 function renderGtmoEquity(){
   var COLORS=['#3b82f6','#f59e0b','#10b981'];
   var datasets=[];
@@ -1188,6 +1219,8 @@ function renderGtmoEquity(){
     if(pts.length)datasets.push({label:a.label,color:COLORS[idx%COLORS.length],pts:pts});
   });
   if(!datasets.length)return'<div class="empty-state"><div class="empty-icon">&#128202;</div><div class="empty-msg">No session data yet</div></div>';
+
+  /* Compute drawdown bands per account */
   var ddBands=[];
   datasets.forEach(function(d){
     var peak=0,inDD=false,ddStart=null,bands=[];
@@ -1200,10 +1233,14 @@ function renderGtmoEquity(){
     if(inDD&&d.pts.length)bands.push({start:ddStart,end:d.pts[d.pts.length-1].x});
     ddBands.push({label:d.label,color:d.color,bands:bands});
   });
+
+  /* Profit factor per account panel */
   var out='<div class="equity-card">';
   out+='<div class="chart-title">GTMO &middot; GTS Cumulative P&L by Account</div>';
   out+='<div class="equity-wrap"><canvas id="gtmoEquityChart" data-sets="'+encodeURIComponent(JSON.stringify(datasets))+'"></canvas></div>';
   out+='</div>';
+
+  /* Profit factor & avg win vs loss per account */
   out+='<div class="charts-row-3">';
   gtmoAccounts.forEach(function(a,idx){
     var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;});
@@ -1221,6 +1258,7 @@ function renderGtmoEquity(){
     out+='<div class="compare-kpi"><div class="compare-kpi-label">Gross Wins</div><div class="compare-kpi-val" style="color:#16a34a">&#163;+'+st.gw.toFixed(2)+'</div></div>';
     out+='<div class="compare-kpi"><div class="compare-kpi-label">Gross Losses</div><div class="compare-kpi-val" style="color:#dc2626">&#163;-'+st.gl.toFixed(2)+'</div></div>';
     out+='</div>';
+    /* Win vs loss magnitude bar */
     var maxV=Math.max(st.aw,st.al,1);
     var wPct=(st.aw/maxV*100).toFixed(0);
     var lPct=(st.al/maxV*100).toFixed(0);
@@ -1236,12 +1274,15 @@ function renderGtmoEquity(){
     out+='</div>';
   });
   out+='</div>';
+
+  /* Drawdown summary per account */
   out+='<div class="table-card"><div class="table-header"><span class="table-title">Drawdown Periods (&gt;10% from peak)</span></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Account</th><th>DD Start</th><th>DD End</th><th>Status</th></tr></thead><tbody>';
   var anyDd=false;
   ddBands.forEach(function(d){
     d.bands.forEach(function(b){
       anyDd=true;
+      var open=b.end===d.pts&&d.pts[d.pts.length-1]&&b.end===d.pts[d.pts.length-1].x;
       out+='<tr>';
       out+='<td style="font-weight:600">'+d.label+'</td>';
       out+='<td style="color:#94a3b8">'+b.start+'</td>';
@@ -1252,9 +1293,11 @@ function renderGtmoEquity(){
   });
   if(!anyDd){out+='<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px">No drawdown periods &gt;10% detected &#10003;</td></tr>';}
   out+='</tbody></table></div></div>';
+
   return out;
 }
 
+/* ── INSPECTOR ──────────────────────────────────────────────────── */
 function openInspector(id){
   var t=rawDb.trades.find(function(x){return x.id===id;});
   if(!t)return;
@@ -1281,6 +1324,7 @@ function closeInspector(){
   document.getElementById('overlay').classList.remove('open');
 }
 
+/* ── CHARTS ─────────────────────────────────────────────────────── */
 function mkBar(canvas,labels,vals,cd){
   charts[canvas.id]=new Chart(canvas,{type:'bar',data:{labels:labels,datasets:[{data:vals,backgroundColor:vals.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
 }
@@ -1289,7 +1333,9 @@ function renderCharts(){
   var cd={responsive:true,maintainAspectRatio:false,
     plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
     scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}};
+
   var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
+
   function monthData(){
     var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
     var mk=Object.keys(mm).sort().slice(-12);
@@ -1300,6 +1346,7 @@ function renderCharts(){
     var wk=Object.keys(wm).sort().slice(-4);
     return{labels:wk.map(function(w){return w.slice(5);}),vals:wk.map(function(k){return+wm[k].toFixed(2);})};
   }
+
   var eqc=document.getElementById('eqChart');
   if(eqc){
     var el=JSON.parse(decodeURIComponent(eqc.dataset.labels||'[]'));
@@ -1318,11 +1365,23 @@ function renderCharts(){
     mkBar(ovd,Object.keys(drm2),Object.values(drm2).map(function(v){return+v.toFixed(2);}),cd);
   }
   var dl5=document.getElementById('dlDaily5Chart');
-  if(dl5){var l5=JSON.parse(decodeURIComponent(dl5.dataset.labels||'[]'));var v5=JSON.parse(decodeURIComponent(dl5.dataset.vals||'[]'));mkBar(dl5,l5,v5,cd);}
+  if(dl5){
+    var l5=JSON.parse(decodeURIComponent(dl5.dataset.labels||'[]'));
+    var v5=JSON.parse(decodeURIComponent(dl5.dataset.vals||'[]'));
+    mkBar(dl5,l5,v5,cd);
+  }
   var dlw=document.getElementById('dlWeeklyChart');
-  if(dlw){var lwl=JSON.parse(decodeURIComponent(dlw.dataset.labels||'[]'));var lwv=JSON.parse(decodeURIComponent(dlw.dataset.vals||'[]'));mkBar(dlw,lwl.map(function(w){return w.slice(5);}),lwv,cd);}
+  if(dlw){
+    var lwl=JSON.parse(decodeURIComponent(dlw.dataset.labels||'[]'));
+    var lwv=JSON.parse(decodeURIComponent(dlw.dataset.vals||'[]'));
+    mkBar(dlw,lwl.map(function(w){return w.slice(5);}),lwv,cd);
+  }
   var dlm=document.getElementById('dlMonthlyChart');
-  if(dlm){var lml=JSON.parse(decodeURIComponent(dlm.dataset.labels||'[]'));var lmv=JSON.parse(decodeURIComponent(dlm.dataset.vals||'[]'));mkBar(dlm,lml.map(function(m){return MON[parseInt(m.slice(5))-1];}),lmv,cd);}
+  if(dlm){
+    var lml=JSON.parse(decodeURIComponent(dlm.dataset.labels||'[]'));
+    var lmv=JSON.parse(decodeURIComponent(dlm.dataset.vals||'[]'));
+    mkBar(dlm,lml.map(function(m){return MON[parseInt(m.slice(5))-1];}),lmv,cd);
+  }
   var csc=document.getElementById('curStrongChart');
   if(csc){var cc=JSON.parse(decodeURIComponent(csc.dataset.curs||'[]')),sv=JSON.parse(decodeURIComponent(csc.dataset.vals||'[]'));mkBar(csc,cc,sv,cd);}
   var cwc=document.getElementById('curWeakChart');
@@ -1347,6 +1406,8 @@ function renderCharts(){
   if(pft){mkBar(pft,Array.from({length:24},function(_,i){return i+'h';}),JSON.parse(decodeURIComponent(pft.dataset.vals||'[]')),cd);}
   var pfd=document.getElementById('pfDuration');
   if(pfd){mkBar(pfd,JSON.parse(decodeURIComponent(pfd.dataset.keys||'[]')),JSON.parse(decodeURIComponent(pfd.dataset.vals||'[]')),cd);}
+
+  /* GTMO charts */
   var gtmoEq=document.getElementById('gtmoEquityChart');
   if(gtmoEq){
     try{
@@ -1368,6 +1429,8 @@ function renderCharts(){
                   y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'\xa3'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
     }catch(e){console.warn('GTMO equity chart:',e);}
   }
+
+  /* GTMO weekly bar */
   var gwc=document.getElementById('gtmoWeeklyChart');
   if(gwc){
     try{
@@ -1377,6 +1440,8 @@ function renderCharts(){
       charts.gwc=new Chart(gwc,{type:'bar',data:{labels:gwl,datasets:[{data:gwv,backgroundColor:gwv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:Object.assign({},gwcd,{layout:{padding:{top:20}}})});
     }catch(e){console.warn('GTMO weekly:',e);}
   }
+
+  /* GTMO DOW bar */
   var gdow=document.getElementById('gtmoDowChart');
   if(gdow){
     try{
@@ -1385,6 +1450,8 @@ function renderCharts(){
       charts.gdow=new Chart(gdow,{type:'bar',data:{labels:gdl,datasets:[{data:gdv,backgroundColor:gdv.map(function(v){return v>=0?'#22c55e':'#ef4444';})}]},options:barOpts(cd)});
     }catch(e){console.warn('GTMO DOW:',e);}
   }
+
+  /* GTMO mini equity curves on account cards */
   document.querySelectorAll('[id^="gmini_"]').forEach(function(canvas){
     try{
       var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
@@ -1398,6 +1465,8 @@ function renderCharts(){
         options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{display:false},y:{display:false}}}});
     }catch(e){}
   });
+
+  /* eq_ mini charts (compare tab) */
   document.querySelectorAll('[id^="eq_"]').forEach(function(canvas){
     try{
       var ll=JSON.parse(decodeURIComponent(canvas.dataset.labels||'[]'));
@@ -1416,6 +1485,7 @@ function renderCharts(){
 
 /* ═══════════════════════════════════════════════════════════════
    FGI — Forex Gold Investor EA Testing Dashboard
+   Account: IC Markets Demo #31323667 | EA: ForexGoldInvestor v2.2
    ═══════════════════════════════════════════════════════════════ */
 
 var FGI_JOURNEY=[
@@ -1441,17 +1511,22 @@ var FGI_ROADMAP=[
 
 function fgiPnl(v){return(v>=0?'+':'')+v.toFixed(2);}
 
+/* ── FGI OVERVIEW ───────────────────────────────────────────────── */
 function renderFgiOverview(){
   var bal=1156.63;
   var totalPnl=156.63;
   var pct=15.66;
+
   var run=1000.00,eqPts=[{x:'2026-01-05',y:1000}];
   FGI_JOURNEY.forEach(function(w){run+=w.result;eqPts.push({x:w.period.slice(w.period.indexOf('(')+1,w.period.indexOf(')')),y:+run.toFixed(2)});});
   var eqL=eqPts.map(function(p){return p.x;});
   var eqV=eqPts.map(function(p){return p.y;});
+
   var wLabels=FGI_JOURNEY.map(function(w){return w.config;});
   var wVals=FGI_JOURNEY.map(function(w){return w.result;});
+
   var out='';
+
   out+='<div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:20px">';
   out+='<div class="kpi"><div class="kpi-label">Balance</div><div class="kpi-val gold">&#163;'+bal.toFixed(2)+'</div><div class="kpi-sub">IC Markets Demo</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val pos">&#163;+'+totalPnl.toFixed(2)+'</div><div class="kpi-sub">From &#163;1,000.00 start</div></div>';
@@ -1459,10 +1534,12 @@ function renderFgiOverview(){
   out+='<div class="kpi"><div class="kpi-label">Active Phase</div><div class="kpi-val" style="font-size:15px">S3 Testing</div><div class="kpi-sub">Starts Mon Mar 30</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Phases Done</div><div class="kpi-val">2 / 7</div><div class="kpi-sub">S1 &#10003; S2 &#10003;</div></div>';
   out+='</div>';
+
   out+='<div class="charts-row-2" style="margin-bottom:20px">';
   out+='<div class="equity-card" style="margin-bottom:0"><div class="chart-title">Account Journey — Equity</div><div class="equity-wrap"><canvas id="fgiEqChart" data-labels="'+encodeURIComponent(JSON.stringify(eqL))+'" data-vals="'+encodeURIComponent(JSON.stringify(eqV))+'"></canvas></div></div>';
   out+='<div class="equity-card" style="margin-bottom:0"><div class="chart-title">P&L by Phase</div><div class="equity-wrap"><canvas id="fgiPhaseChart" data-labels="'+encodeURIComponent(JSON.stringify(wLabels))+'" data-vals="'+encodeURIComponent(JSON.stringify(wVals))+'"></canvas></div></div>';
   out+='</div>';
+
   out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">Account Journey</span><span class="count-badge">'+FGI_JOURNEY.length+' phases</span></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Period</th><th>Config</th><th>Result</th><th>Notes</th></tr></thead><tbody>';
   FGI_JOURNEY.forEach(function(w){
@@ -1474,6 +1551,7 @@ function renderFgiOverview(){
     out+='</tr>';
   });
   out+='</tbody></table></div></div>';
+
   if(fgiTrades.length){
     var wins=fgiTrades.filter(function(t){return parseFloat(t.net_profit||0)>0;}).length;
     var losses=fgiTrades.filter(function(t){return parseFloat(t.net_profit||0)<0;}).length;
@@ -1488,6 +1566,7 @@ function renderFgiOverview(){
   return out;
 }
 
+/* ── FGI TRADES ─────────────────────────────────────────────────── */
 function renderFgiTrades(){
   if(!fgiTrades.length){
     return '<div class="empty-state"><div class="empty-icon">&#128200;</div><div class="empty-msg">No trades logged yet</div><div class="empty-sub">Trades from S3 testing will appear here once synced</div></div>';
@@ -1537,6 +1616,7 @@ function filterFgiTrades(){
   var cnt=document.getElementById('fgiTrdCount');if(cnt)cnt.textContent=rows.length;
 }
 
+/* ── FGI ROADMAP ────────────────────────────────────────────────── */
 function renderFgiRoadmap(){
   var S1_VERDICT='Long-only, momentum-triggered. Profitable in uptrends only. Buys tops in downtrend — structural limitation. TurboMode2=FALSE confirmed. Testing complete.';
   var S2_VERDICT='Bi-directional, ultra-patient sniper. 83.3% win rate over 12 trades (Weeks 7-9). Trailing stops, waits 24-72h+ for quality setup. Testing complete.';
@@ -1567,6 +1647,7 @@ function renderFgiRoadmap(){
   return out;
 }
 
+/* ── FGI SETTINGS ───────────────────────────────────────────────── */
 function renderFgiSettings(){
   function row(label,val,warn){
     return '<div class="insp-row"><span class="insp-label">'+label+'</span><span class="insp-val" style="color:'+(warn?'#dc2626':'#1e293b')+'">'+val+'</span></div>';
@@ -1595,6 +1676,7 @@ function renderFgiSettings(){
   return out;
 }
 
+/* ── FGI CHARTS ─────────────────────────────────────────────────── */
 function renderFgiCharts(){
   var cd={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}};
   var fgiEq=document.getElementById('fgiEqChart');
@@ -1611,13 +1693,7 @@ function renderFgiCharts(){
   }catch(e){console.warn('FGI phase:',e);}}
 }
 
-function manualRefresh(){
-  var btn=document.getElementById('refreshBtn');
-  if(btn)btn.disabled=true;
-  var p=mode==='gtmo'?loadGtmoData():mode==='fgi'?loadFgiData():loadData();
-  if(p&&p.finally)p.finally(function(){if(btn)btn.disabled=false;});
-  else if(btn)btn.disabled=false;
-}
+function manualRefresh(){var btn=document.getElementById('refreshBtn');if(btn)btn.disabled=true;var p=mode==='gtmo'?loadGtmoData():mode==='fgi'?loadFgiData():loadData();if(p&&p.finally)p.finally(function(){if(btn)btn.disabled=false;});else if(btn)btn.disabled=false;}
 init();
 </script>
 </body>
