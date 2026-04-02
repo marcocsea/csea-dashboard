@@ -1078,7 +1078,8 @@ function renderGtmoOverview(){
 
   /* Weekly P&L bar chart */
   var wkData=gtmoWeeklyPnl(sess,8);
-  out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">Weekly P&L &#8212; Last 8 Weeks (All Accounts)</div><div class="chart-wrap"><canvas id="gtmoWeeklyChart" data-labels="'+enc(wkData.labels)+'" data-vals="'+enc(wkData.vals)+'"></canvas></div></div>';
+  var wkTitle=acctId?(gtmoAccounts.find(function(a){return a.id===acctId;})||{label:'Selected Account'}).label+' &#8212; Weekly P&L Last 8 Weeks':'Weekly P&L &#8212; Last 8 Weeks (All Accounts)';
+  out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">'+wkTitle+'</div><div class="chart-wrap"><canvas id="gtmoWeeklyChart" data-labels="'+enc(wkData.labels)+'" data-vals="'+enc(wkData.vals)+'"></canvas></div></div>';
 
   /* Recent sessions table */
   var recent=sess.slice(0,10);
@@ -1142,34 +1143,58 @@ function renderGtmoSessions(){
     out+='<div style="padding:16px">'+monthGrid+'</div></div>';
   }
 
-  /* Day of week breakdown */
+  /* Last 4 weeks daily P&L grid */
   var DOW=['Mon','Tue','Wed','Thu','Fri'];
-  var dowData=[{},{}]; /* 0=pnl,1=count */
-  DOW.forEach(function(d,i){dowData[0][i]={pnl:0,w:0,l:0};});
+  /* Build week buckets — keyed by Monday date string */
+  var weekMap={};
   gtmoFilteredSessions.forEach(function(s){
     if(!s.session_date)return;
     var d=new Date(s.session_date+'T12:00:00Z');
-    var day=d.getDay();/* 0=Sun */
+    var day=d.getDay();
     if(day===0||day===6)return;
-    var i=day-1;
-    dowData[0][i].pnl+=parseFloat(s.net_pnl||0);
-    if(s.result==='WIN')dowData[0][i].w++;
-    else if(s.result==='LOSS')dowData[0][i].l++;
+    var mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));
+    var wk=mon.toISOString().slice(0,10);
+    var di=day-1;
+    if(!weekMap[wk])weekMap[wk]={};
+    if(!weekMap[wk][di])weekMap[wk][di]={pnl:0,w:0,l:0};
+    weekMap[wk][di].pnl+=parseFloat(s.net_pnl||0);
+    if(s.result==='WIN')weekMap[wk][di].w++;
+    else if(s.result==='LOSS')weekMap[wk][di].l++;
   });
-  out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">Day of Week &#8212; P&L &amp; Win Rate</div>';
-  out+='<div class="dow-grid">';
-  DOW.forEach(function(d,i){
-    var dd=dowData[0][i];
-    var total=dd.w+dd.l;
-    var wr=total?(dd.w/total*100).toFixed(0):0;
-    var col=dd.pnl>=0?'#16a34a':'#dc2626';
-    out+='<div class="dow-cell"><div class="dow-label">'+d+'</div>';
-    out+='<div class="dow-val" style="color:'+col+'">&#163;'+fmtPnl(dd.pnl)+'</div>';
-    out+='<div class="dow-sub">'+total+' sessions &middot; '+wr+'% WR</div>';
-    out+='</div>';
+  var wkKeys=Object.keys(weekMap).sort().slice(-4);
+  /* Card title */
+  out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">Last 4 Weeks &#8212; Daily P&L</div>';
+  /* Header row */
+  out+='<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:12px">';
+  out+='<thead><tr><th style="text-align:left;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--sub);font-size:11px;white-space:nowrap">Week</th>';
+  DOW.forEach(function(d){out+='<th style="text-align:center;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--sub);font-size:11px">'+d+'</th>';});
+  out+='<th style="text-align:center;padding:7px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--sub);font-size:11px;border-left:2px solid #cbd5e1">Total</th></tr></thead><tbody>';
+  /* Week rows */
+  if(!wkKeys.length){out+='<tr><td colspan="7" style="text-align:center;padding:16px;color:#94a3b8">No session data</td></tr>';}
+  wkKeys.slice().reverse().forEach(function(wk){
+    var weekTotal=0;
+    out+='<tr>';
+    out+='<td style="padding:7px 10px;border:1px solid var(--border);font-weight:700;color:#1e293b;white-space:nowrap;font-size:11px">'+wk.slice(5)+'</td>';
+    for(var di=0;di<5;di++){
+      var cell=weekMap[wk][di];
+      if(!cell){out+='<td style="padding:7px 10px;border:1px solid var(--border);text-align:center;color:#94a3b8">&#8212;</td>';continue;}
+      weekTotal+=cell.pnl;
+      var total=cell.w+cell.l;
+      var wr=total?(cell.w/total*100).toFixed(0):0;
+      var bg=cell.pnl>0?'#f0fdf4':cell.pnl<0?'#fef2f2':'var(--bg3)';
+      var col=cell.pnl>=0?'#16a34a':'#dc2626';
+      out+='<td style="padding:7px 10px;border:1px solid var(--border);text-align:center;background:'+bg+'">';
+      out+='<div style="font-weight:700;color:'+col+'">&#163;'+fmtPnl(cell.pnl)+'</div>';
+      out+='<div style="font-size:10px;color:#94a3b8">'+total+'s &middot; '+wr+'%</div>';
+      out+='</td>';
+    }
+    var tBg=weekTotal>0?'#f0fdf4':weekTotal<0?'#fef2f2':'var(--bg3)';
+    var tCol=weekTotal>=0?'#16a34a':'#dc2626';
+    out+='<td style="padding:7px 10px;border:1px solid var(--border);border-left:2px solid #cbd5e1;text-align:center;background:'+tBg+';font-weight:800;color:'+tCol+'">&#163;'+fmtPnl(weekTotal)+'</td>';
+    out+='</tr>';
   });
-  out+='</div>';
-  out+='<div class="chart-wrap"><canvas id="gtmoDowChart" data-labels="'+enc(DOW)+'" data-vals="'+enc(DOW.map(function(_,i){return+dowData[0][i].pnl.toFixed(2);}))+'"></canvas></div>';
+  out+='</tbody></table></div>';
+  out+='<div class="chart-wrap" style="display:none"><canvas id="gtmoDowChart"></canvas></div>';
   out+='</div>';
 
   /* Pre-select in-tab account dropdown to match header dropdown */
