@@ -884,10 +884,16 @@ function renderCompare(){
 
 /* ── GTMO DATA LOAD ─────────────────────────────────────────────── */
 var gtmoFilteredSessions=[];
+var gtmoOrders=[];
 async function loadGtmoData(){
   var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
   dot.className='status-dot off';txt.textContent='Loading...';
-  gtmoSessions=await sb('gtmo_sessions','select=*&order=session_date.desc,session_open.desc');
+  var res=await Promise.all([
+    sb('gtmo_sessions','select=*&order=session_date.desc,session_open.desc'),
+    sb('gtmo_orders','select=ticket,account_id,magic,profit,commission,swap,close_time&order=close_time')
+  ]);
+  gtmoSessions=res[0]||[];
+  gtmoOrders=res[1]||[];
   gtmoAccounts=allAccounts.filter(function(a){return a.strategy==='GTMO'||a.strategy==='GTS';});
   gtmoFilteredSessions=acctId?gtmoSessions.filter(function(s){return s.account_id===acctId;}):gtmoSessions;
   dot.className='status-dot';txt.textContent='Live';
@@ -1075,6 +1081,55 @@ function renderGtmoOverview(){
     out+='</div>';
   });
   out+='</div>';
+
+  /* EA vs Manual breakdown — 4xHub only (magic=0 means manual) */
+  var FXHUB_ID='a1e93eec-db3e-4d72-baa3-cf0cd33d2dc6';
+  var showEaManual=(!acctId||acctId===FXHUB_ID);
+  if(showEaManual){
+    var fxOrders=gtmoOrders.filter(function(o){return o.account_id===FXHUB_ID;});
+    var eaOrders=fxOrders.filter(function(o){return parseInt(o.magic||0)!==0;});
+    var manOrders=fxOrders.filter(function(o){return parseInt(o.magic||0)===0;});
+    function ordPnl(arr){return arr.reduce(function(s,o){return s+parseFloat(o.profit||0)+parseFloat(o.commission||0)+parseFloat(o.swap||0);},0);}
+    function ordWR(arr){var w=arr.filter(function(o){return parseFloat(o.profit||0)>0;}).length;return arr.length?(w/arr.length*100).toFixed(1):'0';}
+    var eaPnl=ordPnl(eaOrders),manPnl=ordPnl(manOrders);
+    var eaWr=ordWR(eaOrders),manWr=ordWR(manOrders);
+    var eaWins=eaOrders.filter(function(o){return parseFloat(o.profit||0)>0;}).length;
+    var eaLosses=eaOrders.filter(function(o){return parseFloat(o.profit||0)<0;}).length;
+    var manWins=manOrders.filter(function(o){return parseFloat(o.profit||0)>0;}).length;
+    var manLosses=manOrders.filter(function(o){return parseFloat(o.profit||0)<0;}).length;
+    var eaGw=eaOrders.filter(function(o){return parseFloat(o.profit||0)>0;}).reduce(function(s,o){return s+parseFloat(o.profit||0);},0);
+    var eaGl=Math.abs(eaOrders.filter(function(o){return parseFloat(o.profit||0)<0;}).reduce(function(s,o){return s+parseFloat(o.profit||0);},0));
+    var manGw=manOrders.filter(function(o){return parseFloat(o.profit||0)>0;}).reduce(function(s,o){return s+parseFloat(o.profit||0);},0);
+    var manGl=Math.abs(manOrders.filter(function(o){return parseFloat(o.profit||0)<0;}).reduce(function(s,o){return s+parseFloat(o.profit||0);},0));
+    var eaPf=eaGl>0?(eaGw/eaGl).toFixed(2):'&infin;';
+    var manPf=manGl>0?(manGw/manGl).toFixed(2):'&infin;';
+    out+='<div class="dir-panel" style="margin-bottom:20px">';
+    /* EA card */
+    out+='<div class="dir-card" style="border-top:3px solid #7c3aed">';
+    out+='<div class="dir-title" style="color:#7c3aed">&#129302; GTMO EA Trades';
+    out+='<span style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px">'+eaOrders.length+' orders</span></div>';
+    out+='<div class="dir-stats">';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Net P&L</div><div class="dir-stat-val" style="color:'+(eaPnl>=0?'#16a34a':'#dc2626')+'">&#163;'+fmtPnl(eaPnl)+'</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Win Rate</div><div class="dir-stat-val">'+eaWr+'%</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">W / L</div><div class="dir-stat-val">'+eaWins+'W / '+eaLosses+'L</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Profit Factor</div><div class="dir-stat-val '+(parseFloat(eaPf)>=1.5?'pos':parseFloat(eaPf)<1?'neg':'')+'">'+(eaPf)+'</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Gross W</div><div class="dir-stat-val" style="color:#16a34a">&#163;+'+eaGw.toFixed(2)+'</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Gross L</div><div class="dir-stat-val" style="color:#dc2626">&#163;-'+eaGl.toFixed(2)+'</div></div>';
+    out+='</div></div>';
+    /* Manual card */
+    out+='<div class="dir-card" style="border-top:3px solid #0ea5e9">';
+    out+='<div class="dir-title" style="color:#0369a1">&#9998; Manual Trades';
+    out+='<span style="font-size:11px;color:#64748b;font-weight:400;margin-left:8px">'+manOrders.length+' orders</span></div>';
+    out+='<div class="dir-stats">';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Net P&L</div><div class="dir-stat-val" style="color:'+(manPnl>=0?'#16a34a':'#dc2626')+'">&#163;'+fmtPnl(manPnl)+'</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Win Rate</div><div class="dir-stat-val">'+manWr+'%</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">W / L</div><div class="dir-stat-val">'+manWins+'W / '+manLosses+'L</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Profit Factor</div><div class="dir-stat-val '+(parseFloat(manPf)>=1.5?'pos':parseFloat(manPf)<1?'neg':'')+'">'+(manPf)+'</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Gross W</div><div class="dir-stat-val" style="color:#16a34a">&#163;+'+manGw.toFixed(2)+'</div></div>';
+    out+='<div class="dir-stat"><div class="dir-stat-label">Gross L</div><div class="dir-stat-val" style="color:#dc2626">&#163;-'+manGl.toFixed(2)+'</div></div>';
+    out+='</div></div>';
+    out+='</div>';
+  }
 
   /* Weekly P&L bar chart */
   var wkData=gtmoWeeklyPnl(sess,8);
@@ -1272,8 +1327,11 @@ function renderGtmoEquity(){
   });
 
   /* Profit factor per account panel */
+  var eqTitle=acctId
+    ?(equityAccounts[0]&&equityAccounts[0].strategy==='GTS'?'GTS':'GTMO')+' &mdash; '+(equityAccounts[0]?equityAccounts[0].label:'Account')+' Cumulative P&L'
+    :'GTMO &middot; GTS Cumulative P&L by Account';
   var out='<div class="equity-card">';
-  out+='<div class="chart-title">GTMO &middot; GTS Cumulative P&L by Account</div>';
+  out+='<div class="chart-title">'+eqTitle+'</div>';
   out+='<div class="equity-wrap"><canvas id="gtmoEquityChart" data-sets="'+encodeURIComponent(JSON.stringify(datasets))+'"></canvas></div>';
   out+='</div>';
 
