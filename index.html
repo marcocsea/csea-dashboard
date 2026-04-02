@@ -394,6 +394,15 @@ function applyDateFilter(){
   db.signals=rawDb.signals.filter(function(s){return ok(s.ts);});
   db.daily=rawDb.daily.filter(function(d){return ok(d.date);});
   db.positions=rawDb.positions;
+  /* Re-filter GTMO sessions when date range changes */
+  if(gtmoSessions.length){
+    gtmoFilteredSessions=gtmoSessions.filter(function(s){
+      if(acctId&&s.account_id!==acctId)return false;
+      if(dateFrom&&(s.session_date||'')<dateFrom)return false;
+      if(dateTo&&(s.session_date||'')>dateTo)return false;
+      return true;
+    });
+  }
   var cnt=document.getElementById('rangeCount');
   if(cnt)cnt.textContent=closed().length+' trades in range';
 }
@@ -895,7 +904,12 @@ async function loadGtmoData(){
   gtmoSessions=res[0]||[];
   gtmoOrders=res[1]||[];
   gtmoAccounts=allAccounts.filter(function(a){return a.strategy==='GTMO'||a.strategy==='GTS';});
-  gtmoFilteredSessions=acctId?gtmoSessions.filter(function(s){return s.account_id===acctId;}):gtmoSessions;
+  gtmoFilteredSessions=gtmoSessions.filter(function(s){
+    if(acctId&&s.account_id!==acctId)return false;
+    if(dateFrom&&(s.session_date||'')< dateFrom)return false;
+    if(dateTo&&(s.session_date||'')>dateTo)return false;
+    return true;
+  });
   dot.className='status-dot';txt.textContent='Live';
   document.getElementById('lastSync').textContent='Synced '+new Date().toLocaleTimeString();
   destroyCharts();renderTabs();renderContent();
@@ -1084,9 +1098,13 @@ function renderGtmoOverview(){
 
   /* EA vs Manual breakdown — 4xHub only (magic=0 means manual) */
   var FXHUB_ID='a1e93eec-db3e-4d72-baa3-cf0cd33d2dc6';
-  var showEaManual=(!acctId||acctId===FXHUB_ID);
+  var showEaManual=(acctId===FXHUB_ID);
   if(showEaManual){
-    var fxOrders=gtmoOrders.filter(function(o){return o.account_id===FXHUB_ID;});
+    var fxOrders=gtmoOrders.filter(function(o){
+      if(o.account_id!==FXHUB_ID)return false;
+      if(dateFrom||dateTo){var d=(o.close_time||'').slice(0,10);if(dateFrom&&d<dateFrom)return false;if(dateTo&&d>dateTo)return false;}
+      return true;
+    });
     var eaOrders=fxOrders.filter(function(o){return parseInt(o.magic||0)!==0;});
     var manOrders=fxOrders.filter(function(o){return parseInt(o.magic||0)===0;});
     function ordPnl(arr){return arr.reduce(function(s,o){return s+parseFloat(o.profit||0)+parseFloat(o.commission||0)+parseFloat(o.swap||0);},0);}
