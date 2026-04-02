@@ -362,7 +362,9 @@ function setMode(m,reload){
 function onAcctChange(){
   acctId=document.getElementById('acctSelect').value;
   localStorage.setItem('csea_account_id',acctId);
-  loadData();
+  if(mode==='gtmo')loadGtmoData();
+  else if(mode==='fgi')loadFgiData();
+  else loadData();
 }
 function setPreset(p){
   activePreset=p;
@@ -881,11 +883,13 @@ function renderCompare(){
    ══════════════════════════════════════════════════════════════════ */
 
 /* ── GTMO DATA LOAD ─────────────────────────────────────────────── */
+var gtmoFilteredSessions=[];
 async function loadGtmoData(){
   var dot=document.getElementById('statusDot'),txt=document.getElementById('statusTxt');
   dot.className='status-dot off';txt.textContent='Loading...';
   gtmoSessions=await sb('gtmo_sessions','select=*&order=session_date.desc,session_open.desc');
   gtmoAccounts=allAccounts.filter(function(a){return a.strategy==='GTMO'||a.strategy==='GTS';});
+  gtmoFilteredSessions=acctId?gtmoSessions.filter(function(s){return s.account_id===acctId;}):gtmoSessions;
   dot.className='status-dot';txt.textContent='Live';
   document.getElementById('lastSync').textContent='Synced '+new Date().toLocaleTimeString();
   destroyCharts();renderTabs();renderContent();
@@ -973,28 +977,29 @@ function gtmoMonthlyGrid(ss){
 /* ── GTMO OVERVIEW ─────────────────────────────────────────────── */
 function renderGtmoOverview(){
   var COLORS=['#3b82f6','#f59e0b','#10b981'];
-  var total=gtmoSessions.length;
-  var wins=gtmoSessions.filter(function(s){return s.result==='WIN';}).length;
-  var losses=gtmoSessions.filter(function(s){return s.result==='LOSS';}).length;
-  var totalPnl=gtmoSessions.reduce(function(s,x){return s+parseFloat(x.net_pnl||0);},0);
+  var sess=gtmoFilteredSessions;
+  var total=sess.length;
+  var wins=sess.filter(function(s){return s.result==='WIN';}).length;
+  var losses=sess.filter(function(s){return s.result==='LOSS';}).length;
+  var totalPnl=sess.reduce(function(s,x){return s+parseFloat(x.net_pnl||0);},0);
   var wr=total?(wins/total*100).toFixed(1):0;
-  var allWins=gtmoSessions.filter(function(s){return s.result==='WIN';});
-  var allLosses=gtmoSessions.filter(function(s){return s.result==='LOSS';});
+  var allWins=sess.filter(function(s){return s.result==='WIN';});
+  var allLosses=sess.filter(function(s){return s.result==='LOSS';});
   var avgWin=allWins.length?(allWins.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0)/allWins.length):0;
   var avgLoss=allLosses.length?(Math.abs(allLosses.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0))/allLosses.length):0;
   var grossW=allWins.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0);
   var grossL=Math.abs(allLosses.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0));
   var pf=grossL>0?(grossW/grossL).toFixed(2):'&infin;';
-  var streak=gtmoStreak(gtmoSessions);
+  var streak=gtmoStreak(sess);
 
   /* Week P&L for this month */
   var now=new Date();
   var thisMonth=now.getFullYear()+'-'+(now.getMonth()<9?'0':'')+(now.getMonth()+1);
-  var monthSessions=gtmoSessions.filter(function(s){return(s.session_date||'').slice(0,7)===thisMonth;});
+  var monthSessions=sess.filter(function(s){return(s.session_date||'').slice(0,7)===thisMonth;});
   var monthPnl=monthSessions.reduce(function(a,s){return a+parseFloat(s.net_pnl||0);},0);
 
   /* Best / worst single session */
-  var allPnls=gtmoSessions.map(function(s){return parseFloat(s.net_pnl||0);});
+  var allPnls=sess.map(function(s){return parseFloat(s.net_pnl||0);});
   var bestDay=allPnls.length?Math.max.apply(null,allPnls):0;
   var worstDay=allPnls.length?Math.min.apply(null,allPnls):0;
 
@@ -1018,22 +1023,24 @@ function renderGtmoOverview(){
   out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div></div>';
   out+='</div>';
 
-  /* Direction breakdown — BUY vs SELL */
-  var buyStats=gtmoDirStats(gtmoSessions,'BUY');
-  var sellStats=gtmoDirStats(gtmoSessions,'SELL');
-  var nullStats=gtmoDirStats(gtmoSessions.filter(function(s){return!s.signal_direction;}));
-
-  out+='<div class="dir-panel">';
-  out+=renderDirCard('BUY','#16a34a',buyStats);
-  out+=renderDirCard('SELL','#dc2626',sellStats);
-  out+='</div>';
-  if(nullStats.total>0){
-    out+='<div style="font-size:11px;color:#94a3b8;margin:-12px 0 16px;padding:0 2px">&#9432; '+nullStats.total+' sessions have no direction recorded (early bot.py before direction tracking was added) — excluded from BUY/SELL breakdown above.</div>';
+  /* Direction breakdown — BUY vs SELL (only shown for all accounts) */
+  if(!acctId){
+    var buyStats=gtmoDirStats(sess,'BUY');
+    var sellStats=gtmoDirStats(sess,'SELL');
+    var nullStats=gtmoDirStats(sess.filter(function(s){return!s.signal_direction;}));
+    out+='<div class="dir-panel">';
+    out+=renderDirCard('BUY','#16a34a',buyStats);
+    out+=renderDirCard('SELL','#dc2626',sellStats);
+    out+='</div>';
+    if(nullStats.total>0){
+      out+='<div style="font-size:11px;color:#94a3b8;margin:-12px 0 16px;padding:0 2px">&#9432; '+nullStats.total+' sessions have no direction recorded (early bot.py before direction tracking was added) — excluded from BUY/SELL breakdown above.</div>';
+    }
   }
 
   /* Per-account cards with mini equity curves */
+  var cardsToShow=acctId?gtmoAccounts.filter(function(a){return a.id===acctId;}):gtmoAccounts;
   out+='<div class="compare-grid">';
-  gtmoAccounts.forEach(function(a,idx){
+  cardsToShow.forEach(function(a,idx){
     var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;});
     var aw2=ss.filter(function(s){return s.result==='WIN';}).length;
     var al2=ss.filter(function(s){return s.result==='LOSS';}).length;
@@ -1070,11 +1077,11 @@ function renderGtmoOverview(){
   out+='</div>';
 
   /* Weekly P&L bar chart */
-  var wkData=gtmoWeeklyPnl(gtmoSessions,8);
+  var wkData=gtmoWeeklyPnl(sess,8);
   out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">Weekly P&L &#8212; Last 8 Weeks (All Accounts)</div><div class="chart-wrap"><canvas id="gtmoWeeklyChart" data-labels="'+enc(wkData.labels)+'" data-vals="'+enc(wkData.vals)+'"></canvas></div></div>';
 
   /* Recent sessions table */
-  var recent=gtmoSessions.slice(0,10);
+  var recent=sess.slice(0,10);
   out+='<div class="table-card"><div class="table-header"><span class="table-title">Recent Sessions</span><span class="count-badge">last 10</span></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Net P&L</th><th>TC After</th><th>Exit</th><th>Result</th></tr></thead><tbody>';
   out+=recent.map(function(s){
@@ -1119,17 +1126,17 @@ function renderDirCard(dir,col,st){
 /* ── GTMO SESSIONS ─────────────────────────────────────────────── */
 function renderGtmoSessions(){
   var acctOpts=gtmoAccounts.map(function(a){return'<option value="'+a.id+'">'+a.label+'</option>';}).join('');
-  var out='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge" id="gsSessCount">'+gtmoSessions.length+'</span>';
+  var out='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">All Sessions</span><span class="count-badge" id="gsSessCount">'+gtmoFilteredSessions.length+'</span>';
   out+='<div class="filters">';
   out+='<select id="gsAcctF" onchange="filterGtmoSessions()"><option value="">All Accounts</option>'+acctOpts+'</select>';
   out+='<select id="gsDirF" onchange="filterGtmoSessions()"><option value="">All Directions</option><option>BUY</option><option>SELL</option></select>';
   out+='<select id="gsResF" onchange="filterGtmoSessions()"><option value="">All Results</option><option>WIN</option><option>LOSS</option></select>';
   out+='</div></div>';
   out+='<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Account</th><th>Dir</th><th>Orders</th><th>Gross P&L</th><th>Net P&L</th><th>TC After</th><th>Pips Est</th><th>Exit</th><th>Loss#</th><th>Result</th></tr></thead>';
-  out+='<tbody id="gsBody">'+renderGtmoSessionRows(gtmoSessions)+'</tbody></table></div></div>';
+  out+='<tbody id="gsBody">'+renderGtmoSessionRows(gtmoFilteredSessions)+'</tbody></table></div></div>';
 
   /* Monthly P&L grid */
-  var monthGrid=gtmoMonthlyGrid(gtmoSessions);
+  var monthGrid=gtmoMonthlyGrid(gtmoFilteredSessions);
   if(monthGrid){
     out+='<div class="table-card" style="margin-bottom:20px"><div class="table-header"><span class="table-title">&#128197; Monthly P&L (&#163;)</span></div>';
     out+='<div style="padding:16px">'+monthGrid+'</div></div>';
@@ -1139,7 +1146,7 @@ function renderGtmoSessions(){
   var DOW=['Mon','Tue','Wed','Thu','Fri'];
   var dowData=[{},{}]; /* 0=pnl,1=count */
   DOW.forEach(function(d,i){dowData[0][i]={pnl:0,w:0,l:0};});
-  gtmoSessions.forEach(function(s){
+  gtmoFilteredSessions.forEach(function(s){
     if(!s.session_date)return;
     var d=new Date(s.session_date+'T12:00:00Z');
     var day=d.getDay();/* 0=Sun */
@@ -1164,6 +1171,9 @@ function renderGtmoSessions(){
   out+='</div>';
   out+='<div class="chart-wrap"><canvas id="gtmoDowChart" data-labels="'+enc(DOW)+'" data-vals="'+enc(DOW.map(function(_,i){return+dowData[0][i].pnl.toFixed(2);}))+'"></canvas></div>';
   out+='</div>';
+
+  /* Pre-select in-tab account dropdown to match header dropdown */
+  if(acctId){setTimeout(function(){var el=document.getElementById('gsAcctF');if(el)el.value=acctId;},10);}
 
   return out;
 }
@@ -1197,7 +1207,7 @@ function filterGtmoSessions(){
   var acct=(document.getElementById('gsAcctF')||{}).value||'';
   var dir=(document.getElementById('gsDirF')||{}).value||'';
   var res=(document.getElementById('gsResF')||{}).value||'';
-  var rows=gtmoSessions;
+  var rows=acct?gtmoSessions:gtmoFilteredSessions;
   if(acct)rows=rows.filter(function(s){return s.account_id===acct;});
   if(dir)rows=rows.filter(function(s){return s.signal_direction===dir;});
   if(res)rows=rows.filter(function(s){return s.result===res;});
@@ -1209,7 +1219,8 @@ function filterGtmoSessions(){
 function renderGtmoEquity(){
   var COLORS=['#3b82f6','#f59e0b','#10b981'];
   var datasets=[];
-  gtmoAccounts.forEach(function(a,idx){
+  var equityAccounts=acctId?gtmoAccounts.filter(function(a){return a.id===acctId;}):gtmoAccounts;
+  equityAccounts.forEach(function(a,idx){
     var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;}).slice().reverse();
     var run=0,pts=[];
     ss.forEach(function(s){
@@ -1242,7 +1253,7 @@ function renderGtmoEquity(){
 
   /* Profit factor & avg win vs loss per account */
   out+='<div class="charts-row-3">';
-  gtmoAccounts.forEach(function(a,idx){
+  equityAccounts.forEach(function(a,idx){
     var ss=gtmoSessions.filter(function(s){return s.account_id===a.id;});
     var st=gtmoDirStats(ss,null);
     var pfLabel=st.pf!==null?st.pf.toFixed(2):'&infin;';
