@@ -1078,7 +1078,8 @@ function renderGtmoOverview(){
 
   /* Weekly P&L bar chart */
   var wkData=gtmoWeeklyPnl(sess,8);
-  var wkTitle=acctId?(gtmoAccounts.find(function(a){return a.id===acctId;})||{label:'Selected Account'}).label+' &#8212; Weekly P&L Last 8 Weeks':'Weekly P&L &#8212; Last 8 Weeks (All Accounts)';
+  var wkAcctLabel=acctId?(gtmoAccounts.find(function(a){return a.id===acctId;})||{label:'Selected Account'}).label+' &#8212; ':'';
+  var wkTitle=wkAcctLabel+'Weekly P&L &#8212; '+wkData.labels.length+' Weeks Available';
   out+='<div class="chart-card" style="margin-bottom:20px"><div class="chart-title">'+wkTitle+'</div><div class="chart-wrap"><canvas id="gtmoWeeklyChart" data-labels="'+enc(wkData.labels)+'" data-vals="'+enc(wkData.vals)+'"></canvas></div></div>';
 
   /* Recent sessions table */
