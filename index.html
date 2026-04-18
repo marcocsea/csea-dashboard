@@ -240,6 +240,8 @@ var rawDb={trades:[],signals:[],daily:[],positions:[]};
 var db={trades:[],signals:[],daily:[],positions:[]};
 var dateFrom='',dateTo='',activePreset='all';
 var gtmoSessions=[],gtmoAccounts=[],liveAccounts=[],cseaAccounts=[];
+var rawDeposits=[];
+var rawDeposits=[];
 var GTABS=['gtmo_overview','gtmo_sessions','gtmo_equity'];
 var GTLABELS={gtmo_overview:'Overview',gtmo_sessions:'Sessions',gtmo_equity:'Equity & Risk'};
 var STABS=['overview','positions','trades','signals','daily','heatmap','currencies','compare'];
@@ -314,12 +316,15 @@ async function loadData(){
     var liveIds=liveAccounts.map(function(a){return a.id;});
     if(liveIds.length)f='&account_id=in.('+liveIds.join(',')+')';
   }
+  var depFilter=acctId?'account_id=eq.'+acctId:(mode==='portfolio'&&liveAccounts.length?'account_id=in.('+liveAccounts.map(function(a){return a.id;}).join(',')+')'  :'');
   var res=await Promise.all([
     sb('trades','select=*&order=ts'+f),
     sb('signals','select=*&order=ts'+f),
     sb('daily','select=*&order=date'+f),
-    sb('trades','select=*&event=eq.OPEN'+f)
+    sb('trades','select=*&event=eq.OPEN'+f),
+    depFilter?sb('deposits','select=*&order=date&'+depFilter):Promise.resolve([])
   ]);
+  rawDeposits=res[4]||[];
   rawDb={trades:res[0]||[],signals:res[1]||[],daily:res[2]||[],positions:res[3]||[]};
   var acctList=mode==='portfolio'?liveAccounts:mode==='strategy'?cseaAccounts:allAccounts;
   if(acctList.length>1){
