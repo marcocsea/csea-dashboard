@@ -370,7 +370,7 @@ function setPreset(p){
   activePreset=p;
   document.querySelectorAll('.preset').forEach(function(b){b.classList.remove('active');});
   event.target.classList.add('active');
-  var now=new Date(),fmt=function(d){return d.toISOString().slice(0,10);};
+  var now=new Date(),fmt=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
   var df=document.getElementById('dateFrom'),dt=document.getElementById('dateTo');
   if(p==='all'){df.value='';dt.value='';dateFrom='';dateTo='';}
   else if(p==='today'){var s=fmt(now);df.value=s;dt.value=s;dateFrom=s;dateTo=s;}
@@ -407,7 +407,7 @@ function applyDateFilter(){
   if(cnt)cnt.textContent=closed().length+' trades in range';
 }
 function updateDayStrip(){
-  var today=new Date().toISOString().slice(0,10);
+  var _td=new Date(),today=_td.getFullYear()+'-'+String(_td.getMonth()+1).padStart(2,'0')+'-'+String(_td.getDate()).padStart(2,'0');
   var lastDay=(rawDb.daily.slice().sort(function(a,b){return(b.date||'').localeCompare(a.date||'');}))[0]||{};
   var todayTrades=rawDb.trades.filter(function(t){
     return(t.ts||'').slice(0,10)===today&&(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;
