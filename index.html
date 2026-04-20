@@ -1521,14 +1521,27 @@ function renderCharts(){
     var BCOLS=['#3b82f6','#f59e0b','#10b981','#8b5cf6'];
     var pbAccts=acctId?liveAccounts.filter(function(a){return a.id===acctId;}):liveAccounts;
     var pbDS=[];
+    // DD/MM/YYYY formatter for chart labels
+    function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);}
+    // Reconstruct running balance from P&L — ignores unreliable stored balance field
+    // Anchors on the last known balance and works backwards to find starting point
+    function recon(trades){
+      if(!trades.length)return{pts:[],labels:[]};
+      var lastBal=0;
+      for(var i=trades.length-1;i>=0;i--){var b=parseFloat(trades[i].balance||0);if(b>10){lastBal=b;break;}}
+      if(!lastBal)return{pts:[],labels:[]};
+      var totPnl=trades.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
+      var run=lastBal-totPnl;var pts=[];var labels=[];
+      trades.forEach(function(t){run+=parseFloat(t.pnl||0);pts.push(+run.toFixed(2));labels.push((t.ts||'').slice(0,10));});
+      return{pts:pts,labels:labels};
+    }
     if(acctId){
-      // SINGLE ACCOUNT: per-trade resolution — every close plotted
-      var pbSrc=rawDb.trades.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.balance||0)>0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
-      var pbPts=pbSrc.map(function(t){return parseFloat(t.balance||0);});
-      var pbLbls=pbSrc.map(function(t){return(t.ts||'').slice(0,10);});
+      // SINGLE ACCOUNT: per-trade, reconstructed balance
+      var pbSrc=rawDb.trades.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+      var rc=recon(pbSrc);var pbPts=rc.pts;var pbLbls=rc.labels;
       // Prepend deposit anchors before first trade
       var pbDeps=rawDeposits.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'');});
-      var pbFirst=pbSrc.length?(pbSrc[0].ts||'').slice(0,10):null;
+      var pbFirst=pbLbls.length?pbLbls[0]:null;
       if(pbFirst&&pbDeps.length){
         var cumDep=0;var prePts=[];var preLbls=[];
         pbDeps.forEach(function(dep){
@@ -1536,35 +1549,31 @@ function renderCharts(){
           var ad=dep.date<pbFirst?dep.date:dep.date===pbFirst?(function(){var dd=new Date(pbFirst+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
           if(ad){preLbls.push(ad);prePts.push(Math.max(0,cumDep));}
         });
-        pbLbls=preLbls.concat(pbLbls);
-        pbPts=prePts.concat(pbPts);
+        pbLbls=preLbls.concat(pbLbls);pbPts=prePts.concat(pbPts);
       }
       pbDS.push({label:'Balance',data:pbPts,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
-      // Deposit/withdrawal markers
       if(rawDeposits.length&&pbLbls.length){
-        var depD=new Array(pbPts.length).fill(null);
-        var wdwD=new Array(pbPts.length).fill(null);
+        var depD=new Array(pbPts.length).fill(null);var wdwD=new Array(pbPts.length).fill(null);
         rawDeposits.forEach(function(dep){
-          var ad=pbFirst&&dep.date<pbFirst?dep.date:pbFirst&&dep.date===pbFirst?(function(){var dd=new Date(pbFirst+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
-          var useDate=ad||pbLbls.filter(function(l){return l>=dep.date;})[0];
-          if(!useDate)return;
-          var idx=pbLbls.lastIndexOf(useDate);if(idx<0)return;
+          var useDate=pbLbls.filter(function(l){return l>=dep.date;})[0];
+          if(!useDate)return;var idx=pbLbls.indexOf(useDate);if(idx<0)return;
           var y=pbPts[idx];if(!y)return;
           if(parseFloat(dep.amount||0)>0)depD[idx]=y;else wdwD[idx]=y;
         });
         if(depD.some(function(v){return v!==null;}))pbDS.push({label:'Deposit',data:depD,borderColor:'transparent',backgroundColor:'#22c55e',pointRadius:depD.map(function(v){return v!==null?9:0;}),pointStyle:'triangle',pointRotation:0,showLine:false,spanGaps:false});
         if(wdwD.some(function(v){return v!==null;}))pbDS.push({label:'Withdrawal',data:wdwD,borderColor:'transparent',backgroundColor:'#ef4444',pointRadius:wdwD.map(function(v){return v!==null?9:0;}),pointStyle:'triangle',pointRotation:180,showLine:false,spanGaps:false});
       }
-      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:pbLbls,datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
+      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:pbLbls.map(fmtDMY),datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': \xa3'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'\xa3'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
     } else {
-      // ALL ACCOUNTS: daily resolution — keeps multi-line chart manageable
+      // ALL ACCOUNTS: daily resolution, reconstructed balance
       var allBDates=[];var pbSeriesMap={};
       pbAccts.forEach(function(a){
         var src=allAccountsData[a.id]||[];
-        var dm={};
-        src.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.balance||0)>0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){var d=(t.ts||'').slice(0,10);dm[d]=parseFloat(t.balance||0);});
+        var trades=src.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+        var rc=recon(trades);var dm={};
+        rc.pts.forEach(function(bal,i){var d=rc.labels[i];dm[d]=bal;});
         var acctDeps=rawDeposits.filter(function(d){return d.account_id===a.id;}).slice().sort(function(x,y){return(x.date||'').localeCompare(y.date||'');});
-        var tradeDates=Object.keys(dm).sort();var firstTrade=tradeDates.length?tradeDates[0]:null;
+        var firstTrade=rc.labels.length?rc.labels[0]:null;
         if(firstTrade&&acctDeps.length){
           var cumDep=0;
           acctDeps.forEach(function(dep){
@@ -1583,7 +1592,7 @@ function renderCharts(){
         var vals=allBDates.map(function(d){return s.dm[d]!==undefined?s.dm[d]:null;});
         pbDS.push({label:s.label,data:vals,borderColor:col,backgroundColor:col+'18',fill:false,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
       });
-      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:allBDates,datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11}}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
+      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:allBDates.map(fmtDMY),datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11}}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': \xa3'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'\xa3'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
     }
   }catch(e){console.warn('Balance curve:',e);}}
   var pmc=document.getElementById('portMonthlyChart');
