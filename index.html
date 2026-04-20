@@ -821,7 +821,7 @@ function renderPortOverview(){
   var totalDeposited=rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
   var totalWithdrawn=Math.abs(rawDeposits.filter(function(d){return parseFloat(d.amount||0)<0;}).reduce(function(s,d){return s+parseFloat(d.amount||0);},0));
   var totalInvested=totalDeposited-totalWithdrawn;
-  var netPos=tp;
+  var netPos=rawDb.trades.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;}).reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
   var out='<div class="kpi-grid">';
   out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(tp>=0?'pos':'neg')+'">$'+fmtPnl(tp)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(op>=0?'pos':'neg')+'">$'+fmtPnl(op)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
