@@ -1525,6 +1525,17 @@ function renderCharts(){
       var src=acctId?rawDb.trades:(allAccountsData[a.id]||[]);
       var dm={};
       src.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.balance||0)>0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){var d=(t.ts||'').slice(0,10);dm[d]=parseFloat(t.balance||0);});
+      // Prepend deposit anchors before first trade so curve starts from first deposit
+      var acctDeps=(acctId?rawDeposits:rawDeposits.filter(function(d){return d.account_id===a.id;})).slice().sort(function(x,y){return(x.date||'').localeCompare(y.date||'');});
+      var tradeDates=Object.keys(dm).sort();var firstTrade=tradeDates.length?tradeDates[0]:null;
+      if(firstTrade&&acctDeps.length){
+        var cumDep=0;
+        acctDeps.forEach(function(dep){
+          cumDep+=parseFloat(dep.amount||0);
+          var ad=dep.date<firstTrade?dep.date:dep.date===firstTrade?(function(){var dd=new Date(firstTrade+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
+          if(ad&&!dm[ad])dm[ad]=Math.max(0,cumDep);
+        });
+      }
       pbSeries[a.id]={label:a.label||a.account_number,dm:dm};
       Object.keys(dm).forEach(function(d){if(allBDates.indexOf(d)<0)allBDates.push(d);});
     });
