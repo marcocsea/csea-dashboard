@@ -1520,45 +1520,71 @@ function renderCharts(){
   if(pbc){try{
     var BCOLS=['#3b82f6','#f59e0b','#10b981','#8b5cf6'];
     var pbAccts=acctId?liveAccounts.filter(function(a){return a.id===acctId;}):liveAccounts;
-    var allBDates=[];var pbSeries={};
-    pbAccts.forEach(function(a){
-      var src=acctId?rawDb.trades:(allAccountsData[a.id]||[]);
-      var dm={};
-      src.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.balance||0)>0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){var d=(t.ts||'').slice(0,10);dm[d]=parseFloat(t.balance||0);});
-      // Prepend deposit anchors before first trade so curve starts from first deposit
-      var acctDeps=(acctId?rawDeposits:rawDeposits.filter(function(d){return d.account_id===a.id;})).slice().sort(function(x,y){return(x.date||'').localeCompare(y.date||'');});
-      var tradeDates=Object.keys(dm).sort();var firstTrade=tradeDates.length?tradeDates[0]:null;
-      if(firstTrade&&acctDeps.length){
-        var cumDep=0;
-        acctDeps.forEach(function(dep){
+    var pbDS=[];
+    if(acctId){
+      // SINGLE ACCOUNT: per-trade resolution — every close plotted
+      var pbSrc=rawDb.trades.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.balance||0)>0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
+      var pbPts=pbSrc.map(function(t){return parseFloat(t.balance||0);});
+      var pbLbls=pbSrc.map(function(t){return(t.ts||'').slice(0,10);});
+      // Prepend deposit anchors before first trade
+      var pbDeps=rawDeposits.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'');});
+      var pbFirst=pbSrc.length?(pbSrc[0].ts||'').slice(0,10):null;
+      if(pbFirst&&pbDeps.length){
+        var cumDep=0;var prePts=[];var preLbls=[];
+        pbDeps.forEach(function(dep){
           cumDep+=parseFloat(dep.amount||0);
-          var ad=dep.date<firstTrade?dep.date:dep.date===firstTrade?(function(){var dd=new Date(firstTrade+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
-          if(ad&&!dm[ad])dm[ad]=Math.max(0,cumDep);
+          var ad=dep.date<pbFirst?dep.date:dep.date===pbFirst?(function(){var dd=new Date(pbFirst+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
+          if(ad){preLbls.push(ad);prePts.push(Math.max(0,cumDep));}
         });
+        pbLbls=preLbls.concat(pbLbls);
+        pbPts=prePts.concat(pbPts);
       }
-      pbSeries[a.id]={label:a.label||a.account_number,dm:dm};
-      Object.keys(dm).forEach(function(d){if(allBDates.indexOf(d)<0)allBDates.push(d);});
-    });
-    allBDates.sort();
-    var pbDS=pbAccts.map(function(a,idx){
-      var s=pbSeries[a.id];if(!s||!Object.keys(s.dm).length)return null;
-      var col=BCOLS[idx%BCOLS.length];
-      var vals=allBDates.map(function(d){return s.dm[d]!==undefined?s.dm[d]:null;});
-      return{label:s.label,data:vals,borderColor:col,backgroundColor:col+'18',fill:!!acctId,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true};
-    }).filter(Boolean);
-    if(acctId&&rawDeposits.length&&pbAccts.length){
-      var pbFirst=pbSeries[pbAccts[0].id];
-      if(pbFirst){
-        function pbNear(date){var af=allBDates.filter(function(d){return d>=date;});return af.length?af[0]:null;}
-        var depVals=allBDates.map(function(d){var hit=rawDeposits.filter(function(r){return parseFloat(r.amount||0)>0&&pbNear(r.date)===d;});return hit.length&&pbFirst.dm[d]?pbFirst.dm[d]:null;});
-        var wdwVals=allBDates.map(function(d){var hit=rawDeposits.filter(function(r){return parseFloat(r.amount||0)<0&&pbNear(r.date)===d;});return hit.length&&pbFirst.dm[d]?pbFirst.dm[d]:null;});
-        var hasD=depVals.some(function(v){return v!==null;});
-        var hasW=wdwVals.some(function(v){return v!==null;});
-        if(hasD)pbDS.push({label:'Deposit',data:depVals,borderColor:'transparent',backgroundColor:'#22c55e',pointRadius:allBDates.map(function(d,i){return depVals[i]!==null?9:0;}),pointStyle:'triangle',pointRotation:0,showLine:false,tension:0,spanGaps:false});
-        if(hasW)pbDS.push({label:'Withdrawal',data:wdwVals,borderColor:'transparent',backgroundColor:'#ef4444',pointRadius:allBDates.map(function(d,i){return wdwVals[i]!==null?9:0;}),pointStyle:'triangle',pointRotation:180,showLine:false,tension:0,spanGaps:false});
+      pbDS.push({label:'Balance',data:pbPts,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
+      // Deposit/withdrawal markers
+      if(rawDeposits.length&&pbLbls.length){
+        var depD=new Array(pbPts.length).fill(null);
+        var wdwD=new Array(pbPts.length).fill(null);
+        rawDeposits.forEach(function(dep){
+          var ad=pbFirst&&dep.date<pbFirst?dep.date:pbFirst&&dep.date===pbFirst?(function(){var dd=new Date(pbFirst+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
+          var useDate=ad||pbLbls.filter(function(l){return l>=dep.date;})[0];
+          if(!useDate)return;
+          var idx=pbLbls.lastIndexOf(useDate);if(idx<0)return;
+          var y=pbPts[idx];if(!y)return;
+          if(parseFloat(dep.amount||0)>0)depD[idx]=y;else wdwD[idx]=y;
+        });
+        if(depD.some(function(v){return v!==null;}))pbDS.push({label:'Deposit',data:depD,borderColor:'transparent',backgroundColor:'#22c55e',pointRadius:depD.map(function(v){return v!==null?9:0;}),pointStyle:'triangle',pointRotation:0,showLine:false,spanGaps:false});
+        if(wdwD.some(function(v){return v!==null;}))pbDS.push({label:'Withdrawal',data:wdwD,borderColor:'transparent',backgroundColor:'#ef4444',pointRadius:wdwD.map(function(v){return v!==null?9:0;}),pointStyle:'triangle',pointRotation:180,showLine:false,spanGaps:false});
       }
+      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:pbLbls,datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
+    } else {
+      // ALL ACCOUNTS: daily resolution — keeps multi-line chart manageable
+      var allBDates=[];var pbSeriesMap={};
+      pbAccts.forEach(function(a){
+        var src=allAccountsData[a.id]||[];
+        var dm={};
+        src.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.balance||0)>0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');}).forEach(function(t){var d=(t.ts||'').slice(0,10);dm[d]=parseFloat(t.balance||0);});
+        var acctDeps=rawDeposits.filter(function(d){return d.account_id===a.id;}).slice().sort(function(x,y){return(x.date||'').localeCompare(y.date||'');});
+        var tradeDates=Object.keys(dm).sort();var firstTrade=tradeDates.length?tradeDates[0]:null;
+        if(firstTrade&&acctDeps.length){
+          var cumDep=0;
+          acctDeps.forEach(function(dep){
+            cumDep+=parseFloat(dep.amount||0);
+            var ad=dep.date<firstTrade?dep.date:dep.date===firstTrade?(function(){var dd=new Date(firstTrade+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
+            if(ad&&!dm[ad])dm[ad]=Math.max(0,cumDep);
+          });
+        }
+        pbSeriesMap[a.id]={label:a.label||a.account_number,dm:dm};
+        Object.keys(dm).forEach(function(d){if(allBDates.indexOf(d)<0)allBDates.push(d);});
+      });
+      allBDates.sort();
+      pbAccts.forEach(function(a,idx){
+        var s=pbSeriesMap[a.id];if(!s||!Object.keys(s.dm).length)return;
+        var col=BCOLS[idx%BCOLS.length];
+        var vals=allBDates.map(function(d){return s.dm[d]!==undefined?s.dm[d]:null;});
+        pbDS.push({label:s.label,data:vals,borderColor:col,backgroundColor:col+'18',fill:false,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
+      });
+      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:allBDates,datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11}}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
     }
-    if(pbDS.length){charts.pbc=new Chart(pbc,{type:'line',data:{labels:allBDates,datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:pbAccts.length>1,position:'top',labels:{color:'#64748b',font:{size:11},filter:function(item){return item.text!=='Deposit'&&item.text!=='Withdrawal';}}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': $'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'$'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});}
   }catch(e){console.warn('Balance curve:',e);}}
   var pmc=document.getElementById('portMonthlyChart');
   if(pmc){var md2=monthData();mkBar(pmc,md2.labels,md2.vals,cd);}
