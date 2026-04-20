@@ -832,7 +832,7 @@ function renderPortOverview(){
   out+='</div>';
   if(rawDeposits.length>0){out+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div class="kpi" style="border-top:3px solid #3b82f6"><div class="kpi-label">Total Deposited</div><div class="kpi-val">£'+totalDeposited.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).length+' deposit(s)</div></div><div class="kpi" style="border-top:3px solid #ef4444"><div class="kpi-label">Total Withdrawn</div><div class="kpi-val" style="color:#ef4444">£'+totalWithdrawn.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)<0;}).length+' withdrawal(s)</div></div><div class="kpi" style="border-top:3px solid '+(netPos>=0?'#16a34a':'#dc2626')+'"><div class="kpi-label">Net Position</div><div class="kpi-val '+(netPos>=0?'pos':'neg')+'">£'+fmtPnl(netPos)+'</div><div class="kpi-sub">on $'+totalInvested.toFixed(2)+' net invested</div></div></div>';}
   out+='<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>';
-  out+='<div class="equity-card" style="margin-bottom:20px"><div class="chart-title">Account Balance History'+(acctId?' &mdash; '+((liveAccounts.find(function(a){return a.id===acctId;})||{}).label||'Account'):' &mdash; All Live Accounts')+'</div><div class="equity-wrap" style="height:240px"><canvas id="portBalanceChart"></canvas></div></div>';
+  out+='<div class="equity-card" style="margin-bottom:20px"><div class="chart-title">Account Balance History</div><div class="equity-wrap" style="height:240px"><canvas id="portBalanceChart"></canvas></div></div>';
   out+='<div class="charts-row-2">';
   out+='<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>';
   out+='<div class="chart-card"><div class="chart-title">Weekly P&L (4W)</div><div class="chart-wrap"><canvas id="portWeeklyChart"></canvas></div></div>';
@@ -1588,13 +1588,20 @@ function renderCharts(){
         Object.keys(dm).forEach(function(d){if(allBDates.indexOf(d)<0)allBDates.push(d);});
       });
       allBDates.sort();
-      pbAccts.forEach(function(a,idx){
-        var s=pbSeriesMap[a.id];if(!s||!Object.keys(s.dm).length)return;
-        var col=BCOLS[idx%BCOLS.length];
-        var vals=allBDates.map(function(d){return s.dm[d]!==undefined?s.dm[d]:null;});
-        pbDS.push({label:s.label,data:vals,borderColor:col,backgroundColor:col+'18',fill:false,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
+      // Combined line: carry-forward each account's last known balance and sum
+      var combinedVals=allBDates.map(function(d){
+        var total=0;var anyStarted=false;
+        pbAccts.forEach(function(a){
+          var s=pbSeriesMap[a.id];if(!s)return;
+          var dates=Object.keys(s.dm).sort();
+          var lastDate=null;
+          for(var i=0;i<dates.length;i++){if(dates[i]<=d)lastDate=dates[i];}
+          if(lastDate){total+=s.dm[lastDate];anyStarted=true;}
+        });
+        return anyStarted?+total.toFixed(2):null;
       });
-      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:allBDates.map(fmtDMY),datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{color:'#64748b',font:{size:11}}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.dataset.label+': \xa3'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'\xa3'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
+      pbDS.push({label:'Portfolio Balance',data:combinedVals,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
+      if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:allBDates.map(fmtDMY),datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return '\xa3'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'\xa3'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
     }
   }catch(e){console.warn('Balance curve:',e);}}
   var pmc=document.getElementById('portMonthlyChart');
