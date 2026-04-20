@@ -423,7 +423,7 @@ function updateDayStrip(){
   document.getElementById('dsDay').textContent=lastDay.compound_day?'Day '+lastDay.compound_day:'--';
   document.getElementById('dsLot').textContent=lastDay.compound_lot?parseFloat(lastDay.compound_lot).toFixed(2)+'L':'--';
   var pe=document.getElementById('dsPnl');
-  pe.textContent=pnl!==0?'$'+fmtPnl(pnl):'--';
+  pe.textContent=pnl!==0?'£'+fmtPnl(pnl):'--';
   pe.className='ds-val '+(pnl>0?'pos':pnl<0?'neg':'');
   document.getElementById('dsTrades').textContent=todayTrades.length;
   var pos=document.getElementById('dsPos');
@@ -458,9 +458,9 @@ function buildMonthlyGrid(cl){
     return'<tr><td class="year-col">'+yr+'</td>'
       +row.map(function(v){
         if(v===null)return'<td class="m-zero">--</td>';
-        return'<td class="'+(v>0?'m-pos':v<0?'m-neg':'m-zero')+'">$'+fmtPnl(v)+'</td>';
+        return'<td class="'+(v>0?'m-pos':v<0?'m-neg':'m-zero')+'">£'+fmtPnl(v)+'</td>';
       }).join('')
-      +'<td class="ytd-col '+(ytd>=0?'m-pos':'m-neg')+'">$'+fmtPnl(ytd)+'</td></tr>';
+      +'<td class="ytd-col '+(ytd>=0?'m-pos':'m-neg')+'">£'+fmtPnl(ytd)+'</td></tr>';
   }).join('');
   return'<div class="monthly-table-wrap"><table class="monthly-table"><thead>'+thead+'</thead><tbody>'+tbody+'</tbody></table></div>';
 }
@@ -517,17 +517,17 @@ function renderStratOverview(){
   var pk=0,mdd=0;bal.forEach(function(b){if(b>pk)pk=b;var d=pk-b;if(d>mdd)mdd=d;});
   var ad=cl.length?(cl.reduce(function(s,t){return s+parseFloat(t.duration_min||0);},0)/cl.length/60).toFixed(1):0;
   var syms=Array.from(new Set(cl.map(function(t){return t.symbol;}).filter(Boolean))).sort();
-  var eqLabels=enc(sorted.map(function(t){return(t.ts||'').slice(0,10);}));
+  var eqLabels=enc(sorted.map(function(t){return fmtDMY((t.ts||'').slice(0,10));}));
   var eqVals=enc(bal);
 
   var out='<div class="kpi-grid">';
-  out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">$'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">$'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(totalPnl>=0?'pos':'neg')+'">£'+fmtPnl(totalPnl)+'</div><div class="kpi-sub">'+cl.length+' closed</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(openPnl>=0?'pos':'neg')+'">£'+fmtPnl(openPnl)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+aw+'</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+al+'</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">$'+mdd.toFixed(2)+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">£'+aw+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">£'+al+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Max Drawdown</div><div class="kpi-val neg">£'+mdd.toFixed(2)+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Duration</div><div class="kpi-val">'+ad+'h</div></div>';
   out+='</div>';
   var orphanOPENs=rawDb.trades.filter(function(t){if(t.event!=='OPEN')return false;return!rawDb.trades.some(function(c){return c.ticket===t.ticket&&(c.event==='CLOSE'||c.event==='COMPOUND_CLOSE');});}).length;out+='<div style="background:'+(orphanOPENs===0?'#f0fdf4':'#fef2f2')+';border-left:3px solid '+(orphanOPENs===0?'#16a34a':'#dc2626')+';padding:8px 14px;border-radius:0 6px 6px 0;margin-bottom:12px;display:flex;align-items:center;gap:8px;font-size:11px"><span style="font-weight:600">'+(orphanOPENs===0?'&#10003; Data health OK &mdash; '+rawDb.positions.length+' open, no orphaned records':'&#9888; '+orphanOPENs+' orphaned OPEN records detected &mdash; check Supabase')+'</span><span style="margin-left:auto;color:#94a3b8">Clean start: 23 Mar 2026 &middot; EA v3.67</span></div>';out+='<div class="equity-card"><div class="chart-title">Equity Curve</div><div class="equity-wrap"><canvas id="eqChart" data-labels="'+eqLabels+'" data-values="'+eqVals+'"></canvas></div></div>';
@@ -551,7 +551,7 @@ function renderStratOverview(){
 function renderPositions(){
   var pos=db.positions;
   var fp=pos.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
-  var out='<div class="float-bar"><div><div class="float-label">Float P&L</div><div class="float-val '+(fp>=0?'pos':'neg')+'">$'+fmtPnl(fp)+'</div></div>';
+  var out='<div class="float-bar"><div><div class="float-label">Float P&L</div><div class="float-val '+(fp>=0?'pos':'neg')+'">£'+fmtPnl(fp)+'</div></div>';
   out+='<div class="pos-count">'+pos.length+' Open</div>';
   out+='<button class="refresh-btn" onclick="loadData()">&#8635; Refresh</button></div>';
   if(!pos.length)return out+'<div class="empty-state"><div class="empty-icon">&#128205;</div><div class="empty-msg">No open positions</div></div>';
@@ -606,8 +606,8 @@ function renderTradeRows(rows){
     }
     out+='<td>'+parseFloat(t.lot||0).toFixed(2)+'</td>';
     out+='<td>'+parseFloat(t.entry||0).toFixed(5)+'</td>';
-    out+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>';
-    out+='<td>$'+parseFloat(t.balance||0).toFixed(2)+'</td></tr>';
+    out+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">£'+fmtPnl(pnl)+'</td>';
+    out+='<td>£'+parseFloat(t.balance||0).toFixed(2)+'</td></tr>';
     return out;
   }).join('');
 }
@@ -722,9 +722,9 @@ function renderDaily(){
     out+='<tr>';
     out+='<td style="color:#94a3b8">'+d.date+'</td>';
     out+='<td style="color:#d97706">'+(d.compound_day?'Day '+d.compound_day:'--')+'</td>';
-    out+='<td>$'+parseFloat(d.start_balance||0).toFixed(2)+'</td>';
-    out+='<td style="color:#16a34a">$'+parseFloat(d.compound_target||0).toFixed(2)+'</td>';
-    out+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+fmtPnl(pnl)+'</td>';
+    out+='<td>£'+parseFloat(d.start_balance||0).toFixed(2)+'</td>';
+    out+='<td style="color:#16a34a">£'+parseFloat(d.compound_target||0).toFixed(2)+'</td>';
+    out+='<td style="color:'+(pnl>=0?'#16a34a':'#dc2626')+';font-weight:700">£'+fmtPnl(pnl)+'</td>';
     out+='<td>'+(d.trades_closed||0)+'</td>';
     out+='<td>'+parseFloat(d.compound_lot||0).toFixed(2)+'</td>';
     out+='<td>'+(d.target_hit?'&#9989;':'--')+'</td></tr>';
@@ -751,7 +751,7 @@ function renderHeatmap(){
     var bg=d.pnl>=0?'rgba(16,185,129,'+(0.15+it*0.7)+')':'rgba(239,68,68,'+(0.15+it*0.7)+')';
     var wr=d.count?(d.wins/d.count*100).toFixed(0):0;
     return'<div class="heatmap-cell" style="background:'+bg+';color:'+(d.pnl>=0?'#064e3b':'#7f1d1d')+'">'+
-      '<div>'+s+'</div><div>$'+d.pnl.toFixed(0)+'</div>'+
+      '<div>'+s+'</div><div>£'+d.pnl.toFixed(0)+'</div>'+
       '<div style="font-size:10px;font-weight:400">'+d.count+' | '+wr+'%WR</div></div>';
   }).join('');
   return'<div class="heatmap-header"><b>Pair Performance Heatmap</b> &mdash; '+syms.length+' pairs &middot; sorted by P&L</div>'+
@@ -780,7 +780,7 @@ function renderCurrencies(){
     var wr=tt>0?(tw/tt*100).toFixed(0):0;
     return'<div class="heatmap-cell" style="background:'+bg+';color:'+tc+';padding:14px 8px">'+
       '<div style="font-size:14px;font-weight:800">'+c+'</div>'+
-      '<div style="font-size:15px;font-weight:700;margin:4px 0">$'+v.toFixed(0)+'</div>'+
+      '<div style="font-size:15px;font-weight:700;margin:4px 0">£'+v.toFixed(0)+'</div>'+
       '<div style="font-size:10px;font-weight:500">'+tt+' trades</div>'+
       '<div style="font-size:10px;font-weight:400">'+wr+'% WR</div></div>';
   }).join('');
@@ -796,9 +796,9 @@ function renderCurrencies(){
   out+='<div class="tbl-wrap"><table><thead><tr><th>Currency</th><th>P&L Strong</th><th>WR Strong</th><th>Trades Strong</th><th>P&L Weak</th><th>WR Weak</th><th>Trades Weak</th></tr></thead><tbody>';
   out+=curs.map(function(c){
     return'<tr><td style="font-weight:700">'+c+'</td>'+
-      '<td style="color:'+(sp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+sp[c].toFixed(2)+'</td>'+
+      '<td style="color:'+(sp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">£'+sp[c].toFixed(2)+'</td>'+
       '<td>'+(sw[c][1]>0?(sw[c][0]/sw[c][1]*100).toFixed(0):0)+'%</td><td>'+sw[c][1]+'</td>'+
-      '<td style="color:'+(wp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">$'+wp[c].toFixed(2)+'</td>'+
+      '<td style="color:'+(wp[c]>=0?'#16a34a':'#dc2626')+';font-weight:700">£'+wp[c].toFixed(2)+'</td>'+
       '<td>'+(ww[c][1]>0?(ww[c][0]/ww[c][1]*100).toFixed(0):0)+'%</td><td>'+ww[c][1]+'</td></tr>';
   }).join('');
   out+='</tbody></table></div></div>';
@@ -823,14 +823,14 @@ function renderPortOverview(){
   var totalInvested=totalDeposited-totalWithdrawn;
   var netPos=rawDb.trades.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;}).reduce(function(s,t){return s+parseFloat(t.pnl||0);},0);
   var out='<div class="kpi-grid">';
-  out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(tp>=0?'pos':'neg')+'">$'+fmtPnl(tp)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(op>=0?'pos':'neg')+'">$'+fmtPnl(op)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(tp>=0?'pos':'neg')+'">£'+fmtPnl(tp)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(op>=0?'pos':'neg')+'">£'+fmtPnl(op)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-val">'+wr+'%</div><div class="kpi-sub">'+wins.length+'W / '+losses.length+'L</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-val '+(parseFloat(pf)>=1.5?'pos':parseFloat(pf)<1?'neg':'')+'">'+pf+'</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+aw+'</div></div>';
-  out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+al+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">£'+aw+'</div></div>';
+  out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">£'+al+'</div></div>';
   out+='</div>';
-  if(rawDeposits.length>0){out+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div class="kpi" style="border-top:3px solid #3b82f6"><div class="kpi-label">Total Deposited</div><div class="kpi-val">$'+totalDeposited.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).length+' deposit(s)</div></div><div class="kpi" style="border-top:3px solid #ef4444"><div class="kpi-label">Total Withdrawn</div><div class="kpi-val" style="color:#ef4444">$'+totalWithdrawn.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)<0;}).length+' withdrawal(s)</div></div><div class="kpi" style="border-top:3px solid '+(netPos>=0?'#16a34a':'#dc2626')+'"><div class="kpi-label">Net Position</div><div class="kpi-val '+(netPos>=0?'pos':'neg')+'">$'+fmtPnl(netPos)+'</div><div class="kpi-sub">on $'+totalInvested.toFixed(2)+' net invested</div></div></div>';}
+  if(rawDeposits.length>0){out+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div class="kpi" style="border-top:3px solid #3b82f6"><div class="kpi-label">Total Deposited</div><div class="kpi-val">£'+totalDeposited.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).length+' deposit(s)</div></div><div class="kpi" style="border-top:3px solid #ef4444"><div class="kpi-label">Total Withdrawn</div><div class="kpi-val" style="color:#ef4444">£'+totalWithdrawn.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)<0;}).length+' withdrawal(s)</div></div><div class="kpi" style="border-top:3px solid '+(netPos>=0?'#16a34a':'#dc2626')+'"><div class="kpi-label">Net Position</div><div class="kpi-val '+(netPos>=0?'pos':'neg')+'">£'+fmtPnl(netPos)+'</div><div class="kpi-sub">on $'+totalInvested.toFixed(2)+' net invested</div></div></div>';}
   out+='<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>';
   out+='<div class="equity-card" style="margin-bottom:20px"><div class="chart-title">Account Balance History'+(acctId?' &mdash; '+((liveAccounts.find(function(a){return a.id===acctId;})||{}).label||'Account'):' &mdash; All Live Accounts')+'</div><div class="equity-wrap" style="height:240px"><canvas id="portBalanceChart"></canvas></div></div>';
   out+='<div class="charts-row-2">';
@@ -851,6 +851,7 @@ function renderPerformance(){
   var wm={};
   allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()-d.getDay()+1);var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
   var wks=Object.keys(wm).sort().slice(-4),wvs=wks.map(function(k){return+wm[k].toFixed(2);});
+  wks=wks.map(fmtDMY);
   var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
   var mons=Object.keys(mm).sort().slice(-12),mvs=mons.map(function(k){return+mm[k].toFixed(2);});
   var hv=new Array(24).fill(0);allCl.forEach(function(t){if(t.ts){var h=parseInt(t.ts.slice(11,13));hv[h]+=parseFloat(t.pnl||0);}});
@@ -886,7 +887,7 @@ function renderCompare(){
     out+='<div class="compare-title">'+(a.label||a.name||a.account_number)+'</div>';
     out+='<div class="compare-sub">'+(a.account_type||'--')+' &middot; '+(a.broker||'--')+'</div>';
     out+='<div class="compare-kpis">';
-    out+='<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">$'+fmtPnl(pnl)+'</div></div>';
+    out+='<div class="compare-kpi"><div class="compare-kpi-label">Total P&L</div><div class="compare-kpi-val" style="color:'+(pnl>=0?'#16a34a':'#dc2626')+'">£'+fmtPnl(pnl)+'</div></div>';
     out+='<div class="compare-kpi"><div class="compare-kpi-label">Win Rate</div><div class="compare-kpi-val">'+wr+'%</div></div>';
     out+='<div class="compare-kpi"><div class="compare-kpi-label">Trades</div><div class="compare-kpi-val">'+cl.length+'</div></div>';
     out+='<div class="compare-kpi"><div class="compare-kpi-label">Account</div><div class="compare-kpi-val">'+(a.account_number||'--')+'</div></div>';
@@ -1432,7 +1433,7 @@ function openInspector(id){
     ['Symbol',t.symbol||'--'],['Direction',t.direction||'--'],['Event',t.event||'--'],
     ['Entry',parseFloat(t.entry||0).toFixed(5)],['Lot',parseFloat(t.lot||0).toFixed(2)],
     ['SL',t.sl?parseFloat(t.sl).toFixed(5):'--'],['TP',t.tp?parseFloat(t.tp).toFixed(5):'--'],
-    ['P&L','$'+fmtPnl(pnl)],['Balance','$'+parseFloat(t.balance||0).toFixed(2)],
+    ['P&L','£'+fmtPnl(pnl)],['Balance','£'+parseFloat(t.balance||0).toFixed(2)],
     ['Open Time',oe?(oe.ts||'').slice(0,16):'--'],['Close Time',(t.ts||'').slice(0,16)],
     ['Duration',dur!==null?(dur<60?dur+'m':Math.floor(dur/60)+'h '+(dur%60)+'m'):'--'],
     ['Strong',t.strong_cur||'--'],['Weak',t.weak_cur||'--'],['Gap',t.gap?parseFloat(t.gap).toFixed(4):'--'],
@@ -1455,7 +1456,7 @@ function mkBar(canvas,labels,vals,cd){
 
 function renderCharts(){
   var cd={responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'$'+ctx.raw.toFixed(2);}}}},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return'£'+ctx.raw.toFixed(2);}}}},
     scales:{x:{ticks:{color:'#94a3b8',font:{size:9}},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9}},grid:{color:'#f1f5f9'}}}};
 
   var allCl=rawDb.trades.filter(function(t){return t.event==='CLOSE'||t.event==='COMPOUND_CLOSE';});
@@ -1468,7 +1469,7 @@ function renderCharts(){
   function weekData(){
     var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()-d.getDay()+1);var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
     var wk=Object.keys(wm).sort().slice(-4);
-    return{labels:wk.map(function(w){return w.slice(5);}),vals:wk.map(function(k){return+wm[k].toFixed(2);})};
+    return{labels:wk.map(function(w){return fmtDMY(w);}),vals:wk.map(function(k){return+wm[k].toFixed(2);})};
   }
 
   var eqc=document.getElementById('eqChart');
@@ -1523,6 +1524,7 @@ function renderCharts(){
     var pbDS=[];
     // DD/MM/YYYY formatter for chart labels
     function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);}
+    function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
     // Reconstruct running balance from P&L — ignores unreliable stored balance field
     // Anchors on the last known balance and works backwards to find starting point
     function recon(trades){
