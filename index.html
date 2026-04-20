@@ -818,8 +818,10 @@ function renderPortOverview(){
   var gl=Math.abs(losses.reduce(function(s,t){return s+parseFloat(t.pnl||0);},0));
   var pf=gl>0?(gw/gl).toFixed(2):'&#8734;';
   var op=rawDb.positions.reduce(function(s,p){return s+parseFloat(p.pnl||0);},0);
-  var totalInvested=rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
-  var netPos=tp-totalInvested;
+  var totalDeposited=rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).reduce(function(s,d){return s+parseFloat(d.amount||0);},0);
+  var totalWithdrawn=Math.abs(rawDeposits.filter(function(d){return parseFloat(d.amount||0)<0;}).reduce(function(s,d){return s+parseFloat(d.amount||0);},0));
+  var totalInvested=totalDeposited-totalWithdrawn;
+  var netPos=tp;
   var out='<div class="kpi-grid">';
   out+='<div class="kpi"><div class="kpi-label">Total P&L</div><div class="kpi-val '+(tp>=0?'pos':'neg')+'">$'+fmtPnl(tp)+'</div><div class="kpi-sub">'+cl.length+' trades</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Float P&L</div><div class="kpi-val '+(op>=0?'pos':'neg')+'">$'+fmtPnl(op)+'</div><div class="kpi-sub">'+rawDb.positions.length+' open</div></div>';
@@ -828,7 +830,7 @@ function renderPortOverview(){
   out+='<div class="kpi"><div class="kpi-label">Avg Win</div><div class="kpi-val pos">$'+aw+'</div></div>';
   out+='<div class="kpi"><div class="kpi-label">Avg Loss</div><div class="kpi-val neg">$'+al+'</div></div>';
   out+='</div>';
-  if(rawDeposits.length>0){out+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px"><div class="kpi" style="border-top:3px solid #3b82f6"><div class="kpi-label">Total Invested</div><div class="kpi-val">$'+totalInvested.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).length+' deposit(s)</div></div><div class="kpi" style="border-top:3px solid '+(netPos>=0?'#16a34a':'#dc2626')+'"><div class="kpi-label">Net Position</div><div class="kpi-val '+(netPos>=0?'pos':'neg')+'">$'+fmtPnl(netPos)+'</div><div class="kpi-sub">'+(netPos>=0?'In profit on capital':'Still recovering capital')+'</div></div></div>';}
+  if(rawDeposits.length>0){out+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px"><div class="kpi" style="border-top:3px solid #3b82f6"><div class="kpi-label">Net Invested</div><div class="kpi-val">$'+totalInvested.toFixed(2)+'</div><div class="kpi-sub">'+rawDeposits.filter(function(d){return parseFloat(d.amount||0)>0;}).length+' dep / '+rawDeposits.filter(function(d){return parseFloat(d.amount||0)<0;}).length+' wdw</div></div><div class="kpi" style="border-top:3px solid '+(netPos>=0?'#16a34a':'#dc2626')+'"><div class="kpi-label">Net Position</div><div class="kpi-val '+(netPos>=0?'pos':'neg')+'">$'+fmtPnl(netPos)+'</div><div class="kpi-sub">vs $'+totalInvested.toFixed(2)+' net capital</div></div></div>';}
   out+='<div class="equity-card"><div class="chart-title">Portfolio Equity Curve</div><div class="equity-wrap"><canvas id="portEqChart"></canvas></div></div>';
   out+='<div class="charts-row-2">';
   out+='<div class="chart-card"><div class="chart-title">Monthly P&L (12M)</div><div class="chart-wrap"><canvas id="portMonthlyChart"></canvas></div></div>';
