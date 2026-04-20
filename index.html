@@ -1540,19 +1540,13 @@ function renderCharts(){
     if(acctId){
       // SINGLE ACCOUNT: per-trade, reconstructed balance
       var pbSrc=rawDb.trades.filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;}).sort(function(a,b){return(a.ts||'').localeCompare(b.ts||'');});
-      var rc=recon(pbSrc);var pbPts=rc.pts;var pbLbls=rc.labels;
-      // Prepend deposit anchors before first trade
-      var pbDeps=rawDeposits.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'');});
-      var pbFirst=pbLbls.length?pbLbls[0]:null;
-      if(pbFirst&&pbDeps.length){
-        var cumDep=0;var prePts=[];var preLbls=[];
-        pbDeps.forEach(function(dep){
-          cumDep+=parseFloat(dep.amount||0);
-          var ad=dep.date<pbFirst?dep.date:dep.date===pbFirst?(function(){var dd=new Date(pbFirst+'T12:00:00Z');dd.setDate(dd.getDate()-1);return dd.toISOString().slice(0,10);}()):null;
-          if(ad){preLbls.push(ad);prePts.push(Math.max(0,cumDep));}
-        });
-        pbLbls=preLbls.concat(pbLbls);pbPts=prePts.concat(pbPts);
-      }
+      var rc=recon(pbSrc);
+      // Convert to net position: balance - cumulative deposits at each date
+      // Zero = break-even on investment, matches Net Position card
+      var pbSortedDeps=rawDeposits.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'');});
+      function pbCumDep(date){var s=0;pbSortedDeps.forEach(function(d){if((d.date||'')<=date)s+=parseFloat(d.amount||0);});return s;}
+      var pbPts=rc.pts.map(function(bal,i){return+(bal-pbCumDep(rc.labels[i])).toFixed(2);});
+      var pbLbls=rc.labels;
       pbDS.push({label:'Balance',data:pbPts,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
       if(rawDeposits.length&&pbLbls.length){
         var depD=new Array(pbPts.length).fill(null);var wdwD=new Array(pbPts.length).fill(null);
@@ -1588,17 +1582,21 @@ function renderCharts(){
         Object.keys(dm).forEach(function(d){if(allBDates.indexOf(d)<0)allBDates.push(d);});
       });
       allBDates.sort();
-      // Combined line: carry-forward each account's last known balance and sum
+      // Combined net position: carry-forward balance minus cumulative deposits
+      // Zero = break-even, negative = still recovering capital
+      var allDepsSorted=rawDeposits.slice().sort(function(a,b){return(a.date||'').localeCompare(b.date||'');});
       var combinedVals=allBDates.map(function(d){
-        var total=0;var anyStarted=false;
+        var totalBal=0;var anyStarted=false;
         pbAccts.forEach(function(a){
           var s=pbSeriesMap[a.id];if(!s)return;
           var dates=Object.keys(s.dm).sort();
           var lastDate=null;
           for(var i=0;i<dates.length;i++){if(dates[i]<=d)lastDate=dates[i];}
-          if(lastDate){total+=s.dm[lastDate];anyStarted=true;}
+          if(lastDate){totalBal+=s.dm[lastDate];anyStarted=true;}
         });
-        return anyStarted?+total.toFixed(2):null;
+        if(!anyStarted)return null;
+        var cumDep=allDepsSorted.reduce(function(s,dep){return(dep.date||'')<=d?s+parseFloat(dep.amount||0):s;},0);
+        return+(totalBal-cumDep).toFixed(2);
       });
       pbDS.push({label:'Portfolio Balance',data:combinedVals,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:0.2,pointRadius:0,borderWidth:2,spanGaps:true});
       if(pbDS.length)charts.pbc=new Chart(pbc,{type:'line',data:{labels:allBDates.map(fmtDMY),datasets:pbDS},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){return '\xa3'+parseFloat(ctx.raw||0).toFixed(2);}}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:14},grid:{display:false}},y:{ticks:{color:'#94a3b8',font:{size:9},callback:function(v){return'\xa3'+v.toFixed(0);}},grid:{color:'#f1f5f9'}}}}});
