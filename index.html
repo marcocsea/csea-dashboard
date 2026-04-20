@@ -234,6 +234,9 @@ var DL_BAR={display:true,anchor:'end',align:'end',offset:2,clamp:true,font:{size
   color:function(ctx){return ctx.dataset.data[ctx.dataIndex]>=0?'#166534':'#991b1b';}};
 var DL_OFF={display:false};
 
+function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);}
+function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
+
 var mode='strategy',activeTab='overview',acctId='';
 var allAccounts=[],allAccountsData={},charts={};
 var rawDb={trades:[],signals:[],daily:[],positions:[]};
@@ -248,6 +251,8 @@ var STABS=['overview','positions','trades','signals','daily','heatmap','currenci
 var PTABS=['overview','trades','performance','compare'];
 var TLABELS={overview:'Overview',positions:'Positions',trades:'Trades',signals:'Signals',daily:'Daily',heatmap:'Pair Heatmap',currencies:'Currencies',performance:'Performance',compare:'Compare'};
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);}
+function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
 var fgiTrades=[];
 var FTABS=['fgi_overview','fgi_trades','fgi_roadmap','fgi_settings'];
 var FLABELS={fgi_overview:'Overview',fgi_trades:'Trades',fgi_roadmap:'Roadmap',fgi_settings:'EA Settings'};
@@ -1523,8 +1528,6 @@ function renderCharts(){
     var pbAccts=acctId?liveAccounts.filter(function(a){return a.id===acctId;}):liveAccounts;
     var pbDS=[];
     // DD/MM/YYYY formatter for chart labels
-    function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);}
-    function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
     // Reconstruct running balance from P&L — ignores unreliable stored balance field
     // Anchors on the last known balance and works backwards to find starting point
     function recon(trades){
