@@ -701,7 +701,7 @@ function renderDaily(){
   var wm={};
   allCl.forEach(function(t){
     if(!t.ts)return;
-    var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()-d.getDay()+1);
+    var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()+(d.getDay()===0?-6:1-d.getDay()));
     var w=mn.toISOString().slice(0,10);
     wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);
   });
@@ -854,7 +854,7 @@ function renderPerformance(){
   var d5l=d5k.map(function(d){return d.slice(5);});
   var d5v=d5k.map(function(d){return+dm[d].toFixed(2);});
   var wm={};
-  allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()-d.getDay()+1);var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+  allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()+(d.getDay()===0?-6:1-d.getDay()));var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
   var wks=Object.keys(wm).sort().slice(-4),wvs=wks.map(function(k){return+wm[k].toFixed(2);});
   wks=wks.map(fmtDMY);
   var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
@@ -1472,7 +1472,7 @@ function renderCharts(){
     return{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),vals:mk.map(function(k){return+mm[k].toFixed(2);})};
   }
   function weekData(){
-    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()-d.getDay()+1);var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()+(d.getDay()===0?-6:1-d.getDay()));var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
     var wk=Object.keys(wm).sort().slice(-4);
     return{labels:wk.map(function(w){return fmtDMY(w);}),vals:wk.map(function(k){return+wm[k].toFixed(2);})};
   }
