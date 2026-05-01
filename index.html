@@ -234,8 +234,8 @@ var DL_BAR={display:true,anchor:'end',align:'end',offset:2,clamp:true,font:{size
   color:function(ctx){return ctx.dataset.data[ctx.dataIndex]>=0?'#166534':'#991b1b';}};
 var DL_OFF={display:false};
 
-function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);}
-function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
+function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'-'+d.slice(5,7)+'-'+d.slice(0,4);}
+function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'-'+d.slice(5,7)+'-'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
 
 var mode='strategy',activeTab='overview',acctId='';
 var allAccounts=[],allAccountsData={},charts={};
@@ -251,8 +251,8 @@ var STABS=['overview','positions','trades','signals','daily','heatmap','currenci
 var PTABS=['overview','trades','performance','compare'];
 var TLABELS={overview:'Overview',positions:'Positions',trades:'Trades',signals:'Signals',daily:'Daily',heatmap:'Pair Heatmap',currencies:'Currencies',performance:'Performance',compare:'Compare'};
 var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4);}
-function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
+function fmtDMY(d){if(!d||d.length<10)return d;return d.slice(8,10)+'-'+d.slice(5,7)+'-'+d.slice(0,4);}
+function fmtDT(d){if(!d||d.length<10)return d;return d.slice(8,10)+'-'+d.slice(5,7)+'-'+d.slice(0,4)+(d.length>10?' '+d.slice(11,16):'');}
 var fgiTrades=[];
 var FTABS=['fgi_overview','fgi_trades','fgi_roadmap','fgi_settings'];
 var FLABELS={fgi_overview:'Overview',fgi_trades:'Trades',fgi_roadmap:'Roadmap',fgi_settings:'EA Settings'};
@@ -701,8 +701,7 @@ function renderDaily(){
   var wm={};
   allCl.forEach(function(t){
     if(!t.ts)return;
-    var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()+(d.getDay()===0?-6:1-d.getDay()));
-    var w=mn.toISOString().slice(0,10);
+    var ds=t.ts.slice(0,10),d=new Date(ds+'T12:00:00Z'),dy=d.getUTCDay(),mn=new Date(d);mn.setUTCDate(d.getUTCDate()+(dy===0?-6:1-dy));var w=mn.toISOString().slice(0,10);
     wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);
   });
   var wks=Object.keys(wm).sort().slice(-4);
@@ -854,7 +853,7 @@ function renderPerformance(){
   var d5l=d5k.map(function(d){return d.slice(5);});
   var d5v=d5k.map(function(d){return+dm[d].toFixed(2);});
   var wm={};
-  allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()+(d.getDay()===0?-6:1-d.getDay()));var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+  allCl.forEach(function(t){if(!t.ts)return;var ds=t.ts.slice(0,10),d=new Date(ds+'T12:00:00Z'),dy=d.getUTCDay(),mn=new Date(d);mn.setUTCDate(d.getUTCDate()+(dy===0?-6:1-dy));var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
   var wks=Object.keys(wm).sort().slice(-4),wvs=wks.map(function(k){return+wm[k].toFixed(2);});
   wks=wks.map(fmtDMY);
   var mm={};allCl.forEach(function(t){if(t.ts){var m=t.ts.slice(0,7);mm[m]=(mm[m]||0)+parseFloat(t.pnl||0);}});
@@ -1472,7 +1471,7 @@ function renderCharts(){
     return{labels:mk.map(function(m){return MON[parseInt(m.slice(5))-1];}),vals:mk.map(function(k){return+mm[k].toFixed(2);})};
   }
   function weekData(){
-    var wm={};allCl.forEach(function(t){if(!t.ts)return;var d=new Date(t.ts),mn=new Date(d);mn.setDate(d.getDate()+(d.getDay()===0?-6:1-d.getDay()));var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
+    var wm={};allCl.forEach(function(t){if(!t.ts)return;var ds=t.ts.slice(0,10),d=new Date(ds+'T12:00:00Z'),dy=d.getUTCDay(),mn=new Date(d);mn.setUTCDate(d.getUTCDate()+(dy===0?-6:1-dy));var w=mn.toISOString().slice(0,10);wm[w]=(wm[w]||0)+parseFloat(t.pnl||0);});
     var wk=Object.keys(wm).sort().slice(-4);
     return{labels:wk.map(function(w){return fmtDMY(w);}),vals:wk.map(function(k){return+wm[k].toFixed(2);})};
   }
