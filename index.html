@@ -875,6 +875,61 @@ function renderPerformance(){
   return out;
 }
 
+/* ── INDICATOR AGREEMENT PANEL ────────────────────────────────────── */
+function indicatorAgreementPanel(compareList){
+  var freeA=compareList.find(function(a){return(a.label||'').indexOf('Free')>=0;});
+  var paidA=compareList.find(function(a){return(a.label||'').indexOf('Free')<0&&a.strategy==='CSEA';});
+  if(!freeA||!paidA)return'';
+  var freeCl=(allAccountsData[freeA.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
+  var paidCl=(allAccountsData[paidA.id]||[]).filter(function(t){return(t.event==='CLOSE'||t.event==='COMPOUND_CLOSE')&&parseFloat(t.pnl||0)!==0;});
+  var h='<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:18px;margin-bottom:20px">';
+  h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><span style="font-size:18px">&#9878;</span><div><div style="font-size:14px;font-weight:700;color:#1e40af">Indicator Agreement Analysis</div>';
+  h+='<div style="font-size:11px;color:#64748b">Free ('+freeA.label+') vs Paid ('+paidA.label+')</div></div></div>';
+  if(!freeCl.length&&!paidCl.length){h+='<div style="color:#64748b;font-size:12px">No closed trades yet — data accumulating as both terminals trade.</div></div>';return h;}
+  if(!freeCl.length){h+='<div style="color:#64748b;font-size:12px">Free indicator has 0 closed trades yet — check back as data accumulates.</div></div>';return h;}
+  var agreed=[],paidOnly=[];
+  freeCl.forEach(function(ft){
+    var fd=(ft.ts||'').slice(0,10);
+    var m=paidCl.find(function(pt){return pt.symbol===ft.symbol&&pt.direction===ft.direction&&(pt.ts||'').slice(0,10)===fd;});
+    if(!m)return;agreed.push({free:ft,paid:m});
+  });
+  paidCl.forEach(function(pt){
+    var pd=(pt.ts||'').slice(0,10);
+    var m=freeCl.find(function(ft){return ft.symbol===pt.symbol&&ft.direction===pt.direction&&(ft.ts||'').slice(0,10)===pd;});
+    if(!m)paidOnly.push(pt);
+  });
+  var freeOnly=freeCl.filter(function(ft){var fd=(ft.ts||'').slice(0,10);return!paidCl.find(function(pt){return pt.symbol===ft.symbol&&pt.direction===ft.direction&&(pt.ts||'').slice(0,10)===fd;});});
+  var total=agreed.length+freeOnly.length+paidOnly.length;
+  var agreePct=total?(agreed.length/total*100).toFixed(0):0;
+  function wrPct(arr,field){if(!arr.length)return'—';var w=arr.filter(function(x){return parseFloat((field?x[field]:x).pnl||0)>0;}).length;return(w/arr.length*100).toFixed(1)+'%';}
+  function avgG(arr,field){var g=arr.map(function(x){return parseFloat((field?x[field]:x).gap||0);}).filter(function(v){return v>0;});return g.length?(g.reduce(function(a,b){return a+b;},0)/g.length).toFixed(3):'—';}
+  h+='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px">';
+  h+='<div style="background:#fff;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#1e40af">'+agreePct+'%</div><div style="font-size:10px;color:#64748b;font-weight:600">Agreement Rate</div></div>';
+  h+='<div style="background:#dcfce7;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#16a34a">'+agreed.length+'</div><div style="font-size:10px;color:#166534;font-weight:600">Both Took</div></div>';
+  h+='<div style="background:#dbeafe;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#1e40af">'+freeOnly.length+'</div><div style="font-size:10px;color:#1e40af;font-weight:600">Free Only</div></div>';
+  h+='<div style="background:#fef3c7;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#d97706">'+paidOnly.length+'</div><div style="font-size:10px;color:#92400e;font-weight:600">Paid Only</div></div>';
+  h+='<div style="background:#f8fafc;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#64748b">'+total+'</div><div style="font-size:10px;color:#64748b;font-weight:600">Total Unique</div></div>';
+  h+='</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">';
+  h+='<div style="background:#fff;border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">&#10003; Agreed Trades WR</div>';
+  h+='<div style="font-size:12px">Free: <strong>'+wrPct(agreed,'free')+'</strong> &nbsp;|&nbsp; Paid: <strong>'+wrPct(agreed,'paid')+'</strong><div style="font-size:10px;color:#64748b;margin-top:3px">'+agreed.length+' shared trades</div></div></div>';
+  h+='<div style="background:#fff;border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">&#9888; Paid-Only WR (key question)</div>';
+  var poWR=wrPct(paidOnly);h+='<div style="font-size:12px">WR: <strong style="color:'+(poWR!=='—'&&parseFloat(poWR)>=50?'#16a34a':'#dc2626')+'">'+poWR+'</strong> on '+paidOnly.length+' trade(s)<div style="font-size:10px;color:#64748b;margin-top:3px">Did paid indicator add value here?</div></div></div>';
+  h+='<div style="background:#fff;border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">&#128202; Avg Gap at Entry</div>';
+  h+='<div style="font-size:12px">Free: <strong>'+avgG(freeCl)+'</strong> &nbsp;|&nbsp; Paid: <strong>'+avgG(paidCl)+'</strong>';
+  if(paidOnly.length)h+='<div style="font-size:10px;color:#d97706;margin-top:3px">Paid-only avg: <strong>'+avgG(paidOnly)+'</strong> — lower = more marginal signals</div>';
+  h+='</div></div></div>';
+  if(paidOnly.length){
+    h+='<div style="background:#fff;border-radius:8px;padding:12px"><div style="font-size:10px;font-weight:700;color:#d97706;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Paid-Only Trades — Free Indicator Missed These</div>';
+    h+='<div style="overflow-x:auto;max-height:160px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead style="background:#fef3c7"><tr><th style="padding:5px 8px;text-align:left;font-weight:600;color:#92400e">Date</th><th style="padding:5px 8px;text-align:left;font-weight:600;color:#92400e">Pair</th><th style="padding:5px 8px;font-weight:600;color:#92400e">Dir</th><th style="padding:5px 8px;font-weight:600;color:#92400e">Gap</th><th style="padding:5px 8px;font-weight:600;color:#92400e">P&amp;L</th><th style="padding:5px 8px;font-weight:600;color:#92400e">Result</th></tr></thead><tbody>';
+    paidOnly.slice().reverse().slice(0,20).forEach(function(t){var p=parseFloat(t.pnl||0);h+='<tr><td style="padding:5px 8px;color:#64748b">'+(t.ts||'').slice(0,10)+'</td><td style="padding:5px 8px;font-weight:700;color:#1e40af">'+(t.symbol||'—')+'</td><td style="padding:5px 8px"><span style="background:'+(t.direction==='BUY'?'#dcfce7':'#fee2e2')+';color:'+(t.direction==='BUY'?'#16a34a':'#dc2626')+';padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700">'+(t.direction||'—')+'</span></td><td style="padding:5px 8px">'+parseFloat(t.gap||0).toFixed(3)+'</td><td style="padding:5px 8px;font-weight:700;color:'+(p>=0?'#16a34a':'#dc2626')+'">'+(p>=0?'+':'')+p.toFixed(2)+'</td><td style="padding:5px 8px"><span style="font-weight:700;font-size:10px;color:'+(p>0?'#16a34a':'#dc2626')+'">'+(p>0?'WIN':'LOSS')+'</span></td></tr>';});
+    h+='</tbody></table></div></div>';
+  }
+  h+='<div style="margin-top:10px;font-size:10px;color:#94a3b8">Agreement = same pair + direction + same calendar day. Needs 20+ trades per account for meaningful conclusions.</div>';
+  h+='</div>';
+  return h;
+}
+
 /* ── COMPARE ─────────────────────────────────────────────────────── */
 function renderCompare(){
   var compareList=mode==='strategy'?cseaAccounts:liveAccounts;
@@ -900,7 +955,7 @@ function renderCompare(){
     out+='</div>';
     return out;
   }).join('');
-  return'<div class="compare-grid">'+cards+'</div>';
+  return indicatorAgreementPanel(compareList)+'<div class="compare-grid">'+cards+'</div>';
 }
 
 /* ══════════════════════════════════════════════════════════════════
